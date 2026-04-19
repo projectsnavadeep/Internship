@@ -1,1 +1,5 @@
-git add .; git commit -m "fix: update project files and SQL scripts"; git push origin main
+# Git Push Commands - Copy & Paste to push all code to GitHub
+
+git add .
+git commit -m "fix: rebuild application saving - nuclear DB fix + clean modal rewrite"
+git push origin main

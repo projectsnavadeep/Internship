@@ -218,6 +218,17 @@ export function Sidebar({ activeTab, onTabChange, onLogout, userName, collapsed,
             </button>
           );
         })}
+        
+        {/* Mobile Sign Out */}
+        <button
+          onClick={onLogout}
+          className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all text-red-500 hover:bg-red-500/10"
+        >
+          <LogOut className="w-6 h-6" />
+          <span className="text-[10px] font-medium tracking-tight">
+            Sign Out
+          </span>
+        </button>
       </div>
     </>
   );

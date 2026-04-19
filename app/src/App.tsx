@@ -150,38 +150,40 @@ function App() {
   const handleSaveApplication = async (appData: Partial<Application>) => {
     if (!user) return;
     try {
-      console.log('[🚀] SAVING APPLICATION STARTED...');
-      
-      // Sanitize empty strings to null for database compatibility
-      const sanitizedData = { ...appData };
-      if (sanitizedData.applied_date === '') sanitizedData.applied_date = undefined;
-      if (sanitizedData.deadline_date === '') sanitizedData.deadline_date = undefined;
-      if (sanitizedData.interview_date === '') sanitizedData.interview_date = undefined;
-      if (sanitizedData.rating === 0) sanitizedData.rating = undefined;
+      // Build clean payload - only send non-empty fields
+      const payload: any = {};
+      for (const [key, val] of Object.entries(appData)) {
+        if (val !== '' && val !== undefined && val !== null && val !== 0) {
+          payload[key] = val;
+        }
+      }
+      // Always ensure required fields
+      payload.company_name = appData.company_name;
+      payload.job_title = appData.job_title;
+      payload.user_id = user.id;
 
       if (editingApp) {
-        const updated = await updateApplication(editingApp.id, sanitizedData);
+        delete payload.user_id; // Don't update user_id
+        const updated = await updateApplication(editingApp.id, payload);
         setApplications(apps => apps.map(a => a.id === updated.id ? updated : a));
         toast.success('Application updated!');
       } else {
-        const newApp = await createApplication({
-          ...sanitizedData,
-          user_id: user.id,
-        });
+        const newApp = await createApplication(payload);
         setApplications(apps => [newApp, ...apps]);
         toast.success('Application added!');
       }
-      console.log('[✅] SAVE SUCCESS');
       setShowAppModal(false);
       setEditingApp(null);
       loadData();
-    } catch (error) {
-      const errorResponse = error as any;
-      console.error('[❌] SAVE ERROR:', errorResponse.message || errorResponse);
-      toast.error(errorResponse.message || 'Failed to save application');
-      throw error; // Let the modal handle visual state
+    } catch (error: any) {
+      console.error('SAVE ERROR:', error);
+      toast.error(error.message || 'Failed to save');
+      // Still close the modal so user isn't stuck
+      setShowAppModal(false);
+      setEditingApp(null);
     }
   };
+
 
   const handleDeleteApplication = async (id: string) => {
     try {
@@ -360,6 +362,7 @@ function App() {
           onClose={() => { setShowAppModal(false); setEditingApp(null); }}
           onSave={handleSaveApplication}
           application={editingApp}
+          userId={user?.id}
         />
 
         <ApplicationDetails

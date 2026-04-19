@@ -5,37 +5,36 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
-// Singleton instances
-let _supabase: any = null;
-let _supabaseAdmin: any = null;
+// ============================================
+// BULLETPROOF SINGLETON - survives Vite HMR
+// Both clients MUST live on globalThis so they
+// are never re-created during hot module reload.
+// Duplicate GoTrueClient instances deadlock the
+// browser's navigator.locks and freeze all
+// Supabase calls (insert, upload, select, etc).
+// ============================================
+const g = globalThis as any;
 
-export const supabase = (function() {
-  if (_supabase) return _supabase;
-  
-  _supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!g.__supabase) {
+  g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      // Helps identify this specific tab/instance's lock
-      storageKey: `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
     },
   });
-  return _supabase;
-})();
+}
+export const supabase = g.__supabase;
 
-export const supabaseAdmin = (function() {
-  if (_supabaseAdmin) return _supabaseAdmin;
-  if (!supabaseServiceKey) return null;
-
-  _supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+if (!g.__supabaseAdmin && supabaseServiceKey) {
+  g.__supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
-  return _supabaseAdmin;
-})();
+}
+export const supabaseAdmin = g.__supabaseAdmin || null;
 
 // ============================================
 // Auth helpers
@@ -186,20 +185,40 @@ export const getApplications = async (userId: string) => {
 };
 
 export const createApplication = async (application: Partial<Application>) => {
+  // Strip empty strings, nulls, and undefined to guarantee postgres doesn't crash on date/uuid types
+  const cleanData: any = {};
+  for (const [key, value] of Object.entries(application)) {
+    if (value !== '' && value !== undefined && value !== null) {
+      cleanData[key] = value;
+    }
+  }
+
   const { data, error } = await supabase
     .from('applications')
-    .insert(application)
+    .insert(cleanData)
     .select()
     .single();
   
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase API Error on Save:", error);
+    throw new Error(error.message);
+  }
   return data as Application;
 };
 
 export const updateApplication = async (id: string, updates: Partial<Application>) => {
+  const cleanData: any = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== '' && value !== undefined && value !== null) {
+      cleanData[key] = value;
+    } else if (value === '' || value === null) {
+      cleanData[key] = null; // Explicitly set to null to clear in db
+    }
+  }
+
   const { data, error } = await supabase
     .from('applications')
-    .update(updates)
+    .update(cleanData)
     .eq('id', id)
     .select()
     .single();
