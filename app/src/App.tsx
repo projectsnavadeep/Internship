@@ -21,15 +21,13 @@ const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
 import { 
   getApplications, 
-  createApplication, 
   updateApplication, 
   deleteApplication,
   getApplicationStats,
   getReminders,
   getInterviewNotes,
   createInterviewNote,
-  deleteInterviewNote,
-  logError
+  deleteInterviewNote
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote } from '@/types';

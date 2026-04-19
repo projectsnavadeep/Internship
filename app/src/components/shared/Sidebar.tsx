@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Briefcase, 
   Search,
   Menu,
   X,
@@ -35,7 +34,7 @@ const adminNavItems = [
   { id: 'admin-settings', label: 'System Console' },
 ];
 
-export function Sidebar({ activeTab, onTabChange, onLogout, userName, isAdmin }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarProps) {
   const navItems = isAdmin ? adminNavItems : studentNavItems;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false); // expanded search state

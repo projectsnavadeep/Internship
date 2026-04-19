@@ -8,12 +8,10 @@ import {
   ChevronRight,
   Loader2,
   Lock,
-  Eye,
-  EyeOff,
   Calendar,
   BadgeCheck
 } from 'lucide-react';
-import { getProfile, updateProfile, uploadAvatarImage, updatePassword } from '@/lib/supabase';
+import { getProfile, uploadAvatarImage, updatePassword } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { UserPreferences } from '@/types';
 
@@ -39,15 +37,12 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     signup_date: '',
   });
 
-  const [isLoading, setIsLoading] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [notifications, setNotifications] = useState<UserPreferences>({
@@ -90,31 +85,6 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       setProfile(prev => ({ ...prev, email: userEmail }));
     }
   }, [userEmail]);
-
-  const handleSave = async () => {
-    if (!userId) return toast.error('You must be logged in to save settings.');
-    setIsLoading(true);
-    try {
-      await updateProfile(userId, {
-        full_name: profile.fullName,
-        university: profile.university,
-        major: profile.major,
-        graduation_year: parseInt(profile.graduation_year) || null,
-        avatar_url: profile.avatar_url,
-        dob: profile.dob || null,
-        merit: profile.merit || '',
-        additional_data: profile.additional_data || '',
-        signup_date: profile.signup_date || null,
-        preferences: notifications,
-      });
-      setIsEditingProfile(false);
-      toast.success('Settings saved successfully.');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save settings.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handlePasswordChange = async () => {
     if (!newPassword || newPassword.length < 6) return toast.error('Password must be at least 6 characters.');

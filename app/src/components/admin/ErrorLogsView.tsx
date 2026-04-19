@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle, CheckCircle2, Trash2, Loader2, RefreshCw,
-  Filter, Clock, User, Bug, FileWarning, ChevronDown, ChevronUp,
-  MessageSquare, Shield
+  CheckCircle2, Trash2, Loader2, RefreshCw,
+  Clock, User, Bug, FileWarning, Shield, ChevronUp, ChevronDown, MessageSquare
 } from 'lucide-react';
 import { adminGetErrorLogs, adminResolveError, adminDeleteErrorLog } from '@/lib/supabase';
 import { toast } from 'sonner';

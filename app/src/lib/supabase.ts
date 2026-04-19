@@ -22,7 +22,6 @@ if (!g.__supabase) {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'implicit',
-    lock: false,
     storageKey: 'sb-auth-token',
   },
   });

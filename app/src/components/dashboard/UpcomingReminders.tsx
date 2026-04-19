@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Clock, CheckCircle2, Calendar } from 'lucide-react';
 import type { Reminder } from '@/types';
 
