@@ -25,13 +25,13 @@ const statusOrder = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer
 
 const getStatusStyles = (status: string) => {
   switch (status) {
-    case 'Offer': return 'bg-apple-blue/10 text-apple-blue border-apple-blue/20';
-    case 'Applied': return 'bg-apple-gray dark:bg-zinc-800 text-apple-near-black/70 dark:text-white/70 border-black/5 dark:border-white/5';
+    case 'Offer': return 'bg-[#FCFBFA] text-mc-ink-black border border-mc-ink-black/20';
+    case 'Applied': return 'bg-mc-ink-black text-white border-transparent';
     case 'Interview': 
     case 'Phone Screen':
-    case 'Technical': return 'bg-apple-near-black text-white dark:bg-white dark:text-apple-near-black border-transparent';
-    case 'Rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
-    default: return 'bg-apple-gray dark:bg-zinc-800 text-apple-near-black/40 dark:text-white/40 border-black/5 dark:border-white/5';
+    case 'Technical': return 'bg-mc-light-signal-orange text-white border-transparent';
+    case 'Rejected': return 'bg-mc-signal-orange text-white border-transparent';
+    default: return 'bg-white text-mc-ink-black/60 border border-mc-ink-black/10';
   }
 };
 
@@ -92,38 +92,36 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
           </p>
         </div>
         
-        <motion.button
+        <button
           onClick={onAdd}
-          className="apple-pill-filled w-fit"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          className="mc-pill-ink w-fit"
         >
           Add Application
-        </motion.button>
+        </button>
       </motion.div>
 
-      {/* Search and Filters - Clean Apple Style */}
+      {/* Search and Filters - Clean Mastercard Style */}
       <motion.div
-        className="apple-card p-4 bg-white dark:bg-apple-near-black flex flex-col md:flex-row gap-4 items-center"
+        className="mc-nav-pill bg-white/70 dark:bg-zinc-900/70 border-none flex flex-col md:flex-row gap-4 items-center justify-between"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}
       >
-        <div className="flex-1 relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-apple-near-black/20 dark:text-white/20" />
+        <div className="flex-1 relative w-full border-b border-mc-ink-black/10 md:border-none">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-mc-ink-black/40 dark:text-white/40" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search companies, positions..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 text-apple-near-black dark:text-white border-none focus:ring-2 focus:ring-apple-blue/20 transition-all placeholder:text-apple-near-black/30 dark:placeholder:text-white/30"
+            className="w-full bg-transparent pl-14 pr-4 py-3 text-mc-ink-black dark:text-white border-none focus:outline-none focus:ring-0 placeholder:text-mc-ink-black/40 dark:placeholder:text-white/40 text-[16px]"
           />
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
-            showFilters ? 'bg-apple-blue text-white' : 'bg-apple-gray dark:bg-zinc-900 text-apple-near-black dark:text-white'
+          className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all font-medium text-[16px] ${
+            showFilters ? 'bg-mc-ink-black text-white' : 'bg-transparent text-mc-ink-black hover:bg-black/5 dark:text-white dark:hover:bg-white/5'
           }`}
         >
           <Filter size={18} />
@@ -187,7 +185,7 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
         )}
       </AnimatePresence>
 
-      {/* Applications Grid - Product Tile Style */}
+      {/* Applications Grid - Mastercard Pill Carousel Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode="popLayout">
           {filteredApplications.map((app, index) => (
@@ -198,76 +196,83 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.05, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              className="apple-card apple-card-lift bg-white dark:bg-apple-near-black p-8 group overflow-hidden flex flex-col h-full"
+              className="mc-stadium-card p-10 flex flex-col h-full bg-white relative group"
             >
-              <div className="flex items-start justify-between mb-8">
-                <div className="w-14 h-14 rounded-2xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black dark:text-white shadow-inner transition-transform group-hover:scale-110 duration-500">
-                  <Building2 size={28} strokeWidth={1.5} />
+              {/* Optional: Thin orbital connection arc decorative element if desired. Could be absolute pos */}
+              <div className="flex items-start justify-between mb-8 z-10 relative">
+                <div className="mc-circle-portrait w-20 h-20 bg-mc-canvas-cream flex items-center justify-center text-mc-ink-black shadow-sm">
+                  <Building2 size={32} strokeWidth={1.5} />
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 mt-2">
                   {[...Array(5)].map((_, i) => (
                     <div 
                       key={i} 
-                      className={`w-1.5 h-1.5 rounded-full ${i < (app.rating || 0) ? 'bg-apple-blue' : 'bg-apple-near-black/10 dark:bg-white/10'}`} 
+                      className={`w-2 h-2 rounded-full ${i < (app.rating || 0) ? 'bg-mc-light-signal-orange' : 'bg-mc-ink-black/10'}`} 
                     />
                   ))}
                 </div>
               </div>
 
-              <div className="flex-1 space-y-2">
-                <h3 className="text-[24px] font-bold text-apple-near-black dark:text-white tracking-apple-tight leading-tight group-hover:text-apple-blue transition-colors">
+              <div className="flex-1 space-y-3 z-10 relative">
+                <div className="mc-eyebrow flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />
                   {app.company_name}
-                </h3>
-                <p className="text-[17px] font-medium text-apple-near-black/50 dark:text-white/50 tracking-apple-tight">
+                </div>
+                <h3 className="text-[28px] font-medium text-mc-ink-black tracking-mc-tight leading-tight group-hover:text-mc-signal-orange transition-colors cursor-pointer" onClick={() => onView(app)}>
                   {app.job_title}
-                </p>
+                </h3>
                 
-                <div className="pt-4 flex flex-wrap gap-4 items-center">
-                  <span className="flex items-center gap-1.5 text-[14px] text-apple-near-black/40 dark:text-white/40">
-                    <MapPin size={14} />
+                <div className="pt-4 flex flex-col gap-3">
+                  <span className="flex items-center gap-2 text-[16px] text-mc-ink-black/60">
+                    <MapPin size={16} />
                     {app.location || 'Remote'}
                   </span>
-                  <span className="flex items-center gap-1.5 text-[14px] text-apple-near-black/40 dark:text-white/40">
-                    <Calendar size={14} />
-                    {new Date(app.applied_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  <span className="flex items-center gap-2 text-[16px] text-mc-ink-black/60">
+                    <Calendar size={16} />
+                    {new Date(app.applied_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+              <div className="mt-10 pt-6 flex items-center justify-between z-10 relative">
                 <select
                   value={app.status}
                   onChange={(e) => onStatusChange(app.id, e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className={`appearance-none cursor-pointer px-4 py-1.5 pt-2 rounded-full text-[13px] font-bold uppercase tracking-widest border border-black/10 dark:border-white/10 transition-all hover:opacity-80 outline-none ${getStatusStyles(app.status)}`}
+                  className={`appearance-none cursor-pointer px-6 py-2 rounded-full text-[14px] font-medium uppercase tracking-mc-wide transition-all outline-none ${getStatusStyles(app.status)}`}
                 >
                   {statusOrder.map(s => (
-                    <option key={s} value={s} className="bg-white dark:bg-black text-black dark:text-white uppercase font-semibold">
+                    <option key={s} value={s} className="bg-white text-mc-ink-black uppercase">
                       {s}
                     </option>
                   ))}
                 </select>
                 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => onView(app)}
-                    className="p-2 rounded-full hover:bg-apple-gray dark:hover:bg-zinc-800 text-apple-near-black/40 dark:text-white/40 hover:text-apple-blue transition-all"
+                    className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black/5 text-mc-ink-black/60 hover:text-mc-ink-black transition-all"
                   >
-                    <Eye size={18} />
+                    <Eye size={20} />
                   </button>
                   <button
                     onClick={() => onEdit(app)}
-                    className="p-2 rounded-full hover:bg-apple-gray dark:hover:bg-zinc-800 text-apple-near-black/40 dark:text-white/40 hover:text-apple-blue transition-all"
+                    className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black/5 text-mc-ink-black/60 hover:text-mc-ink-black transition-all"
                   >
-                    <Edit size={18} />
+                    <Edit size={20} />
                   </button>
                   <button
                     onClick={() => onDelete(app.id)}
-                    className="p-2 rounded-full hover:bg-apple-gray dark:hover:bg-zinc-800 text-apple-near-black/40 dark:text-white/40 hover:text-red-500 transition-all"
+                    className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-red-500/10 text-mc-ink-black/60 hover:text-red-500 transition-all"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={20} />
                   </button>
                 </div>
+              </div>
+
+              {/* Watermark effect */}
+              <div className="absolute -bottom-8 -right-8 mc-ghost-watermark text-mc-ink-black opacity-[0.03]">
+                {app.company_name.substring(0, 3).toUpperCase()}
               </div>
             </motion.div>
           ))}

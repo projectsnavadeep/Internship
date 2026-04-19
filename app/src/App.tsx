@@ -18,6 +18,7 @@ const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then
 const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView').then(m => ({ default: m.UserRegistryView })));
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
 import { 
   getApplications, 
   createApplication, 
@@ -27,7 +28,8 @@ import {
   getReminders,
   getInterviewNotes,
   createInterviewNote,
-  deleteInterviewNote
+  deleteInterviewNote,
+  logError
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote } from '@/types';
@@ -52,7 +54,7 @@ function App() {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Can keep variable if needed internally, but won't be used
 
   // Guard: non-admin users cannot access admin tab
   useEffect(() => {
@@ -147,43 +149,13 @@ function App() {
     }
   };
 
-  const handleSaveApplication = async (appData: Partial<Application>) => {
-    if (!user) return;
-    try {
-      // Build clean payload - only send non-empty fields
-      const payload: any = {};
-      for (const [key, val] of Object.entries(appData)) {
-        if (val !== '' && val !== undefined && val !== null && val !== 0) {
-          payload[key] = val;
-        }
-      }
-      // Always ensure required fields
-      payload.company_name = appData.company_name;
-      payload.job_title = appData.job_title;
-      payload.user_id = user.id;
-
-      if (editingApp) {
-        delete payload.user_id; // Don't update user_id
-        const updated = await updateApplication(editingApp.id, payload);
-        setApplications(apps => apps.map(a => a.id === updated.id ? updated : a));
-        toast.success('Application updated!');
-      } else {
-        const newApp = await createApplication(payload);
-        setApplications(apps => [newApp, ...apps]);
-        toast.success('Application added!');
-      }
-      setShowAppModal(false);
-      setEditingApp(null);
-      loadData();
-    } catch (error: any) {
-      console.error('SAVE ERROR:', error);
-      toast.error(error.message || 'Failed to save');
-      // Still close the modal so user isn't stuck
-      setShowAppModal(false);
-      setEditingApp(null);
-    }
+  const handleSaveApplication = async (_appData: Partial<Application>) => {
+    // Modal now handles DB insert/update directly.
+    // This callback just refreshes the local state.
+    setShowAppModal(false);
+    setEditingApp(null);
+    loadData();
   };
-
 
   const handleDeleteApplication = async (id: string) => {
     try {
@@ -282,6 +254,9 @@ function App() {
       case 'admin-settings':
         if (!isAdmin) return null;
         return <AdminSettings />;
+      case 'error-logs':
+        if (!isAdmin) return null;
+        return <ErrorLogsView adminId={user?.id} />;
       default:
         return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
     }
@@ -308,16 +283,17 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen relative bg-apple-gray dark:bg-apple-black flex">
+    <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
       <Toaster 
         position="top-right" 
         toastOptions={{
           style: {
-            background: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 0, 0, 0.05)',
-            color: '#1d1d1f',
-            borderRadius: '12px',
+            background: '#141413',
+            color: '#FFFFFF',
+            borderRadius: '20px',
+            border: 'none',
+            fontSize: '14px',
+            fontFamily: 'Sofia Sans, sans-serif',
           },
         }}
       />
@@ -334,9 +310,7 @@ function App() {
 
       {/* Main Content */}
       <main 
-        className={`flex-1 min-h-screen p-4 md:p-8 transition-all duration-300 w-full overflow-x-hidden ${
-          isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[260px]'
-        } pb-24 md:pb-8`}
+        className="flex-1 min-h-screen p-4 md:px-8 mt-16 md:mt-32 transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
         <div className="max-w-[1200px] mx-auto">
           <AnimatePresence mode="wait">

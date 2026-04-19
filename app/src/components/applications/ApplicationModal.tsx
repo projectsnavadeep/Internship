@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star } from 'lucide-react';
+import { X, Star, Loader2 } from 'lucide-react';
+import { supabase, logError } from '@/lib/supabase';
+import { toast } from 'sonner';
 import type { Application, ApplicationStatus, EmploymentType } from '@/types';
 
 interface ApplicationModalProps {
@@ -72,6 +74,7 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
         rating: 0,
       });
     }
+    setIsSaving(false);
   }, [application, isOpen]);
 
   const updateField = (field: string, value: any) => {
@@ -83,16 +86,60 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
     if (isSaving) return;
 
     if (!formData.company_name?.trim() || !formData.job_title?.trim()) {
-      alert('Company Name and Job Title are required.');
+      toast.error('Company Name and Job Title are required.');
       return;
     }
 
     setIsSaving(true);
+
+    // Build clean payload - strip empty strings
+    const payload: any = {};
+    for (const [key, val] of Object.entries(formData)) {
+      if (val !== '' && val !== undefined && val !== null && val !== 0) {
+        payload[key] = val;
+      }
+    }
+    payload.company_name = formData.company_name;
+    payload.job_title = formData.job_title;
+
     try {
-      await onSave(formData);
-      setIsSaving(false);
-    } catch (error: any) {
-      console.error('Save failed:', error);
+      if (application) {
+        // UPDATE existing
+        const { data, error } = await supabase
+          .from('applications')
+          .update(payload)
+          .eq('id', application.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        toast.success('Application updated!');
+        onSave(data); // Notify parent to refresh
+      } else {
+        // INSERT new
+        payload.user_id = userId;
+        const { data, error } = await supabase
+          .from('applications')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        toast.success('Application added!');
+        onSave(data); // Notify parent to refresh
+      }
+      onClose();
+    } catch (err: any) {
+      console.error('SAVE FAILED:', err);
+      toast.error(err.message || 'Failed to save application');
+      logError(
+        application ? 'application_update' : 'application_save',
+        err.message || 'Unknown error',
+        `Saving: ${formData.company_name} - ${formData.job_title}`,
+        JSON.stringify(err),
+        userId
+      );
+    } finally {
       setIsSaving(false);
     }
   };
@@ -109,240 +156,125 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
           className="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-10 overflow-y-auto"
           onClick={onClose}
         >
-          {/* Backdrop */}
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-2xl bg-mc-canvas-cream dark:bg-zinc-900 rounded-[40px] shadow-mc-deep overflow-hidden border border-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-black/5 dark:border-white/5">
-              <h2 className="text-xl font-bold text-apple-near-black dark:text-white">
+            <div className="flex items-center justify-between px-10 py-8 border-b border-mc-ink-black/10">
+              <h2 className="text-[36px] tracking-mc-tight leading-none font-medium text-mc-ink-black dark:text-white">
                 {application ? 'Edit Application' : 'New Application'}
               </h2>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                <X className="w-5 h-5" />
+              <button onClick={onClose} className="w-[48px] h-[48px] rounded-full flex items-center justify-center bg-white hover:bg-black/5 transition-colors border border-mc-ink-black/10">
+                <X className="w-5 h-5 text-mc-ink-black" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="px-10 py-10 space-y-12 max-h-[70vh] overflow-y-auto">
 
               {/* Company & Position */}
               <section className="space-y-6">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Company & Position</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />COMPANY & POSITION</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Company Name *</label>
-                    <input
-                      type="text"
-                      value={formData.company_name}
-                      onChange={(e) => updateField('company_name', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                      placeholder="e.g. Google"
-                      required
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Company Name *</label>
+                    <input type="text" value={formData.company_name} onChange={(e) => updateField('company_name', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
+                      placeholder="e.g. Google" required />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Job Title *</label>
-                    <input
-                      type="text"
-                      value={formData.job_title}
-                      onChange={(e) => updateField('job_title', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                      placeholder="e.g. Software Engineer Intern"
-                      required
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Job Title *</label>
+                    <input type="text" value={formData.job_title} onChange={(e) => updateField('job_title', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
+                      placeholder="e.g. Software Engineer" required />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Location</label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => updateField('location', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                      placeholder="e.g. Bangalore, India"
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Location</label>
+                    <input type="text" value={formData.location} onChange={(e) => updateField('location', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
+                      placeholder="e.g. New York" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Job URL</label>
-                    <input
-                      type="url"
-                      value={formData.job_url}
-                      onChange={(e) => updateField('job_url', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                      placeholder="https://..."
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Job URL</label>
+                    <input type="url" value={formData.job_url} onChange={(e) => updateField('job_url', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
+                      placeholder="https://..." />
                   </div>
                 </div>
               </section>
 
               {/* Status & Dates */}
               <section className="space-y-6">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Status & Dates</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />STATUS & DATES</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => updateField('status', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    >
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Status</label>
+                    <select value={formData.status} onChange={(e) => updateField('status', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black appearance-none">
                       {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Applied Date</label>
-                    <input
-                      type="date"
-                      value={formData.applied_date}
-                      onChange={(e) => updateField('applied_date', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Applied</label>
+                    <input type="date" value={formData.applied_date} onChange={(e) => updateField('applied_date', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Deadline</label>
-                    <input
-                      type="date"
-                      value={formData.deadline_date}
-                      onChange={(e) => updateField('deadline_date', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Deadline</label>
+                    <input type="date" value={formData.deadline_date} onChange={(e) => updateField('deadline_date', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
                   </div>
                 </div>
               </section>
 
-              {/* Professional Details */}
+              {/* Details */}
               <section className="space-y-6">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Professional Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />DETAILS</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Employment Type</label>
-                    <select
-                      value={formData.employment_type}
-                      onChange={(e) => updateField('employment_type', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    >
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Type</label>
+                    <select value={formData.employment_type} onChange={(e) => updateField('employment_type', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black appearance-none">
                       {employmentTypes.map(type => <option key={type} value={type}>{type}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Salary / Compensation</label>
-                    <input
-                      type="text"
-                      value={formData.salary_range}
-                      onChange={(e) => updateField('salary_range', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                      placeholder="e.g. ₹25,000/mo"
-                    />
+                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Salary</label>
+                    <input type="text" value={formData.salary_range} onChange={(e) => updateField('salary_range', e.target.value)}
+                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
                   </div>
-                </div>
-              </section>
-
-              {/* Recruiter Info */}
-              <section className="space-y-6">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Recruiter Contact</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Name</label>
-                    <input
-                      type="text"
-                      value={formData.recruiter_name}
-                      onChange={(e) => updateField('recruiter_name', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Email</label>
-                    <input
-                      type="email"
-                      value={formData.recruiter_email}
-                      onChange={(e) => updateField('recruiter_email', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-apple-near-black dark:text-white ml-1">Phone</label>
-                    <input
-                      type="tel"
-                      value={formData.recruiter_phone}
-                      onChange={(e) => updateField('recruiter_phone', e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Priority Rating */}
-              <section className="space-y-4">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Priority</h3>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => updateField('rating', formData.rating === star ? 0 : star)}
-                      className="transition-all hover:scale-110"
-                    >
-                      <Star
-                        className={`w-7 h-7 ${(formData.rating || 0) >= star ? 'fill-amber-400 text-amber-400' : 'text-gray-300 dark:text-zinc-600'}`}
-                      />
-                    </button>
-                  ))}
                 </div>
               </section>
 
               {/* Notes */}
               <section className="space-y-4">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Notes</h3>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => updateField('notes', e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium resize-none"
-                  placeholder="Any additional notes..."
-                />
+                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />NOTES</div>
+                <textarea value={formData.notes} onChange={(e) => updateField('notes', e.target.value)} rows={4}
+                  className="w-full p-6 rounded-[24px] bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black resize-none" placeholder="Add some context..." />
               </section>
 
-              {/* Description */}
-              <section className="space-y-4">
-                <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Job Description</h3>
-                <textarea
-                  value={formData.job_description}
-                  onChange={(e) => updateField('job_description', e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-800 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium resize-none"
-                  placeholder="Paste job description here..."
-                />
-              </section>
+              {/* Submit */}
+              <div className="flex items-center justify-end gap-4 pt-10 pb-4 border-t border-mc-ink-black/10">
+                <button type="button" onClick={onClose}
+                  className="mc-pill-outline">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSaving}
+                  className="mc-pill-ink flex items-center gap-2">
+                  {isSaving && <Loader2 size={16} className="animate-spin" />}
+                  {isSaving ? 'Processing' : application ? 'Confirm' : 'Add Application'}
+                </button>
+              </div>
             </form>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-black/5 dark:border-white/5 bg-apple-gray/50 dark:bg-zinc-950/50">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-xl text-[14px] font-semibold text-apple-near-black/60 dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="px-8 py-2.5 rounded-xl text-[14px] font-semibold bg-apple-blue text-white hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-apple-blue/20"
-              >
-                {isSaving ? 'Saving...' : application ? 'Update' : 'Save Application'}
-              </button>
-            </div>
           </motion.div>
         </motion.div>
       )}

@@ -15,15 +15,20 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 // ============================================
 const g = globalThis as any;
 
-if (!g.__supabase) {
-  g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  });
-}
+// Force destroy stale client that may have lock:true
+delete g.__supabase;
+delete g.__supabaseAdmin;
+
+g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+    lock: false,
+    storageKey: 'sb-auth-token',
+  },
+});
 export const supabase = g.__supabase;
 
 if (!g.__supabaseAdmin && supabaseServiceKey) {
@@ -696,4 +701,104 @@ export const adminGetUserInternships = async (userId: string) => {
     
   if (error) throw error;
   return data || [];
+};
+
+// ============================================
+// ERROR LOGGING SYSTEM
+// ============================================
+export type ErrorType = 'auth' | 'application_save' | 'application_update' | 'application_delete' |
+  'resume_upload' | 'cover_letter_upload' | 'document_upload' | 'document_delete' |
+  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'unknown';
+
+export const logError = async (
+  errorType: ErrorType,
+  errorMessage: string,
+  actionAttempted: string,
+  errorDetails?: string,
+  userId?: string,
+  userEmail?: string,
+  userName?: string,
+) => {
+  try {
+    await supabase.from('error_logs').insert({
+      user_id: userId || null,
+      user_email: userEmail || null,
+      user_name: userName || null,
+      error_type: errorType,
+      error_message: errorMessage,
+      error_details: errorDetails || null,
+      action_attempted: actionAttempted,
+    });
+  } catch (e) {
+    console.warn('Failed to log error (non-blocking):', e);
+  }
+};
+
+// Admin: Get all error logs
+export const adminGetErrorLogs = async () => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('error_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) throw error;
+  return data || [];
+};
+
+// Admin: Resolve an error
+export const adminResolveError = async (errorId: string, adminId: string, notes?: string) => {
+  const admin = getAdminClient();
+  const { error } = await admin
+    .from('error_logs')
+    .update({
+      resolved: true,
+      resolved_by: adminId,
+      resolved_at: new Date().toISOString(),
+      resolution_notes: notes || 'Resolved by admin',
+    })
+    .eq('id', errorId);
+
+  if (error) throw error;
+
+  // Log admin action
+  await admin.from('admin_actions').insert({
+    admin_id: adminId,
+    action_type: 'resolve_error',
+    description: `Resolved error: ${errorId}`,
+    metadata: { error_id: errorId, notes },
+  });
+};
+
+// Admin: Delete an error log
+export const adminDeleteErrorLog = async (errorId: string) => {
+  const admin = getAdminClient();
+  const { error } = await admin
+    .from('error_logs')
+    .delete()
+    .eq('id', errorId);
+
+  if (error) throw error;
+};
+
+// Admin: Get error stats
+export const adminGetErrorStats = async () => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('error_logs')
+    .select('error_type, resolved');
+
+  if (error) throw error;
+
+  const logs = data || [];
+  return {
+    total: logs.length,
+    unresolved: logs.filter((l: any) => !l.resolved).length,
+    resolved: logs.filter((l: any) => l.resolved).length,
+    byType: logs.reduce((acc: Record<string, number>, l: any) => {
+      acc[l.error_type] = (acc[l.error_type] || 0) + 1;
+      return acc;
+    }, {}),
+  };
 };
