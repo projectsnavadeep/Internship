@@ -10,7 +10,9 @@ import {
   ChevronRight,
   Bell,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  ShieldHalf,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,7 +25,7 @@ interface SidebarProps {
   isAdmin?: boolean;
 }
 
-const baseNavItems = [
+const studentNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'applications', label: 'Applications', icon: Briefcase },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
@@ -31,10 +33,15 @@ const baseNavItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-const adminNavItem = { id: 'admin', label: 'Admin Panel', icon: ShieldCheck };
+const adminNavItems = [
+  { id: 'admin', label: 'Global Analytics', icon: ShieldCheck },
+  { id: 'users', label: 'User Registry', icon: Users },
+  { id: 'security', label: 'Security & Compliance', icon: ShieldHalf },
+  { id: 'admin-settings', label: 'System Console', icon: Settings },
+];
 
 export function Sidebar({ activeTab, onTabChange, onLogout, userName, collapsed, setCollapsed, isAdmin }: SidebarProps) {
-  const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+  const navItems = isAdmin ? adminNavItems : studentNavItems;
 
   return (
     <>
@@ -164,10 +171,17 @@ export function Sidebar({ activeTab, onTabChange, onLogout, userName, collapsed,
                 )}
               </div>
               <button 
-                onClick={onLogout}
-                className="text-[12px] text-apple-near-black/40 dark:text-white/40 hover:text-apple-blue transition-colors flex items-center gap-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLogout();
+                }}
+                className="group relative flex items-center gap-2 mt-1 w-full text-left bg-transparent"
               >
-                Sign Out <LogOut size={10} />
+                <div className="absolute -inset-x-2 -inset-y-1.5 rounded-md bg-transparent group-hover:bg-red-500/10 dark:group-hover:bg-red-500/20 transition-colors pointer-events-none" />
+                <span className="text-[12px] font-medium text-apple-near-black/50 dark:text-white/50 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors relative z-10 flex items-center gap-1.5 w-full">
+                  Sign Out <LogOut size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                </span>
               </button>
             </div>
           )}

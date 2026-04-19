@@ -132,6 +132,11 @@ export interface Profile {
   login_count: number;
   last_login_at?: string;
   preferences?: UserPreferences;
+  welcome_email_sent?: boolean;
+  dob?: string;
+  merit?: string;
+  additional_data?: string;
+  signup_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -187,6 +192,13 @@ export interface UserActivity {
   last_login_at?: string;
   joined_at: string;
   application_count: number;
+  welcome_email_sent: boolean;
+  avatar_url?: string;
+  graduation_year?: number;
+  dob?: string;
+  merit?: string;
+  additional_data?: string;
+  signup_date?: string;
 }
 
 export interface CompanyStats {

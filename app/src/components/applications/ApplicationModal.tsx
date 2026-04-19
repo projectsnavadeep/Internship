@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Building2, Briefcase, MapPin, Link, DollarSign, Calendar, Star, User, Mail, Phone, FileText } from 'lucide-react';
+import { X, Star } from 'lucide-react';
 import type { Application, ApplicationStatus, EmploymentType } from '@/types';
 
 interface ApplicationModalProps {
@@ -14,6 +14,7 @@ const statuses: ApplicationStatus[] = ['Applied', 'Phone Screen', 'Interview', '
 const employmentTypes: EmploymentType[] = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
 
 export function ApplicationModal({ isOpen, onClose, onSave, application }: ApplicationModalProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<Application>>({
     company_name: '',
     job_title: '',
@@ -63,9 +64,20 @@ export function ApplicationModal({ isOpen, onClose, onSave, application }: Appli
     }
   }, [application]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      console.log('Attempting to save application:', formData);
+      await onSave(formData);
+      // Wait a tiny bit for UI to finish closing before resetting button
+      setTimeout(() => setIsSaving(false), 300);
+    } catch (error) {
+      console.error('Modal Save Error:', error);
+      setIsSaving(false);
+    }
   };
 
   const updateField = (field: string, value: any) => {
@@ -274,9 +286,21 @@ export function ApplicationModal({ isOpen, onClose, onSave, application }: Appli
                   </button>
                   <button
                     type="submit"
-                    className="apple-pill-filled px-10"
+                    disabled={isSaving}
+                    className={`apple-pill-filled px-10 flex items-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
-                    {application ? 'Update Application' : 'Save Application'}
+                    {isSaving ? (
+                      <>
+                        <motion.div
+                          className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        />
+                        Saving...
+                      </>
+                    ) : (
+                      <>{application ? 'Update Application' : 'Save Application'}</>
+                    )}
                   </button>
                 </div>
               </div>

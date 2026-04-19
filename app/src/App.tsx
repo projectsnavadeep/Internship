@@ -1,17 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { AuthForm } from '@/components/auth/AuthForm';
-import { Dashboard } from '@/components/dashboard/Dashboard';
-import { ApplicationList } from '@/components/applications/ApplicationList';
-import { ApplicationModal } from '@/components/applications/ApplicationModal';
-import { ApplicationDetails } from '@/components/applications/ApplicationDetails';
-import { CalendarView } from '@/components/calendar/CalendarView';
-import { DocumentsView } from '@/components/documents/DocumentsView';
-import { SettingsView } from '@/components/settings/SettingsView';
-import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { LoadingView } from '@/components/shared/LoadingView';
 import { useAuth } from '@/hooks/useAuth';
+
+// Lazy load heavy components
+const Dashboard = lazy(() => import('@/components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
+const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
+const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));
+const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
+const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
+const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
+const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView').then(m => ({ default: m.UserRegistryView })));
+const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
+const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 import { 
   getApplications, 
   createApplication, 
@@ -23,158 +29,9 @@ import {
   createInterviewNote,
   deleteInterviewNote
 } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote } from '@/types';
 import './App.css';
-
-// Demo data for when Supabase is not configured
-const demoApplications: Application[] = [
-  {
-    id: '1',
-    user_id: 'demo',
-    company_name: 'Google',
-    job_title: 'Software Engineering Intern',
-    job_description: 'Summer internship program for software engineering students.',
-    job_url: 'https://careers.google.com',
-    location: 'Mountain View, CA',
-    salary_range: '$8,000/month',
-    employment_type: 'Internship',
-    status: 'Applied',
-    applied_date: '2024-01-15',
-    deadline_date: '2024-02-01',
-    notes: 'Applied through university career fair. Need to follow up.',
-    rating: 5,
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: '2',
-    user_id: 'demo',
-    company_name: 'Microsoft',
-    job_title: 'Product Manager Intern',
-    job_description: 'PM internship for summer 2024.',
-    job_url: 'https://careers.microsoft.com',
-    location: 'Redmond, WA',
-    salary_range: '$7,500/month',
-    employment_type: 'Internship',
-    status: 'Interview',
-    applied_date: '2024-01-10',
-    interview_date: '2024-01-25T14:00:00Z',
-    notes: 'First round interview scheduled. Prepare behavioral questions.',
-    rating: 4,
-    created_at: '2024-01-10T10:00:00Z',
-    updated_at: '2024-01-20T10:00:00Z',
-  },
-  {
-    id: '3',
-    user_id: 'demo',
-    company_name: 'Amazon',
-    job_title: 'SDE Intern',
-    job_description: 'Software Development Engineer internship.',
-    job_url: 'https://amazon.jobs',
-    location: 'Seattle, WA',
-    salary_range: '$9,000/month',
-    employment_type: 'Internship',
-    status: 'Offer',
-    applied_date: '2024-01-05',
-    notes: 'Received offer! Reviewing compensation package.',
-    rating: 5,
-    created_at: '2024-01-05T10:00:00Z',
-    updated_at: '2024-01-22T10:00:00Z',
-  },
-  {
-    id: '4',
-    user_id: 'demo',
-    company_name: 'Meta',
-    job_title: 'Data Science Intern',
-    job_description: 'DS internship focusing on machine learning.',
-    location: 'Menlo Park, CA',
-    employment_type: 'Internship',
-    status: 'Rejected',
-    applied_date: '2024-01-08',
-    notes: 'Received rejection after final round. Good experience though.',
-    rating: 3,
-    created_at: '2024-01-08T10:00:00Z',
-    updated_at: '2024-01-18T10:00:00Z',
-  },
-  {
-    id: '5',
-    user_id: 'demo',
-    company_name: 'Apple',
-    job_title: 'UX Design Intern',
-    job_description: 'Design internship for iOS team.',
-    location: 'Cupertino, CA',
-    employment_type: 'Internship',
-    status: 'Phone Screen',
-    applied_date: '2024-01-20',
-    notes: 'Phone screen scheduled for next week.',
-    rating: 4,
-    created_at: '2024-01-20T10:00:00Z',
-    updated_at: '2024-01-20T10:00:00Z',
-  },
-];
-
-const demoReminders: Reminder[] = [
-  {
-    id: '1',
-    user_id: 'demo',
-    application_id: '1',
-    title: 'Follow up with Google',
-    description: 'Send follow-up email to recruiter',
-    reminder_date: '2024-01-22T10:00:00Z',
-    reminder_type: 'Follow-up',
-    is_completed: false,
-    is_notified: false,
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: '2',
-    user_id: 'demo',
-    application_id: '2',
-    title: 'Microsoft Interview Prep',
-    description: 'Review system design concepts',
-    reminder_date: '2024-01-24T10:00:00Z',
-    reminder_type: 'Interview',
-    is_completed: false,
-    is_notified: false,
-    created_at: '2024-01-10T10:00:00Z',
-    updated_at: '2024-01-10T10:00:00Z',
-  },
-  {
-    id: '3',
-    user_id: 'demo',
-    title: 'Update Resume',
-    description: 'Add recent project experience',
-    reminder_date: '2024-01-28T10:00:00Z',
-    reminder_type: 'Custom',
-    is_completed: false,
-    is_notified: false,
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
-  },
-];
-
-const demoInterviewNotes: InterviewNote[] = [
-  {
-    id: '1',
-    application_id: '2',
-    user_id: 'demo',
-    round_number: 1,
-    round_name: 'Recruiter Screen',
-    interview_type: 'Phone',
-    scheduled_date: '2024-01-15T14:00:00Z',
-    duration_minutes: 30,
-    questions_asked: '- Tell me about yourself\n- Why Microsoft?\n- What are your career goals?',
-    answers_given: '- Discussed background in CS\n- Mentioned interest in cloud computing\n- Talked about becoming a PM',
-    key_takeaways: 'Focus on customer obsession and growth mindset',
-    follow_up_items: 'Send thank you email',
-    outcome: 'Passed',
-    interviewer_name: 'Sarah Johnson',
-    interviewer_role: 'Senior Recruiter',
-    created_at: '2024-01-15T15:00:00Z',
-    updated_at: '2024-01-15T15:00:00Z',
-  },
-];
 
 function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin } = useAuth();
@@ -195,7 +52,6 @@ function App() {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Guard: non-admin users cannot access admin tab
@@ -206,52 +62,41 @@ function App() {
     }
   }, [activeTab, isAdmin]);
 
-  // Load data
   const loadData = useCallback(async () => {
-    if (!user && !isDemoMode) return;
+    if (!user || isAdmin) return; // Skip student data load if admin
     
     try {
-      const userId = user?.id || 'demo';
+      const userId = user.id;
       
-      if (isDemoMode) {
-        setApplications(demoApplications);
-        setReminders(demoReminders);
-        setStats({
-          total_applications: 5,
-          applied_count: 1,
-          interview_count: 2,
-          offer_count: 1,
-          rejected_count: 1,
-          pending_count: 3,
-        });
-      } else {
-        const [apps, rems, appStats] = await Promise.all([
-          getApplications(userId),
-          getReminders(userId),
-          getApplicationStats(userId),
-        ]);
-        
-        setApplications(apps);
-        setReminders(rems);
-        setStats(appStats);
-      }
+      const [apps, rems, appStats] = await Promise.all([
+        getApplications(userId),
+        getReminders(userId),
+        getApplicationStats(userId),
+      ]);
+      
+      setApplications(apps);
+      setReminders(rems);
+      setStats(appStats);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     }
-  }, [user, isDemoMode]);
+  }, [user]);
 
   useEffect(() => {
-    if (isAuthenticated || isDemoMode) {
+    if (isAuthenticated) {
       loadData();
     }
-  }, [isAuthenticated, isDemoMode, loadData]);
+  }, [isAuthenticated, loadData]);
 
   // Handle login
   const handleLogin = async (email: string, password: string) => {
     try {
-      await login(email, password);
+      const u = await login(email, password);
       toast.success('Welcome back!');
+      if (u?.role === 'admin' || email === 'admin@gmail.com') {
+        setActiveTab('admin');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
       throw error;
@@ -261,59 +106,80 @@ function App() {
   // Handle register
   const handleRegister = async (email: string, password: string, fullName: string) => {
     try {
-      await register(email, password, fullName);
-      setActiveTab('settings');
-      toast.success('Welcome! Please complete your profile and upload your resume to get started.', { duration: 6000 });
+      const data = await register(email, password, fullName);
+      if (email === 'admin@gmail.com' || (data?.user?.role === 'admin')) {
+        setActiveTab('admin');
+        toast.success('Admin Console access granted.');
+      } else {
+        setActiveTab('settings');
+        toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
+      }
+      
+      // Auto-email stuff...
+      if (data?.user) {
+        const userId = data.user.id;
+        setTimeout(async () => {
+          try {
+            await sendWelcomeEmail(userId, email, fullName);
+          } catch (err) {
+            console.error('Auto-email error:', err);
+          }
+        }, 10000);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
       throw error;
     }
   };
 
-  // Handle demo mode
-  const handleDemoMode = () => {
-    setIsDemoMode(true);
-    toast.success('Demo mode activated!');
-  };
-
   // Application CRUD
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      if (isDemoMode) {
-        setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
-        if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
-        toast.success(`Status updated to ${newStatus}`);
-        return;
-      }
+      console.log(`[🚀] UPDATING STATUS to ${newStatus} for ${id}`);
       await updateApplication(id, { status: newStatus as any, updated_at: new Date().toISOString() });
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
       if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
       toast.success(`Status updated to ${newStatus}`);
       loadData();
     } catch (error: any) {
+      console.error('[❌] Status Update Failed:', error);
       toast.error(error.message || 'Failed to update status');
     }
   };
 
   const handleSaveApplication = async (appData: Partial<Application>) => {
+    if (!user) return;
     try {
+      console.log('[🚀] SAVING APPLICATION STARTED...');
+      
+      // Sanitize empty strings to null for database compatibility
+      const sanitizedData = { ...appData };
+      if (sanitizedData.applied_date === '') sanitizedData.applied_date = undefined;
+      if (sanitizedData.deadline_date === '') sanitizedData.deadline_date = undefined;
+      if (sanitizedData.interview_date === '') sanitizedData.interview_date = undefined;
+      if (sanitizedData.rating === 0) sanitizedData.rating = undefined;
+
       if (editingApp) {
-        const updated = await updateApplication(editingApp.id, appData);
+        const updated = await updateApplication(editingApp.id, sanitizedData);
         setApplications(apps => apps.map(a => a.id === updated.id ? updated : a));
         toast.success('Application updated!');
       } else {
         const newApp = await createApplication({
-          ...appData,
-          user_id: user?.id || 'demo',
+          ...sanitizedData,
+          user_id: user.id,
         });
         setApplications(apps => [newApp, ...apps]);
         toast.success('Application added!');
       }
+      console.log('[✅] SAVE SUCCESS');
       setShowAppModal(false);
       setEditingApp(null);
       loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save application');
+    } catch (error) {
+      const errorResponse = error as any;
+      console.error('[❌] SAVE ERROR:', errorResponse.message || errorResponse);
+      toast.error(errorResponse.message || 'Failed to save application');
+      throw error; // Let the modal handle visual state
     }
   };
 
@@ -332,9 +198,7 @@ function App() {
   const handleViewApplication = async (app: Application) => {
     setViewingApp(app);
     try {
-      const notes = isDemoMode 
-        ? demoInterviewNotes.filter(n => n.application_id === app.id)
-        : await getInterviewNotes(app.id);
+      const notes = await getInterviewNotes(app.id);
       setSelectedAppNotes(notes);
     } catch (error) {
       console.error('Error loading interview notes:', error);
@@ -342,13 +206,12 @@ function App() {
   };
 
   const handleAddInterviewNote = async (note: Partial<InterviewNote>) => {
+    if (!user || !viewingApp) return;
     try {
-      if (!viewingApp) return;
-      
       const newNote = await createInterviewNote({
         ...note,
         application_id: viewingApp.id,
-        user_id: user?.id || 'demo',
+        user_id: user.id,
       });
       setSelectedAppNotes(notes => [...notes, newNote]);
       toast.success('Interview note added!');
@@ -399,17 +262,24 @@ function App() {
       case 'documents':
         return <DocumentsView userId={user?.id} />;
       case 'settings':
-        return (
-          <SettingsView 
+        return <SettingsView 
             userId={user?.id} 
             userName={user?.user_metadata?.full_name || 'User'} 
             userEmail={user?.email || ''}
             userRole={user?.role || 'student'}
-          />
-        );
+          />;
       case 'admin':
         if (!isAdmin) return null;
-        return <AdminDashboard />;
+        return <AdminOverview />;
+      case 'users':
+        if (!isAdmin) return null;
+        return <UserRegistryView />;
+      case 'security':
+        if (!isAdmin) return null;
+        return <SecurityConsole />;
+      case 'admin-settings':
+        if (!isAdmin) return null;
+        return <AdminSettings />;
       default:
         return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
     }
@@ -427,20 +297,10 @@ function App() {
     );
   }
 
-  if (!isAuthenticated && !isDemoMode) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center bg-apple-gray dark:bg-apple-black py-12 gap-8 overflow-y-auto">
         <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
-        
-        {/* Demo Mode Button */}
-        <motion.button
-          onClick={handleDemoMode}
-          className="apple-pill-outline bg-white/50 backdrop-blur-md dark:bg-black/50"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Explore Demo Mode
-        </motion.button>
       </div>
     );
   }
@@ -463,8 +323,8 @@ function App() {
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        onLogout={() => { logout(); setIsDemoMode(false); }}
-        userName={user?.user_metadata?.full_name || 'Demo User'}
+        onLogout={() => { logout(); }}
+        userName={user?.user_metadata?.full_name || 'My Profile'}
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
         isAdmin={isAdmin}
@@ -485,31 +345,35 @@ function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
-              {renderContent()}
+              <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>
+                {renderContent()}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
 
       {/* Modals */}
-      <ApplicationModal
-        isOpen={showAppModal}
-        onClose={() => { setShowAppModal(false); setEditingApp(null); }}
-        onSave={handleSaveApplication}
-        application={editingApp}
-      />
+      <Suspense fallback={null}>
+        <ApplicationModal
+          isOpen={showAppModal}
+          onClose={() => { setShowAppModal(false); setEditingApp(null); }}
+          onSave={handleSaveApplication}
+          application={editingApp}
+        />
 
-      <ApplicationDetails
-        application={viewingApp!}
-        interviewNotes={selectedAppNotes}
-        isOpen={!!viewingApp}
-        onClose={() => setViewingApp(null)}
-        onEdit={() => { setEditingApp(viewingApp); setViewingApp(null); setShowAppModal(true); }}
-        onDelete={() => handleDeleteApplication(viewingApp!.id)}
-        onAddNote={handleAddInterviewNote}
-        onDeleteNote={handleDeleteInterviewNote}
-        onStatusChange={handleStatusChange}
-      />
+        <ApplicationDetails
+          application={viewingApp!}
+          interviewNotes={selectedAppNotes}
+          isOpen={!!viewingApp}
+          onClose={() => setViewingApp(null)}
+          onEdit={() => { setEditingApp(viewingApp); setViewingApp(null); setShowAppModal(true); }}
+          onDelete={() => handleDeleteApplication(viewingApp!.id)}
+          onAddNote={handleAddInterviewNote}
+          onDeleteNote={handleDeleteInterviewNote}
+          onStatusChange={handleStatusChange}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -29,22 +29,19 @@ export function useAuth() {
     // Check current user on mount
     getCurrentUser().then(async (user) => {
       if (user) {
+        // Set basic user info first to unblock initial UI
+        setUser({
+          id: user.id,
+          email: user.email,
+          user_metadata: user.user_metadata,
+          role: 'student', // Default while fetching
+        });
+        
         try {
           const role = await fetchUserRole(user.id);
-          setUser({
-            id: user.id,
-            email: user.email,
-            user_metadata: user.user_metadata,
-            role,
-          });
-        } catch {
-          // If profile fetch fails, still set user with default role
-          setUser({
-            id: user.id,
-            email: user.email,
-            user_metadata: user.user_metadata,
-            role: 'student',
-          });
+          setUser(curr => curr ? { ...curr, role } : null);
+        } catch (err) {
+          console.error('Role fetch failed:', err);
         }
       }
       setLoading(false);
@@ -53,19 +50,28 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (_event: any, session: any) => {
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (_event: string, session: any) => {
       if (session?.user) {
-        const role = await fetchUserRole(session.user.id);
+        // Set basic user info quickly
         setUser({
           id: session.user.id,
           email: session.user.email,
           user_metadata: session.user.user_metadata,
-          role,
+          role: 'student', // Default
         });
+        setLoading(false);
+
+        // Fetch actual role in background
+        try {
+          const role = await fetchUserRole(session.user.id);
+          setUser(curr => curr ? { ...curr, role } : null);
+        } catch (err) {
+          console.error('Role refresh failed:', err);
+        }
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -102,9 +108,16 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    await signOut();
+    // Optimistic UI update: clear user state immediately
     setUser(null);
-  }, []);
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Optional: restore user if strict consistency is needed, but usually we just want them logged out locally anyway
+      // setUser(previousUser);
+    }
+  }, [user]);
 
   return {
     user,
@@ -113,6 +126,7 @@ export function useAuth() {
     register,
     logout,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin' || user?.email === 'admin@gmail.com',
+    isAdmin: user?.role === 'admin' || user?.email === 'admin@admin.com' || user?.email === 'admin@gmail.com',
+    isRootAdmin: user?.email === 'admin@admin.com',
   };
 }

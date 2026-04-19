@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Briefcase, ArrowRight, Loader2 } from 'lucide-react';
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Clock, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight } from 'lucide-react';
 import type { Reminder } from '@/types';
 
 interface UpcomingRemindersProps {

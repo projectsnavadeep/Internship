@@ -6,13 +6,9 @@ import {
   Building2, 
   MapPin, 
   Calendar, 
-  Star,
-  Plus,
-  MoreHorizontal,
   Edit,
   Trash2,
-  Eye,
-  ChevronRight
+  Eye
 } from 'lucide-react';
 import type { Application } from '@/types';
 
@@ -44,7 +40,6 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('date');
   const [showFilters, setShowFilters] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   const filteredApplications = useMemo(() => {
     let filtered = [...applications];

@@ -4,9 +4,7 @@ import {
   User, 
   Bell, 
   Shield, 
-  Save,
   Camera,
-  GraduationCap,
   ChevronRight,
   Loader2,
   Lock,
@@ -35,9 +33,14 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     graduation_year: '',
     avatar_url: '',
     joined_at: '',
+    dob: '',
+    merit: '',
+    additional_data: '',
+    signup_date: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -66,6 +69,10 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             graduation_year: data.graduation_year?.toString() || '',
             avatar_url: data.avatar_url || '',
             joined_at: data.created_at || '',
+            dob: data.dob || '',
+            merit: data.merit || '',
+            additional_data: data.additional_data || '',
+            signup_date: data.signup_date || data.created_at?.split('T')[0] || '',
           }));
           // Load saved preferences
           if (data.preferences) {
@@ -96,8 +103,13 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         major: profile.major,
         graduation_year: parseInt(profile.graduation_year) || null,
         avatar_url: profile.avatar_url,
+        dob: profile.dob || null,
+        merit: profile.merit || '',
+        additional_data: profile.additional_data || '',
+        signup_date: profile.signup_date || null,
         preferences: notifications,
       });
+      setIsEditingProfile(false);
       toast.success('Settings saved successfully.');
     } catch (error: any) {
       toast.error(error.message || 'Failed to save settings.');
@@ -175,7 +187,19 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             <div className="w-12 h-12 rounded-2xl bg-apple-blue flex items-center justify-center text-white shadow-lg shadow-apple-blue/20">
               <User size={24} />
             </div>
-            <h2 className="text-[24px] font-bold text-apple-near-black dark:text-white tracking-apple-tight">Identity Profile</h2>
+            <div className="flex-1 flex items-center justify-between">
+              <h2 className="text-[24px] font-bold text-apple-near-black dark:text-white tracking-apple-tight">Identity Profile</h2>
+              <button
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                className={`px-4 py-2 rounded-full text-[14px] font-bold transition-all ${
+                  isEditingProfile 
+                    ? 'bg-apple-near-black text-white dark:bg-white dark:text-apple-near-black' 
+                    : 'bg-apple-gray text-apple-near-black dark:bg-zinc-800 dark:text-white hover:bg-apple-blue hover:text-white'
+                }`}
+              >
+                {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
@@ -209,57 +233,139 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+            {/* Full Name */}
             <div className="space-y-2">
               <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Full Name</label>
-              <input
-                type="text"
-                value={profile.fullName}
-                onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
-              />
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={profile.fullName}
+                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.fullName || '—'}</p>
+              )}
             </div>
+
+            {/* Email */}
             <div className="space-y-2">
               <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Email</label>
-              <input
-                type="email"
-                value={profile.email}
-                readOnly
-                className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none font-medium text-[17px] text-apple-near-black/50 dark:text-white/50 cursor-not-allowed"
-              />
-              <p className="text-[11px] text-apple-near-black/30 dark:text-white/30 ml-1">Email is managed by your authentication provider.</p>
+              <div className="px-5 py-3 text-[17px] font-medium text-apple-near-black/40 dark:text-white/40 flex items-center gap-2">
+                {profile.email}
+                <Lock size={14} className="opacity-50" />
+              </div>
             </div>
+
+            {/* Institution */}
             <div className="space-y-2">
-              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Institution</label>
-              <input
-                type="text"
-                value={profile.university}
-                onChange={(e) => setProfile({ ...profile, university: e.target.value })}
-                className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
-                placeholder="e.g. Stanford University"
-              />
+              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">College / University</label>
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={profile.university}
+                  onChange={(e) => setProfile({ ...profile, university: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                  placeholder="e.g. Stanford University"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.university || '—'}</p>
+              )}
             </div>
+
+            {/* Discipline */}
             <div className="space-y-2">
               <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Discipline</label>
-              <input
-                type="text"
-                value={profile.major}
-                onChange={(e) => setProfile({ ...profile, major: e.target.value })}
-                className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
-                placeholder="e.g. Computer Science"
-              />
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={profile.major}
+                  onChange={(e) => setProfile({ ...profile, major: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                  placeholder="e.g. Computer Science"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.major || '—'}</p>
+              )}
             </div>
+
+            {/* Graduation Year */}
             <div className="space-y-2">
               <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Graduation Year</label>
-              <input
-                type="number"
-                value={profile.graduation_year}
-                onChange={(e) => setProfile({ ...profile, graduation_year: e.target.value })}
-                className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
-                placeholder="e.g. 2025"
-                min="2000"
-                max="2035"
-              />
+              {isEditingProfile ? (
+                <input
+                  type="number"
+                  value={profile.graduation_year}
+                  onChange={(e) => setProfile({ ...profile, graduation_year: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                  placeholder="e.g. 2025"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.graduation_year || '—'}</p>
+              )}
+            </div>
+
+            {/* DOB */}
+            <div className="space-y-2">
+              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Date of Birth</label>
+              {isEditingProfile ? (
+                <input
+                  type="date"
+                  value={profile.dob}
+                  onChange={(e) => setProfile({ ...profile, dob: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.dob || '—'}</p>
+              )}
+            </div>
+
+            {/* Signup Date */}
+            <div className="space-y-2">
+              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Date of Signing Up</label>
+              {isEditingProfile ? (
+                <input
+                  type="date"
+                  value={profile.signup_date}
+                  onChange={(e) => setProfile({ ...profile, signup_date: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.signup_date || '—'}</p>
+              )}
+            </div>
+
+            {/* Merit */}
+            <div className="space-y-2">
+              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Merit / Performance</label>
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={profile.merit}
+                  onChange={(e) => setProfile({ ...profile, merit: e.target.value })}
+                  className="w-full px-5 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white"
+                  placeholder="e.g. 3.9 GPA / Top 5%"
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white">{profile.merit || '—'}</p>
+              )}
+            </div>
+
+            {/* Additional Data */}
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">Additional Information</label>
+              {isEditingProfile ? (
+                <textarea
+                  value={profile.additional_data}
+                  onChange={(e) => setProfile({ ...profile, additional_data: e.target.value })}
+                  rows={3}
+                  className="w-full px-5 py-4 rounded-xl bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white resize-none"
+                  placeholder="Any other certifications, awards, or details..."
+                />
+              ) : (
+                <p className="px-5 py-3 text-[17px] font-medium text-apple-near-black dark:text-white whitespace-pre-wrap">{profile.additional_data || 'No additional data provided.'}</p>
+              )}
             </div>
           </div>
         </motion.div>

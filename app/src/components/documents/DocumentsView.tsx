@@ -114,7 +114,7 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
     
     setIsUploading(true);
     try {
-      const { publicUrl, size, type } = await uploadDocumentFile(file, userId);
+      const { publicUrl, size } = await uploadDocumentFile(file, userId);
       
       // Use the user-selected document type, or auto-detect
       let docType = selectedDocType;

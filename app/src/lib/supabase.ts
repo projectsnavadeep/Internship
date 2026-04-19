@@ -5,23 +5,37 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+// Singleton instances
+let _supabase: any = null;
+let _supabaseAdmin: any = null;
 
-// Admin client — only used for admin-level queries (bypasses RLS)
-export const supabaseAdmin = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
+export const supabase = (function() {
+  if (_supabase) return _supabase;
+  
+  _supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      // Helps identify this specific tab/instance's lock
+      storageKey: `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
+    },
+  });
+  return _supabase;
+})();
+
+export const supabaseAdmin = (function() {
+  if (_supabaseAdmin) return _supabaseAdmin;
+  if (!supabaseServiceKey) return null;
+
+  _supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  return _supabaseAdmin;
+})();
 
 // ============================================
 // Auth helpers
@@ -38,17 +52,6 @@ export const signUp = async (email: string, password: string, fullName: string) 
   });
   
   if (error) throw error;
-  
-  // Create profile
-  if (data.user) {
-    await supabase.from('profiles').insert({
-      id: data.user.id,
-      full_name: fullName,
-      role: 'student',
-      login_count: 0,
-    });
-  }
-  
   return data;
 };
 
@@ -139,7 +142,15 @@ export const uploadAvatarImage = async (file: File, userId: string) => {
     .from('avatars')
     .upload(filePath, file, { upsert: true });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('Avatar upload error details:', {
+      error: uploadError,
+      fileName: file.name,
+      filePath,
+      userId
+    });
+    throw uploadError;
+  }
 
   // Get the public URL
   const { data: { publicUrl } } = supabase.storage
@@ -427,6 +438,13 @@ export const adminGetAllUsers = async (): Promise<UserActivity[]> => {
       last_login_at: p.last_login_at,
       joined_at: p.created_at,
       application_count: appCounts[p.id] || 0,
+      welcome_email_sent: p.welcome_email_sent || false,
+      avatar_url: p.avatar_url,
+      graduation_year: p.graduation_year,
+      dob: p.dob,
+      merit: p.merit,
+      additional_data: p.additional_data,
+      signup_date: p.signup_date,
     };
   });
 };
@@ -603,4 +621,60 @@ export const adminGetRecentApplications = async (): Promise<AdminRecentApplicati
     applicant_name: profileMap[a.user_id] || 'Unknown',
     applicant_email: emailMap[a.user_id] || 'N/A',
   }));
+};
+
+// Update profile status after welcome email
+export const markWelcomeEmailSent = async (userId: string) => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ welcome_email_sent: true })
+    .eq('id', userId);
+    
+  if (error) throw error;
+};
+
+// ============================================
+// Elite Admin Commands (High Privilege)
+// ============================================
+
+// Delegate Admin powers to another user
+export const adminPromoteToAdmin = async (userId: string) => {
+  const admin = getAdminClient();
+  const { error } = await admin
+    .from('profiles')
+    .update({ role: 'admin' })
+    .eq('id', userId);
+  
+  if (error) throw error;
+};
+
+// Delete a user with selective data purge
+export const adminDeleteUser = async (userId: string, wipeData: boolean = false) => {
+  const admin = getAdminClient();
+  
+  if (wipeData) {
+    // Purge internship records first
+    await admin.from('applications').delete().eq('user_id', userId);
+    await admin.from('reminders').delete().eq('user_id', userId);
+  }
+
+  // Delete profile
+  await admin.from('profiles').delete().eq('id', userId);
+
+  // Delete from Auth
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw error;
+};
+
+// Fetch internship history for a specific student drill-down
+export const adminGetUserInternships = async (userId: string) => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('applications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  return data || [];
 };

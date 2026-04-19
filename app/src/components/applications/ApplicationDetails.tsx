@@ -6,11 +6,6 @@ import {
   MapPin, 
   Link, 
   Calendar, 
-  Star, 
-  User, 
-  Mail, 
-  Phone,
-  FileText,
   Plus,
   Edit,
   Trash2,
@@ -345,7 +340,7 @@ export function ApplicationDetails({
                            <p className="text-[19px] font-medium text-apple-near-black/40 dark:text-white/40 tracking-apple-tight">No interview records documented yet.</p>
                         </div>
                       ) : (
-                        interviewNotes.map((note, index) => (
+                        interviewNotes.map((note) => (
                           <motion.div
                             key={note.id}
                             className="relative pl-12 before:absolute before:left-0 before:top-4 before:bottom-0 before:w-[2px] before:bg-apple-blue/10 last:before:hidden"

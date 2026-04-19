@@ -3,6 +3,24 @@
 -- ============================================
 
 -- ============================================
+-- 0. ADMIN HELPER FUNCTION
+-- ============================================
+-- This security definer function avoids infinite recursion 
+-- when checking if a user is an admin in RLS policies.
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- ============================================
 -- 1. PROFILES
 -- ============================================
 create table if not exists public.profiles (
@@ -28,7 +46,7 @@ create policy "profile_select" on public.profiles for select using (auth.uid() =
 
 drop policy if exists "admin_profile_select" on public.profiles;
 create policy "admin_profile_select" on public.profiles for select
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin());
 
 drop policy if exists "profile_insert" on public.profiles;
 create policy "profile_insert" on public.profiles for insert with check (auth.uid() = id);
@@ -78,7 +96,7 @@ create policy "applications_select" on public.applications for select using (aut
 
 drop policy if exists "admin_applications_select" on public.applications;
 create policy "admin_applications_select" on public.applications for select
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin());
 
 drop policy if exists "applications_insert" on public.applications;
 create policy "applications_insert" on public.applications for insert with check (auth.uid() = user_id);
@@ -126,7 +144,7 @@ create policy "notes_select" on public.interview_notes for select using (auth.ui
 
 drop policy if exists "admin_notes_select" on public.interview_notes;
 create policy "admin_notes_select" on public.interview_notes for select
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin());
 
 drop policy if exists "notes_insert" on public.interview_notes;
 create policy "notes_insert" on public.interview_notes for insert with check (auth.uid() = user_id);
@@ -165,7 +183,7 @@ create policy "reminders_select" on public.reminders for select using (auth.uid(
 
 drop policy if exists "admin_reminders_select" on public.reminders;
 create policy "admin_reminders_select" on public.reminders for select
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin());
 
 drop policy if exists "reminders_insert" on public.reminders;
 create policy "reminders_insert" on public.reminders for insert with check (auth.uid() = user_id);
@@ -203,7 +221,7 @@ create policy "documents_select" on public.documents for select using (auth.uid(
 
 drop policy if exists "admin_documents_select" on public.documents;
 create policy "admin_documents_select" on public.documents for select
-using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+using (public.is_admin());
 
 drop policy if exists "documents_insert" on public.documents;
 create policy "documents_insert" on public.documents for insert with check (auth.uid() = user_id);

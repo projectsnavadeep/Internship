@@ -19,29 +19,45 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- ============================================
+-- 0. ADMIN HELPER FUNCTION (FIXED)
+-- ============================================
+-- This security definer function avoids infinite recursion 
+-- when checking if a user is an admin in RLS policies.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
+-- ============================================
 -- 2. ADD ADMIN RLS POLICIES
 -- ============================================
 -- These allow admin users to read ALL data across all tables
 
 DROP POLICY IF EXISTS "admin_profile_select" ON public.profiles;
 CREATE POLICY "admin_profile_select" ON public.profiles FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+USING (public.is_admin());
 
 DROP POLICY IF EXISTS "admin_applications_select" ON public.applications;
 CREATE POLICY "admin_applications_select" ON public.applications FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+USING (public.is_admin());
 
 DROP POLICY IF EXISTS "admin_notes_select" ON public.interview_notes;
 CREATE POLICY "admin_notes_select" ON public.interview_notes FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+USING (public.is_admin());
 
 DROP POLICY IF EXISTS "admin_reminders_select" ON public.reminders;
 CREATE POLICY "admin_reminders_select" ON public.reminders FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+USING (public.is_admin());
 
 DROP POLICY IF EXISTS "admin_documents_select" ON public.documents;
 CREATE POLICY "admin_documents_select" ON public.documents FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'));
+USING (public.is_admin());
 
 -- ============================================
 -- 3. ADD INDEX FOR ROLE LOOKUPS

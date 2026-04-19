@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Building2, MapPin, Calendar, ArrowRight, ChevronRight } from 'lucide-react';
+import { Building2, ChevronRight } from 'lucide-react';
 import type { Application } from '@/types';
 
 interface RecentApplicationsProps {
