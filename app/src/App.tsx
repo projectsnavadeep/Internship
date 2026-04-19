@@ -231,6 +231,7 @@ function App() {
           <CalendarView 
             applications={applications}
             reminders={reminders}
+            onRefresh={loadData}
           />
         );
       case 'documents':

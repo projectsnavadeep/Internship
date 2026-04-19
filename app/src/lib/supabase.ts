@@ -15,11 +15,8 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 // ============================================
 const g = globalThis as any;
 
-// Force destroy stale client that may have lock:true
-delete g.__supabase;
-delete g.__supabaseAdmin;
-
-g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!g.__supabase) {
+  g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -28,7 +25,8 @@ g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
     lock: false,
     storageKey: 'sb-auth-token',
   },
-});
+  });
+}
 export const supabase = g.__supabase;
 
 if (!g.__supabaseAdmin && supabaseServiceKey) {
