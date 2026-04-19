@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
   Search, 
-  Filter, 
-  Mail, 
-  Clock, 
   UserPlus, 
-  ChevronDown, 
-  ChevronUp,
   Loader2,
   ShieldCheck,
   Briefcase,
@@ -17,14 +12,12 @@ import {
   Activity,
   Trash2,
   ShieldHalf,
-  Lock,
-  Database
+  Database,
+  Lock as LockIcon
 } from 'lucide-react';
 import { 
   adminGetAllUsers, 
   adminGetUserInternships,
-  adminPromoteToAdmin,
-  adminDeleteUser,
   signUp
 } from '@/lib/supabase';
 import type { UserActivity } from '@/types';
@@ -365,7 +358,7 @@ export function UserRegistryView() {
                            </div>
                            <div className="apple-card p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 opacity-50 grayscale">
                               <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-apple-blue"><Lock size={20} /></div>
+                                 <div className="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-apple-blue"><LockIcon size={20} /></div>
                                  <p className="font-bold dark:text-white">Two-Factor Auth</p>
                               </div>
                               <span className="text-[10px] font-black uppercase text-apple-near-black/40">DISABLED</span>

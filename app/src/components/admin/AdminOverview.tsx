@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
   Briefcase, 
   Activity, 
   TrendingUp, 
-  ArrowUpRight,
   Loader2,
   Clock
 } from 'lucide-react';
@@ -14,9 +13,7 @@ import {
   adminGetRecentApplications 
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
-} from 'recharts';
+// Graphics and charts handled via Recharts for future scalability
 
 export function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null);

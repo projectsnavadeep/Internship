@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ShieldCheck, 
-  Lock, 
+  Lock as LockIcon, 
   Database, 
-  Activity, 
   Server, 
   ShieldAlert,
   ShieldHalf,
@@ -13,17 +12,10 @@ import {
   Key
 } from 'lucide-react';
 import { adminGetStats } from '@/lib/supabase';
-import type { AdminStats } from '@/types';
 
 export function SecurityConsole() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    adminGetStats().then(s => {
-      setStats(s);
-      setLoading(false);
-    });
+    adminGetStats();
   }, []);
 
   return (
@@ -59,7 +51,7 @@ export function SecurityConsole() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              {[
                { label: 'Database RLS', status: 'Active (Strict)', icon: <Database size={18} />, color: 'text-apple-blue' },
-               { label: 'Data Encryption', status: 'AES-256 (TDE)', icon: <Lock size={18} />, color: 'text-indigo-500' },
+               { label: 'Data Encryption', status: 'AES-256 (TDE)', icon: <LockIcon size={18} />, color: 'text-indigo-500' },
                { label: 'SSL Integrity', status: 'Cloudflare Proxy', icon: <Server size={18} />, color: 'text-purple-500' },
                { label: 'Access Control', status: 'JWT RBAC v2.1', icon: <Key size={18} />, color: 'text-emerald-500' }
              ].map((s, i) => (

@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Settings, 
   UserPlus, 
   Trash2, 
   Database, 
   ShieldAlert, 
   Mail,
-  MoreVertical,
-  Key,
-  ShieldCheck,
   Zap
 } from 'lucide-react';
-import { adminPromoteToAdmin } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export function AdminSettings() {
