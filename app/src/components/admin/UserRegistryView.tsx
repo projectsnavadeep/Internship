@@ -325,7 +325,7 @@ export function UserRegistryView() {
                         <div className="grid grid-cols-2 gap-4">
                            <div className="apple-card p-6 bg-white dark:bg-zinc-800 text-center">
                               <p className="text-3xl font-black text-apple-blue">{selectedUserDetail.application_count}</p>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Applctns</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Applications</p>
                            </div>
                            <div className="apple-card p-6 bg-white dark:bg-zinc-800 text-center">
                               <p className="text-3xl font-black text-indigo-500">{selectedUserDetail.login_count}</p>
