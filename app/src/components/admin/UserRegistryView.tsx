@@ -12,14 +12,16 @@ import {
   Activity,
   Trash2,
   ShieldHalf,
-  Database,
-  Lock as LockIcon
+  Lock as LockIcon,
+  Mail,
+  X
 } from 'lucide-react';
 import { 
   adminGetAllUsers, 
   adminGetUserInternships,
   signUp
 } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
 
@@ -34,6 +36,7 @@ export function UserRegistryView() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '' });
   const [creatingUser, setCreatingUser] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -156,11 +159,11 @@ export function UserRegistryView() {
                 >
                   <td className="py-5 px-8">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-zinc-900 border border-black/5">
+                      <div className="w-11 h-11 rounded-[14px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-zinc-900 border border-black/5 overflow-hidden">
                         {u.avatar_url ? (
-                           <img src={u.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
+                           <img src={u.avatar_url} className="w-full h-full object-cover" alt="" />
                         ) : (
-                           u.full_name?.charAt(0)
+                           <span className="text-[16px]">{u.full_name?.charAt(0)}</span>
                         )}
                       </div>
                       <div>
@@ -217,7 +220,7 @@ export function UserRegistryView() {
               {/* Modal Header */}
               <div className="p-10 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl overflow-hidden">
+                  <div className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl overflow-hidden border-2 border-white dark:border-zinc-800">
                     {selectedUserDetail.avatar_url ? (
                       <img src={selectedUserDetail.avatar_url} className="w-full h-full object-cover" alt={selectedUserDetail.full_name || ''} />
                     ) : (
@@ -255,9 +258,9 @@ export function UserRegistryView() {
                    </div>
                    <button 
                      onClick={() => setSelectedUserDetail(null)}
-                     className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition-colors"
+                     className="px-6 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition-all font-bold text-[14px] text-mc-ink-black/60 gap-2 border border-black/5"
                    >
-                     Inspect <Database className="ml-1" size={12} />
+                     Exit <X size={16} />
                    </button>
                 </div>
               </div>
@@ -367,6 +370,51 @@ export function UserRegistryView() {
                               </div>
                               <span className="text-[10px] font-black uppercase text-apple-near-black/40">DISABLED</span>
                            </div>
+                           
+                           {/* Welcome Email Manual Send */}
+                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                                    <Mail size={20} />
+                                 </div>
+                                 <div>
+                                    <p className="font-bold dark:text-white">Onboarding Email</p>
+                                    <p className="text-[12px] opacity-50 font-medium">
+                                       {selectedUserDetail.welcome_email_sent ? 'Sent successfully' : 'Not sent yet'}
+                                    </p>
+                                 </div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  setSendingEmail(selectedUserDetail.user_id);
+                                  try {
+                                    const success = await sendWelcomeEmail(
+                                      selectedUserDetail.user_id,
+                                      selectedUserDetail.email,
+                                      selectedUserDetail.full_name
+                                    );
+                                    if (success) {
+                                      toast.success("Welcome email dispatched.");
+                                      loadUsers();
+                                    } else {
+                                      toast.error("Failed to dispatch email.");
+                                    }
+                                  } catch (err) {
+                                    toast.error("Email relay failure.");
+                                  } finally {
+                                    setSendingEmail(null);
+                                  }
+                                }}
+                                disabled={sendingEmail === selectedUserDetail.user_id}
+                                className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                                  selectedUserDetail.welcome_email_sent 
+                                  ? 'bg-black/5 text-black/40 hover:bg-black/10' 
+                                  : 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 hover:scale-105'
+                                }`}
+                              >
+                                {sendingEmail === selectedUserDetail.user_id ? 'SENDING...' : selectedUserDetail.welcome_email_sent ? 'RESEND' : 'SEND NOW'}
+                              </button>
+                           </div>
                         </div>
                      </section>
 
@@ -425,8 +473,11 @@ export function UserRegistryView() {
                     onClick={async () => {
                        setCreatingUser(true);
                        try {
-                          await signUp(newUser.email, newUser.password, newUser.fullName);
+                          const data = await signUp(newUser.email, newUser.password, newUser.fullName);
                           toast.success("Account initialized successfully.");
+                          if (data?.user) {
+                            sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName);
+                          }
                           setShowAddUserModal(false);
                           setNewUser({ fullName: '', email: '', password: '' });
                           loadUsers();
