@@ -163,13 +163,21 @@ export const updateProfile = async (userId: string, profileData: Partial<any>) =
 };
 
 export const uploadAvatarImage = async (file: File, userId: string) => {
-  const fileExt = file.name.split('.').pop();
+  // Validate auth before attempting storage operation
+  await getUserOrFail();
+  
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const filePath = `${userId}/avatar-${Date.now()}.${fileExt}`;
 
-  // Upload the file
+  trace('AVATAR UPLOAD', { filePath, fileSize: file.size, fileType: file.type });
+
+  // Upload the file with explicit content type
   const { error: uploadError } = await supabase.storage
     .from('avatars')
-    .upload(filePath, file, { upsert: true });
+    .upload(filePath, file, { 
+      upsert: true,
+      contentType: file.type || 'image/jpeg',
+    });
 
   if (uploadError) {
     console.error('Avatar upload error details:', {

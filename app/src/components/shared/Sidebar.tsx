@@ -49,15 +49,15 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          {/* Logo */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Logo - acts as Dashboard button */}
+          <button onClick={() => onTabChange('dashboard')} className="flex items-center gap-3 shrink-0 hover:opacity-70 transition-opacity">
             <div className="w-8 h-8 rounded-xl bg-zinc-900 flex items-center justify-center text-white font-bold text-[14px]">
               IT
             </div>
             <span className="text-[17px] font-bold text-zinc-900 tracking-tight">
               InternTrack
             </span>
-          </div>
+          </button>
 
           {/* Center Links */}
           <div className="flex items-center gap-[40px]">
@@ -143,12 +143,12 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
 
       {/* Mobile Nav Header */}
       <div className="md:hidden fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-zinc-200/50 p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
+        <button onClick={() => onTabChange('dashboard')} className="flex items-center gap-3 hover:opacity-70 transition-opacity">
           <div className="w-8 h-8 rounded-xl bg-zinc-900 flex items-center justify-center text-white font-bold text-[14px]">
             IT
           </div>
           <span className="text-[17px] font-bold text-zinc-900 tracking-tight">InternTrack</span>
-        </div>
+        </button>
         <div className="flex items-center gap-3">
           <button onClick={() => setMobileMenuOpen(true)}>
             <Menu size={24} className="text-zinc-900" />

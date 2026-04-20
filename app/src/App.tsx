@@ -227,6 +227,7 @@ function App() {
             reminders={reminders}
             stats={stats}
             profile={profile}
+            onNavigate={setActiveTab}
           />
         );
       case 'applications':
