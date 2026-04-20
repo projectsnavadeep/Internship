@@ -87,6 +87,21 @@ graph TD
 
 ---
 
+### `app/sql/` — Database Schema & Policies
+
+| File | Role |
+|---|---|
+| `01_users.sql` | Core table setup and initial triggers |
+| `02_admin.sql` | Admin RBAC functions |
+| `03_applications.sql` | Application entity schema |
+| `04_calendar.sql` | Calendar and reminder schema |
+| `05_error_logs.sql` | Global error tracking schema |
+| `06_profile_columns.sql` | **Profile Schema Fix**: Adds missing settings columns (`dob`, `merit`, `joined_at`) to the cloud DB to fix the invisible data-drop on hard refresh. |
+| `DOCUMENT_FIX.SQL` | Storage and bucket RLS override policies |
+| `FINAL_FIX.SQL` | Complete drop-and-replace of core tables RLS policies to eliminate infinite recursion |
+
+---
+
 ### `app/src/` — Source Code
 
 #### Entry Point
