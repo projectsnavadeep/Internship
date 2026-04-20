@@ -6,7 +6,6 @@ import {
   MessageSquare, 
   Award, 
   Clock,
-  Target,
   AlertCircle,
   X,
   ChevronRight,
@@ -18,13 +17,13 @@ import { StatusChart } from './StatusChart';
 import { MonthlyChart } from './MonthlyChart';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
-import type { Application, ApplicationStats, Reminder, UserProfile } from '@/types';
+import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
 
 interface DashboardProps {
   applications: Application[];
   reminders: Reminder[];
   stats: ApplicationStats;
-  profile?: UserProfile | null;
+  profile?: Profile | null;
 }
 
 export function Dashboard({ applications, reminders, stats, profile }: DashboardProps) {

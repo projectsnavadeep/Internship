@@ -144,13 +144,14 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
       
       // Attempt to log the error to the database for debugging
       try {
-        logError(
-          application ? 'application_update_fail' : 'application_insert_fail',
-          err.message || 'Unknown',
-          `Company: ${formData.company_name}`,
-          JSON.stringify(err),
-          userId || 'unknown'
-        );
+        logError({
+          errorType: application ? 'application_update' : 'application_save',
+          errorMessage: err.message || 'Unknown',
+          actionAttempted: application ? 'application_update' : 'application_insert',
+          errorStack: JSON.stringify(err),
+          userId: userId || 'unknown',
+          source: 'frontend'
+        });
       } catch (logErr) {
         console.error('Failed to log error to DB:', logErr);
       }

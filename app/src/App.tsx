@@ -27,10 +27,12 @@ import {
   getReminders,
   getInterviewNotes,
   createInterviewNote,
-  deleteInterviewNote
+  deleteInterviewNote,
+  getProfile,
+  logError
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
-import type { Application, ApplicationStats, Reminder, InterviewNote } from '@/types';
+import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } from '@/types';
 import './App.css';
 
 function App() {
@@ -38,6 +40,7 @@ function App() {
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [applications, setApplications] = useState<Application[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [stats, setStats] = useState<ApplicationStats>({
     total_applications: 0,
@@ -68,15 +71,17 @@ function App() {
     try {
       const userId = user.id;
       
-      const [apps, rems, appStats] = await Promise.all([
+      const [apps, rems, appStats, userProfile] = await Promise.all([
         getApplications(userId),
         getReminders(userId),
         getApplicationStats(userId),
+        getProfile(userId)
       ]);
       
       setApplications(apps);
       setReminders(rems);
       setStats(appStats);
+      setProfile(userProfile);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
