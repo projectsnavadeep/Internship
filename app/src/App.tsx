@@ -66,25 +66,31 @@ function App() {
   }, [activeTab, isAdmin]);
 
   const loadData = useCallback(async () => {
-    if (!user) return; // Load personal data for any authenticated user
+    if (!user) return;
     
     try {
       const userId = user.id;
       
-      const [apps, rems, appStats, userProfile] = await Promise.all([
-        getApplications(userId),
-        getReminders(userId),
-        getApplicationStats(userId),
-        getProfile(userId)
-      ]);
+      // Fetch everything, but don't let one failure block the others
+      const fetchJobs = [
+        getApplications(userId).catch(e => { console.error('Apps load fail:', e); return []; }),
+        getReminders(userId).catch(e => { console.error('Reminders load fail:', e); return []; }),
+        getApplicationStats(userId).catch(e => { 
+          console.error('Stats load fail:', e); 
+          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 }; 
+        }),
+        getProfile(userId).catch(e => { console.error('Profile load fail:', e); return null; })
+      ];
+      
+      const [apps, rems, appStats, userProfile] = await Promise.all(fetchJobs);
       
       setApplications(apps);
       setReminders(rems);
       setStats(appStats);
       setProfile(userProfile);
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
+      console.error('Critical data error:', error);
+      toast.error('Sync failure. Some data may be missing.');
     }
   }, [user]);
 

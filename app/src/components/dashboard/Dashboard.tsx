@@ -139,11 +139,15 @@ export function Dashboard({ applications, reminders, stats, profile }: Dashboard
         className="text-left py-12 md:py-20 max-w-4xl"
       >
         <div className="mc-eyebrow flex items-center gap-2 mb-4">
-          <div className="w-1.5 h-1.5 rounded-full bg-apple-blue" />
-          {profile?.role === 'admin' ? 'SYSTEM CONSOLE' : 'PERSONAL PORTFOLIO'}
+          <div className="w-1.5 h-1.5 rounded-full bg-apple-blue shadow-[0_0_10px_rgba(0,122,255,0.5)]" />
+          {profile?.role === 'admin' ? 'MASTER COMMAND CONSOLE' : 'PERSONAL PIPELINE'}
         </div>
         <h1 className="text-[64px] md:text-[88px] font-medium tracking-mc-tight leading-[0.95] text-mc-ink-black dark:text-white mb-6">
-          {getTimeGreeting()},<br />{profile?.full_name?.split(' ')[0] || 'User'}.
+          {getTimeGreeting()},<br />
+          <span className="text-apple-blue font-bold">
+            {profile?.full_name || 'Professional'}
+          </span>
+          {profile?.role === 'admin' && <span className="text-[24px] uppercase tracking-[0.2em] ml-4 font-black text-mc-ink-black/20 dark:text-white/20">Admin</span>}
         </h1>
         <p className="text-[24px] text-mc-ink-black/60 dark:text-white/60 tracking-mc-tight max-w-2xl font-medium">
           {stats.total_applications > 0 
