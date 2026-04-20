@@ -23,7 +23,8 @@ if (!g.__supabase) {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        flowType: 'pkce', // Switched to PKCE for better security and stability
+        flowType: 'implicit',
+        storageKey: 'internship-auth-token',
       },
     });
   }
