@@ -7,8 +7,6 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
 // ============================================
 // BULLETPROOF SINGLETON - survives Vite HMR
-// Both clients MUST live on globalThis so they
-// are never re-created during hot module reload.
 // Duplicate GoTrueClient instances deadlock the
 // browser's navigator.locks and freeze all
 // Supabase calls (insert, upload, select, etc).
@@ -16,19 +14,27 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 const g = globalThis as any;
 
 if (!g.__supabase) {
-  g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit',
-    storageKey: 'sb-auth-token',
-  },
-  });
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('CRITICAL: Supabase URL or Anon Key is missing from .env! Requests will fail.');
+  } else {
+    console.log('[🚀] Initializing Supabase Singleton...');
+    g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'implicit',
+        storageKey: 'sb-auth-token',
+      },
+    });
+  }
 }
-export const supabase = g.__supabase;
 
-if (!g.__supabaseAdmin && supabaseServiceKey) {
+// Fallback to a "dead" client instead of null to prevent application crashes, 
+// but it will trigger "Failed to fetch" which we handle in the UI.
+export const supabase = g.__supabase || createClient(supabaseUrl || 'https://missing.supabase.co', supabaseAnonKey || 'missing');
+
+if (!g.__supabaseAdmin && supabaseServiceKey && supabaseUrl) {
   g.__supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -37,6 +43,28 @@ if (!g.__supabaseAdmin && supabaseServiceKey) {
   });
 }
 export const supabaseAdmin = g.__supabaseAdmin || null;
+export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
+
+/**
+ * TRACE LOGGING: Helps rectify "root" issues by showing exactly what
+ * is being sent to Supabase in the DevTools console.
+ */
+const trace = (action: string, payload: any) => {
+  console.log(`[🚀 SUPABASE TRACE] ${action}:`, payload);
+};
+
+/**
+ * DOUBLE-SAFETY USER DETECTION: Ensures we never attempt an RLS-protected
+ * operation without a valid, verified auth UID.
+ */
+export const getUserOrFail = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    console.error("AUTH FAILURE: No active session found during save attempt.");
+    throw new Error("Authentication required. Please refresh and log in again.");
+  }
+  return user;
+};
 
 // ============================================
 // Auth helpers
@@ -122,7 +150,7 @@ export const getProfile = async (userId: string) => {
   return data;
 };
 
-export const updateProfile = async (userId: string, profileData: any) => {
+export const updateProfile = async (userId: string, profileData: Partial<any>) => {
   const { data, error } = await supabase
     .from('profiles')
     .update(profileData)
@@ -130,7 +158,10 @@ export const updateProfile = async (userId: string, profileData: any) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Update Profile Error:', error);
+    throw error;
+  }
   return data;
 };
 
@@ -187,13 +218,23 @@ export const getApplications = async (userId: string) => {
 };
 
 export const createApplication = async (application: Partial<Application>) => {
-  // Strip empty strings, nulls, and undefined to guarantee postgres doesn't crash on date/uuid types
-  const cleanData: any = {};
-  for (const [key, value] of Object.entries(application)) {
-    if (value !== '' && value !== undefined && value !== null) {
-      cleanData[key] = value;
-    }
+  const user = await getUserOrFail();
+  
+  // Strip empty strings, and handle nulls/undefined for Postgres safety
+  const cleanData: any = {
+    ...application,
+    user_id: user.id // Force the correct ID
+  };
+  
+  // Remove empty strings that might cause Postgres syntax errors
+  for (const key in cleanData) {
+    if (cleanData[key] === '') delete cleanData[key];
   }
+
+  // Final casting of tricky types
+  if (cleanData.rating !== undefined) cleanData.rating = Number(cleanData.rating);
+
+  trace('INSERT APPLICATION', cleanData);
 
   const { data, error } = await supabase
     .from('applications')
@@ -203,20 +244,21 @@ export const createApplication = async (application: Partial<Application>) => {
   
   if (error) {
     console.error("Supabase API Error on Save:", error);
-    throw new Error(error.message);
+    throw error;
   }
-  return data as Application;
+  return data;
 };
 
 export const updateApplication = async (id: string, updates: Partial<Application>) => {
-  const cleanData: any = {};
-  for (const [key, value] of Object.entries(updates)) {
-    if (value !== '' && value !== undefined && value !== null) {
-      cleanData[key] = value;
-    } else if (value === '' || value === null) {
-      cleanData[key] = null; // Explicitly set to null to clear in db
-    }
+  await getUserOrFail(); // Verify auth
+  
+  // Clean empty strings
+  const cleanData: any = { ...updates };
+  for (const key in cleanData) {
+    if (cleanData[key] === '') delete cleanData[key];
   }
+
+  trace('UPDATE APPLICATION', { id, cleanData });
 
   const { data, error } = await supabase
     .from('applications')
@@ -224,9 +266,12 @@ export const updateApplication = async (id: string, updates: Partial<Application
     .eq('id', id)
     .select()
     .single();
-  
-  if (error) throw error;
-  return data as Application;
+    
+  if (error) {
+    console.error('Update Profile Error:', error);
+    throw error;
+  }
+  return data;
 };
 
 export const deleteApplication = async (id: string) => {
@@ -288,13 +333,29 @@ export const getReminders = async (userId: string) => {
 };
 
 export const createReminder = async (reminder: Partial<Reminder>) => {
+  const user = await getUserOrFail();
+  
+  const cleanData: any = {
+    ...reminder,
+    user_id: user.id // Force the correct ID
+  };
+  
+  for (const key in cleanData) {
+    if (cleanData[key] === '') delete cleanData[key];
+  }
+
+  trace('CREATE REMINDER', cleanData);
+
   const { data, error } = await supabase
     .from('reminders')
-    .insert(reminder)
+    .insert(cleanData)
     .select()
     .single();
   
-  if (error) throw error;
+  if (error) {
+    console.error("Reminder Save Error:", error);
+    throw error;
+  }
   return data as Reminder;
 };
 
@@ -308,6 +369,36 @@ export const completeReminder = async (id: string) => {
   
   if (error) throw error;
   return data as Reminder;
+};
+
+// Remove reminder
+export const deleteReminder = async (id: string) => {
+  const { error } = await supabase
+    .from('reminders')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+};
+
+// Update reminder
+export const updateReminder = async (id: string, updates: Partial<Reminder>) => {
+  const { data, error } = await supabase
+    .from('reminders')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Mark reminder as notified
+export const markReminderNotified = async (id: string) => {
+  const { error } = await supabase
+    .from('reminders')
+    .update({ is_notified: true })
+    .eq('id', id);
+  if (error) throw error;
 };
 
 // ============================================
@@ -328,6 +419,17 @@ export const createDocument = async (docData: any) => {
   const { data, error } = await supabase
     .from('documents')
     .insert(docData)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+export const updateDocument = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('documents')
+    .update(updates)
+    .eq('id', id)
     .select()
     .single();
     
@@ -705,9 +807,44 @@ export const adminGetUserInternships = async (userId: string) => {
 // ============================================
 export type ErrorType = 'auth' | 'application_save' | 'application_update' | 'application_delete' |
   'resume_upload' | 'cover_letter_upload' | 'document_upload' | 'document_delete' |
-  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'unknown';
+  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'rendering' | 'network' | 'unknown';
 
-export const logError = async (
+export interface ErrorLogData {
+  errorType: ErrorType;
+  errorMessage: string;
+  errorStack?: string;
+  source?: string;
+  endpointOrFile?: string;
+  statusCode?: number;
+  actionAttempted: string;
+  role?: 'student' | 'admin' | 'system';
+  userId?: string;
+  userEmail?: string;
+  userName?: string;
+}
+
+export const logError = async (data: ErrorLogData) => {
+  try {
+    await supabase.from('error_logs').insert({
+      user_id: data.userId || null,
+      user_email: data.userEmail || null,
+      user_name: data.userName || null,
+      role: data.role || 'system',
+      error_type: data.errorType,
+      error_message: data.errorMessage,
+      error_stack: data.errorStack || null,
+      source: data.source || 'frontend',
+      endpoint_or_file: data.endpointOrFile || null,
+      status_code: data.statusCode || null,
+      action_attempted: data.actionAttempted,
+    });
+  } catch (e) {
+    console.warn('Failed to log error to DB (non-blocking):', e);
+  }
+};
+
+// Legacy support (to avoid breaking other files temporarily)
+export const logErrorLegacy = async (
   errorType: ErrorType,
   errorMessage: string,
   actionAttempted: string,
@@ -716,19 +853,17 @@ export const logError = async (
   userEmail?: string,
   userName?: string,
 ) => {
-  try {
-    await supabase.from('error_logs').insert({
-      user_id: userId || null,
-      user_email: userEmail || null,
-      user_name: userName || null,
-      error_type: errorType,
-      error_message: errorMessage,
-      error_details: errorDetails || null,
-      action_attempted: actionAttempted,
-    });
-  } catch (e) {
-    console.warn('Failed to log error (non-blocking):', e);
-  }
+  return logError({
+    errorType,
+    errorMessage,
+    actionAttempted,
+    errorStack: errorDetails,
+    userId,
+    userEmail,
+    userName,
+    source: 'frontend',
+    role: 'student'
+  });
 };
 
 // Admin: Get all error logs

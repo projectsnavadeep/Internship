@@ -13,7 +13,7 @@ import {
   AlertCircle,
   ChevronDown
 } from 'lucide-react';
-import { getDocuments, uploadDocumentFile, createDocument, deleteDocument } from '@/lib/supabase';
+import { getDocuments, uploadDocumentFile, createDocument, deleteDocument, updateDocument } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface DocumentInterface {
@@ -149,11 +149,30 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
     }
   };
 
-  const toggleDefault = (id: string) => {
-    setDocs(docs.map(doc => ({
-      ...doc,
-      is_default: doc.id === id ? !doc.is_default : false
-    })));
+  const toggleDefault = async (id: string) => {
+    const targetDoc = docs.find(d => d.id === id);
+    if (!targetDoc) return;
+    
+    const newStatus = !targetDoc.is_default;
+    
+    try {
+      // First, update the local UI for speed
+      setDocs(docs.map(doc => ({
+        ...doc,
+        is_default: doc.id === id ? newStatus : (newStatus ? false : doc.is_default)
+      })));
+
+      // If we are setting this doc as default, clear any others first (if that's the logic)
+      // For now, just update the single record as the RLS might be complex
+      await updateDocument(id, { is_default: newStatus });
+      
+      if (newStatus) {
+        toast.success(`"${targetDoc.name}" is now marked as your primary document.`);
+      }
+    } catch (err) {
+      toast.error('Failed to update document status.');
+      loadDocs(); // Revert on failure
+    }
   };
 
   const handleDeleteDocument = async (id: string, url: string) => {

@@ -140,7 +140,7 @@ export function ApplicationDetails({
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="p-12 space-y-16 pb-32">
+              <div className="p-6 md:p-12 space-y-16 pb-32">
                 {/* Hero Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pt-4">
                   <div className="space-y-4">
@@ -348,7 +348,7 @@ export function ApplicationDetails({
                              {/* Timeline Node */}
                              <div className="absolute left-[-5px] top-3 w-[12px] h-[12px] rounded-full bg-apple-blue shadow-[0_0_15px_rgba(0,113,227,0.5)]" />
                              
-                             <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-10 group hover:shadow-apple transition-all duration-500">
+                             <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-6 md:p-10 group hover:shadow-apple transition-all duration-500">
                                 <div className="flex items-start justify-between mb-8">
                                    <div>
                                       <h4 className="text-[24px] font-bold text-apple-near-black dark:text-white tracking-apple-tight mb-2">

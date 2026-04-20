@@ -11,7 +11,7 @@ import {
   Calendar,
   BadgeCheck
 } from 'lucide-react';
-import { getProfile, uploadAvatarImage, updatePassword } from '@/lib/supabase';
+import { getProfile, uploadAvatarImage, updatePassword, updateProfile } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { UserPreferences } from '@/types';
 
@@ -43,7 +43,8 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+   const [isSavingProfile, setIsSavingProfile] = useState(false);
+   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [notifications, setNotifications] = useState<UserPreferences>({
     emailNotifications: true,
@@ -104,6 +105,28 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     }
   };
 
+  const handleSaveProfile = async () => {
+    if (!userId) return;
+    setIsSavingProfile(true);
+    try {
+      await updateProfile(userId, {
+        full_name: profile.fullName,
+        university: profile.university,
+        major: profile.major,
+        graduation_year: parseInt(profile.graduation_year) || null,
+        dob: profile.dob || null,
+        merit: profile.merit,
+        additional_data: profile.additional_data,
+      });
+      toast.success('Professional identity synchronized.');
+      setIsEditingProfile(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
@@ -113,6 +136,8 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     setIsUploading(true);
     try {
       const publicUrl = await uploadAvatarImage(file, userId);
+      // Persist the avatar URL to the profiles table in the database
+      await updateProfile(userId, { avatar_url: publicUrl });
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       toast.success('Profile photo updated.');
     } catch (error: any) {
@@ -150,16 +175,27 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             </div>
             <div className="flex-1 flex items-center justify-between">
               <h2 className="text-[24px] font-medium tracking-tight text-zinc-900">Identity Profile</h2>
-              <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className={`px-5 py-2 rounded-xl text-[14px] font-medium transition-all ${
-                  isEditingProfile 
-                    ? 'bg-zinc-900 text-white' 
-                    : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-zinc-200'
-                }`}
-              >
-                {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-              </button>
+              <div className="flex items-center gap-2">
+                {isEditingProfile && (
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={isSavingProfile}
+                    className="px-5 py-2 rounded-xl text-[14px] font-bold bg-apple-blue text-white shadow-lg shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                  >
+                    {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : 'Save Changes'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsEditingProfile(!isEditingProfile)}
+                  className={`px-5 py-2 rounded-xl text-[14px] font-medium transition-all ${
+                    isEditingProfile 
+                      ? 'bg-zinc-50 text-zinc-500 hover:text-zinc-900 border border-zinc-200' 
+                      : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-zinc-200'
+                  }`}
+                >
+                  {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                </button>
+              </div>
             </div>
           </div>
 

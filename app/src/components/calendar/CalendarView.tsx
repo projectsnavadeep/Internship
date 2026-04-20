@@ -1,20 +1,22 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createReminder } from '@/lib/supabase';
+import { createReminder, updateReminder, deleteReminder } from '@/lib/supabase';
 import type { Application, Reminder } from '@/types';
 
 interface CalendarViewProps {
   applications: Application[];
   reminders: Reminder[];
+  userId?: string;
   onRefresh?: () => void;
 }
 
-export function CalendarView({ applications, reminders, onRefresh }: CalendarViewProps) {
+export function CalendarView({ applications, reminders, userId, onRefresh }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: '',
@@ -119,21 +121,59 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
       const reminderDate = new Date(selectedDate);
       reminderDate.setHours(hours, minutes, 0, 0);
 
-      await createReminder({
-        title: eventForm.title,
-        description: eventForm.description,
-        reminder_type: eventForm.type as any,
-        reminder_date: reminderDate.toISOString()
-      });
+      if (editingReminder) {
+        await updateReminder(editingReminder.id, {
+          title: eventForm.title,
+          description: eventForm.description,
+          reminder_type: eventForm.type as any,
+          reminder_date: reminderDate.toISOString()
+        });
+        toast.success('Event updated successfully');
+      } else {
+        await createReminder({
+          user_id: userId,
+          title: eventForm.title,
+          description: eventForm.description,
+          reminder_type: eventForm.type as any,
+          reminder_date: reminderDate.toISOString()
+        });
+        toast.success('Event scheduled successfully');
+      }
 
-      toast.success('Event scheduled successfully');
       setShowEventModal(false);
+      setEditingReminder(null);
       setEventForm({ title: '', time: '09:00', type: 'Interview', description: '' });
       if (onRefresh) onRefresh();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to schedule event');
+      toast.error(error.message || 'Failed to process event');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (reminder: Reminder) => {
+    const date = new Date(reminder.reminder_date);
+    const time = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    
+    setEditingReminder(reminder);
+    setEventForm({
+      title: reminder.title,
+      time: time,
+      type: reminder.reminder_type,
+      description: reminder.description || ''
+    });
+    setShowEventModal(true);
+  };
+
+  const handleDeleteClick = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+    
+    try {
+      await deleteReminder(id);
+      toast.success('Event deleted');
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error('Failed to delete event');
     }
   };
 
@@ -302,7 +342,21 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
                         {selectedDateEvents.reminders.length > 0 && (
                           <div className="space-y-3">
                             {selectedDateEvents.reminders.map((reminder) => (
-                              <div key={reminder.id} className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100">
+                              <div key={reminder.id} className="p-5 rounded-2xl bg-zinc-50 border border-zinc-100 group relative">
+                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                  <button 
+                                    onClick={() => handleEditClick(reminder)}
+                                    className="p-1.5 rounded-lg bg-zinc-200/50 hover:bg-zinc-200 text-zinc-600 transition-colors"
+                                  >
+                                    <Clock size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteClick(reminder.id)}
+                                    className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                                 <div className="flex items-center gap-3 mb-2">
                                   <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-sm">
                                     <Clock size={20} />
@@ -349,10 +403,14 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
                 >
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-[24px] font-medium text-zinc-900 tracking-tight">
-                      New Event
+                      {editingReminder ? 'Edit Event' : 'New Event'}
                     </h3>
                     <button
-                      onClick={() => setShowEventModal(false)}
+                      onClick={() => {
+                        setShowEventModal(false);
+                        setEditingReminder(null);
+                        setEventForm({ title: '', time: '09:00', type: 'Interview', description: '' });
+                      }}
                       className="w-10 h-10 rounded-full bg-zinc-50 text-zinc-500 flex items-center justify-center hover:bg-zinc-100 transition-colors"
                     >
                       <X size={20} />

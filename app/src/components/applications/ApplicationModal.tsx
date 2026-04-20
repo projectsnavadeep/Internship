@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { supabase, logError } from '@/lib/supabase';
+import { logError, createApplication, updateApplication } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { Application, ApplicationStatus, EmploymentType } from '@/types';
 
@@ -33,7 +33,7 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
     recruiter_email: '',
     recruiter_phone: '',
     notes: '',
-    rating: 0,
+    rating: 1, // Default to 1 to avoid check constraint violations
   });
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
         recruiter_email: '',
         recruiter_phone: '',
         notes: '',
-        rating: 0,
+        rating: 1,
       });
     }
     setIsSaving(false);
@@ -117,37 +117,30 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
       if (formData.employment_type) payload.employment_type = formData.employment_type;
       if (formData.status) payload.status = formData.status;
       if (formData.applied_date) payload.applied_date = formData.applied_date;
-      if (formData.deadline_date) payload.deadline_date = formData.deadline_date;
-      if (formData.rating !== undefined) payload.rating = formData.rating;
-
+      if (formData.deadline_date && formData.deadline_date !== '') payload.deadline_date = formData.deadline_date;
+      if (formData.rating !== undefined) payload.rating = Number(formData.rating);
+      
       if (application) {
         // UPDATE existing
-        const { data, error } = await supabase
-          .from('applications')
-          .update(payload)
-          .eq('id', application.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await updateApplication(application.id, payload);
         toast.success('Database synchronized: Application updated.');
         onSave(data);
       } else {
         // INSERT new
-        const { data, error } = await supabase
-          .from('applications')
-          .insert([payload])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await createApplication(payload);
         toast.success('Database synchronized: Application created.');
         onSave(data);
       }
       onClose();
     } catch (err: any) {
       console.error('CRITICAL SAVE FAILURE:', err);
-      toast.error(`Save Failed: ${err.message || 'Unknown database error'}`);
+      
+      let errorMessage = err.message || 'Unknown database error';
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        errorMessage = 'Network connection lost or browser deadlock detected. PLEASE REFRESH THE PAGE.';
+      }
+      
+      toast.error(`Save Failed: ${errorMessage}`);
       
       // Attempt to log the error to the database for debugging
       try {
@@ -199,7 +192,7 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="px-10 py-10 space-y-12 max-h-[70vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="px-6 py-6 md:px-10 md:py-10 space-y-12 max-h-[70vh] overflow-y-auto">
 
               {/* Company & Position */}
               <section className="space-y-6">

@@ -63,7 +63,7 @@ function App() {
   }, [activeTab, isAdmin]);
 
   const loadData = useCallback(async () => {
-    if (!user) return; // Load data for all logged in users so they can test their dashboard
+    if (!user) return; // Load personal data for any authenticated user
     
     try {
       const userId = user.id;
@@ -118,13 +118,17 @@ function App() {
       // Auto-email stuff...
       if (data?.user) {
         const userId = data.user.id;
-        setTimeout(async () => {
-          try {
-            await sendWelcomeEmail(userId, email, fullName);
-          } catch (err) {
-            console.error('Auto-email error:', err);
-          }
-        }, 10000);
+        // Fire email instantly in the background
+        sendWelcomeEmail(userId, email, fullName).catch(err => {
+          console.error('Auto-email error:', err);
+          logError({
+            errorType: 'auth',
+            errorMessage: err.message || 'Auto-email failed',
+            errorStack: err.stack,
+            actionAttempted: 'send_welcome_email',
+            userId
+          });
+        });
       }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
@@ -211,6 +215,7 @@ function App() {
             applications={applications} 
             reminders={reminders}
             stats={stats}
+            profile={profile}
           />
         );
       case 'applications':
@@ -229,6 +234,7 @@ function App() {
           <CalendarView 
             applications={applications}
             reminders={reminders}
+            userId={user?.id}
             onRefresh={loadData}
           />
         );

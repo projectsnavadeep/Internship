@@ -217,8 +217,12 @@ export function UserRegistryView() {
               {/* Modal Header */}
               <div className="p-10 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl">
-                    {selectedUserDetail.full_name?.charAt(0)}
+                  <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl overflow-hidden">
+                    {selectedUserDetail.avatar_url ? (
+                      <img src={selectedUserDetail.avatar_url} className="w-full h-full object-cover" alt={selectedUserDetail.full_name || ''} />
+                    ) : (
+                      selectedUserDetail.full_name?.charAt(0)
+                    )}
                   </div>
                   <div>
                     <h2 className="text-3xl font-black dark:text-white tracking-tight">{selectedUserDetail.full_name}</h2>

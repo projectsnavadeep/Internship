@@ -138,7 +138,7 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="apple-card p-4 md:p-6 bg-white dark:bg-apple-near-black grid grid-cols-1 md:grid-cols-2 gap-8 ring-1 ring-black/5 dark:ring-white/5">
+            <div className="apple-card p-6 bg-white dark:bg-apple-near-black grid grid-cols-1 md:grid-cols-2 gap-8 ring-1 ring-black/5 dark:ring-white/5">
               <div className="space-y-4">
                 <label className="text-sm font-bold text-apple-near-black dark:text-white uppercase tracking-wider">Status</label>
                 <div className="flex flex-wrap gap-2">

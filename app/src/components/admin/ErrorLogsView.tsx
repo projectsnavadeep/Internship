@@ -12,9 +12,13 @@ interface ErrorLog {
   user_id: string | null;
   user_email: string | null;
   user_name: string | null;
+  role: 'student' | 'admin' | 'system';
   error_type: string;
   error_message: string;
-  error_details: string | null;
+  error_stack: string | null;
+  source: string;
+  endpoint_or_file: string | null;
+  status_code: number | null;
   action_attempted: string;
   resolved: boolean;
   resolved_by: string | null;
@@ -235,21 +239,37 @@ export function ErrorLogsView({ adminId }: { adminId?: string }) {
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-black/5 dark:border-white/5"
                       >
-                        <div className="p-5 space-y-3 text-[13px]">
-                          <div className="grid grid-cols-2 gap-4">
+                        <div className="p-5 space-y-4 text-[13px]">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[11px] tracking-wider">Action Attempted</p>
-                              <p className="mt-1 dark:text-white">{log.action_attempted}</p>
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Action</p>
+                              <p className="mt-1 dark:text-white font-medium">{log.action_attempted}</p>
                             </div>
                             <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[11px] tracking-wider">User ID</p>
-                              <p className="mt-1 dark:text-white font-mono text-[11px]">{log.user_id || 'N/A'}</p>
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Source</p>
+                              <p className="mt-1 dark:text-white capitalize">{log.source} ({log.role})</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">File/URL</p>
+                              <p className="mt-1 dark:text-white truncate" title={log.endpoint_or_file || ''}>{log.endpoint_or_file || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Status</p>
+                              <p className="mt-1 dark:text-white">{log.status_code || 'N/A'}</p>
                             </div>
                           </div>
-                          {log.error_details && (
-                            <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[11px] tracking-wider">Technical Details</p>
-                              <pre className="mt-1 p-3 rounded-xl bg-black/5 dark:bg-white/5 text-[11px] font-mono overflow-auto max-h-32 dark:text-white/70">{log.error_details}</pre>
+
+                          <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                            <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">User Metadata</p>
+                            <p className="mt-1 dark:text-white font-mono text-[11px]">{log.user_id || 'Guest Session'}</p>
+                          </div>
+
+                          {log.error_stack && (
+                            <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Error Stack Trace</p>
+                              <pre className="mt-2 p-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[11px] font-mono overflow-auto max-h-60 dark:text-white/70 leading-relaxed">
+                                {log.error_stack}
+                              </pre>
                             </div>
                           )}
                           {log.resolved && log.resolution_notes && (
