@@ -23,16 +23,13 @@ if (!g.__supabase) {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        flowType: 'implicit',
-        storageKey: 'sb-auth-token',
+        flowType: 'pkce', // Switched to PKCE for better security and stability
       },
     });
   }
 }
 
-// Fallback to a "dead" client instead of null to prevent application crashes, 
-// but it will trigger "Failed to fetch" which we handle in the UI.
-export const supabase = g.__supabase || createClient(supabaseUrl || 'https://missing.supabase.co', supabaseAnonKey || 'missing');
+export const supabase = g.__supabase;
 
 if (!g.__supabaseAdmin && supabaseServiceKey && supabaseUrl) {
   g.__supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
