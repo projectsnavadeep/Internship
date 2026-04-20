@@ -315,7 +315,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                   <span className="text-[14px] font-medium text-zinc-600">Joined</span>
                 </div>
                 <span className="text-[14px] text-zinc-500">
-                  {profile.joined_at ? new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                  {profile.joined_at ? new Date(profile.joined_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '—'}
                 </span>
               </div>
             </div>

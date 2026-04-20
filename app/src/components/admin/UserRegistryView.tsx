@@ -108,7 +108,7 @@ export function UserRegistryView() {
     u.full_name?.toLowerCase().includes(userFilter.toLowerCase()) || 
     u.email?.toLowerCase().includes(userFilter.toLowerCase()) ||
     u.university?.toLowerCase().includes(userFilter.toLowerCase())
-  );
+  ).sort((a, b) => new Date(b.joined_at || 0).getTime() - new Date(a.joined_at || 0).getTime());
 
   if (loading) {
     return (
@@ -174,6 +174,7 @@ export function UserRegistryView() {
               <tr className="bg-black/2 dark:bg-white/2">
                 <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Student Identity</th>
                 <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5 text-center">Applications</th>
+                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Joined At</th>
                 <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Last Activity</th>
                 <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5 text-right">Actions</th>
               </tr>
@@ -207,6 +208,11 @@ export function UserRegistryView() {
                   </td>
                   <td className="py-5 px-2 text-center">
                      <span className="text-[15px] font-bold dark:text-white">{u.application_count}</span>
+                  </td>
+                  <td className="py-5 px-2">
+                     <p className="text-[13px] font-medium dark:text-white">
+                        {u.joined_at ? new Date(u.joined_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Unknown'}
+                     </p>
                   </td>
                   <td className="py-5 px-2">
                      <p className="text-[13px] font-medium dark:text-white">
@@ -513,7 +519,9 @@ export function UserRegistryView() {
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-apple-near-black/30 mb-6 font-mono">Account Tenure</h4>
                         <div className="p-8 rounded-[32px] bg-indigo-500/5 border border-indigo-500/10 text-center">
                            <p className="text-sm font-medium text-indigo-500/70 mb-2 italic">Member of the Internship Network since</p>
-                           <p className="text-2xl font-black text-indigo-600">{new Date(selectedUserDetail.joined_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                           <p className="text-[20px] font-black text-indigo-600">
+                             {selectedUserDetail.joined_at ? new Date(selectedUserDetail.joined_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Unknown'}
+                           </p>
                         </div>
                      </section>
 

@@ -826,6 +826,29 @@ export const adminDeleteUser = async (userId: string, wipeData: boolean = false)
   if (error) throw error;
 };
 
+export const adminPromoteUserByEmail = async (email: string) => {
+  const admin = getAdminClient();
+  
+  const { data: authData, error: authError } = await admin.auth.admin.listUsers();
+  if (authError) throw authError;
+
+  const targetUser = authData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  if (!targetUser) throw new Error("User with that email not found in the identity system.");
+
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update({ role: 'admin' })
+    .eq('id', targetUser.id);
+    
+  if (profileError) throw profileError;
+  
+  // also update app_metadata for JWT to ensure instantaneous access without relogin loop?
+  // Our trigger in FINAL_FIX.SQL handles syncing profile.role to auth.users.raw_app_metadata.
+  
+  return true;
+};
+
+
 // Fetch internship history for a specific student drill-down
 export const adminGetUserInternships = async (userId: string) => {
   const admin = getAdminClient();

@@ -107,6 +107,8 @@ function App() {
       toast.success('Welcome back!');
       if (u?.role === 'admin' || email === 'admin@gmail.com') {
         setActiveTab('admin');
+      } else {
+        setActiveTab('dashboard');
       }
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
@@ -350,7 +352,7 @@ function App() {
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        onLogout={() => { logout(); }}
+        onLogout={() => { logout(); setActiveTab('dashboard'); }}
         userName={user?.user_metadata?.full_name || 'My Profile'}
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}

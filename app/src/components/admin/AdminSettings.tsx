@@ -23,15 +23,18 @@ export function AdminSettings() {
     }
     setPromoting(true);
     try {
-      toast.info("Verifying identity via Registry...");
-      // Guidance to use User Registry for better verification
-      toast.error("Delegation must be performed via the User Registry 'Inspect' tool for security verification.");
-    } catch (err) {
-      toast.error("Failed to promote user.");
+      toast.info("Verifying identity and issuing promotion...");
+      const { adminPromoteUserByEmail } = await import('@/lib/supabase');
+      await adminPromoteUserByEmail(promoEmail);
+      toast.success(`${promoEmail} has been elevated to Coordinator (Admin).`);
+      setPromoEmail('');
+    } catch (err: any) {
+      toast.error(err.message || "Failed to promote user.");
     } finally {
       setPromoting(false);
     }
   };
+
 
   return (
     <div className="space-y-12 pb-24 max-w-5xl">
