@@ -5,17 +5,31 @@ const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 
-export const sendWelcomeEmail = async (userId: string, userEmail: string, userName: string) => {
+const APP_LOGIN_LINK = 'https://internship-0sf2.onrender.com/';
+
+export const sendWelcomeEmail = async (
+  userId: string,
+  userEmail: string,
+  userName: string,
+  initialPassword?: string
+) => {
   if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
     console.warn('EmailJS keys missing. Skipping email.');
     return;
   }
 
   try {
-    const templateParams = {
+    const templateParams: Record<string, string> = {
       to_email: userEmail,
       user_name: userName,
+      login_link: APP_LOGIN_LINK,
     };
+
+    // Include credentials in email if provided (admin-created accounts)
+    if (initialPassword) {
+      templateParams.initial_password = initialPassword;
+      templateParams.user_email = userEmail;
+    }
 
     // Add a 10-second timeout to prevent UI hanging
     const emailPromise = emailjs.send(

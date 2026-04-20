@@ -330,7 +330,7 @@ export function CalendarView({ applications, reminders, userId, onRefresh }: Cal
                                   <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-200/50">
                                     <Clock size={14} className="text-zinc-400" />
                                     <span className="text-[13px] font-medium text-zinc-600">
-                                      Interview at {new Date(app.interview_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      Interview at {new Date(app.interview_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                     </span>
                                   </div>
                                 )}

@@ -14,11 +14,13 @@ import {
   ShieldHalf,
   Lock as LockIcon,
   Mail,
+  Clock,
   X
 } from 'lucide-react';
 import { 
   adminGetAllUsers, 
   adminGetUserInternships,
+  adminGetUserReminders,
   signUp
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
@@ -31,8 +33,10 @@ export function UserRegistryView() {
   const [userFilter, setUserFilter] = useState('');
   const [selectedUserDetail, setSelectedUserDetail] = useState<UserActivity | null>(null);
   const [userInternships, setUserInternships] = useState<any[]>([]);
+  const [userSchedules, setUserSchedules] = useState<any[]>([]);
   const [loadingInternships, setLoadingInternships] = useState(false);
-  const [activeModalTab, setActiveModalTab] = useState<'overview' | 'internships' | 'security'>('overview');
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState<'overview' | 'internships' | 'schedules' | 'security'>('overview');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '' });
   const [creatingUser, setCreatingUser] = useState(false);
@@ -45,8 +49,10 @@ export function UserRegistryView() {
   useEffect(() => {
     if (selectedUserDetail) {
       fetchUserInternships(selectedUserDetail.user_id);
+      fetchUserSchedules(selectedUserDetail.user_id);
     } else {
       setUserInternships([]);
+      setUserSchedules([]);
       setActiveModalTab('overview');
     }
   }, [selectedUserDetail]);
@@ -74,6 +80,28 @@ export function UserRegistryView() {
     } finally {
       setLoadingInternships(false);
     }
+  };
+
+  const fetchUserSchedules = async (userId: string) => {
+    setLoadingSchedules(true);
+    try {
+      const schedules = await adminGetUserReminders(userId);
+      setUserSchedules(schedules);
+    } catch (err) {
+      console.error('Failed to load schedules:', err);
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
+
+  const formatScheduleTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const formatScheduleDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const filteredUsers = users.filter(u => 
@@ -241,6 +269,7 @@ export function UserRegistryView() {
                       {[
                         { id: 'overview', label: 'Overview', icon: <Users size={14} /> },
                         { id: 'internships', label: 'Internships', icon: <Briefcase size={14} /> },
+                        { id: 'schedules', label: 'Schedules', icon: <Clock size={14} /> },
                         { id: 'security', label: 'Security', icon: <ShieldHalf size={14} /> }
                       ].map(tab => (
                         <button
@@ -343,6 +372,68 @@ export function UserRegistryView() {
                      ) : (
                         <div className="text-center py-32 border-2 border-dashed border-black/5 rounded-[40px] text-apple-near-black/30 font-medium">
                            No application records found for this student.
+                        </div>
+                     )}
+                  </div>
+                )}
+
+                {activeModalTab === 'schedules' && (
+                  <div className="space-y-6">
+                     <h3 className="text-lg font-bold dark:text-white border-b border-black/5 pb-4 mb-6 flex items-center gap-3">
+                       <Clock size={20} className="text-apple-blue" />
+                       Calendar & Scheduled Events
+                     </h3>
+                     {loadingSchedules ? (
+                       <div className="flex justify-center py-20"><Loader2 className="animate-spin text-apple-blue" /></div>
+                     ) : userSchedules.length > 0 ? (
+                       <div className="space-y-4">
+                         {userSchedules.map((schedule: any) => {
+                           const isPast = new Date(schedule.reminder_date) < new Date();
+                           return (
+                             <div key={schedule.id} className={`p-6 rounded-3xl bg-white dark:bg-zinc-800 border border-black/5 flex items-center justify-between group transition-all ${
+                               isPast ? 'opacity-50' : 'hover:border-apple-blue/30'
+                             } ${schedule.is_completed ? 'line-through opacity-40' : ''}`}>
+                                <div className="flex items-center gap-4">
+                                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm ${
+                                     schedule.reminder_type === 'Interview' ? 'bg-gradient-to-br from-orange-400 to-rose-500' :
+                                     schedule.reminder_type === 'Deadline' ? 'bg-gradient-to-br from-red-500 to-pink-500' :
+                                     schedule.reminder_type === 'Follow-up' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
+                                     'bg-gradient-to-br from-emerald-400 to-teal-500'
+                                   }`}>
+                                     <Clock size={22} />
+                                   </div>
+                                   <div>
+                                      <h4 className="font-bold text-[17px] dark:text-white">{schedule.title}</h4>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[13px] text-apple-near-black/40 font-medium">{formatScheduleDate(schedule.reminder_date)}</span>
+                                        <span className="w-1 h-1 rounded-full bg-black/20" />
+                                        <span className="text-[13px] font-bold text-apple-blue">{formatScheduleTime(schedule.reminder_date)}</span>
+                                      </div>
+                                      {schedule.description && (
+                                        <p className="text-[12px] text-apple-near-black/30 mt-1 max-w-md truncate">{schedule.description}</p>
+                                      )}
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
+                                    schedule.reminder_type === 'Interview' ? 'bg-orange-500/10 text-orange-500' :
+                                    schedule.reminder_type === 'Deadline' ? 'bg-rose-500/10 text-rose-500' :
+                                    schedule.reminder_type === 'Follow-up' ? 'bg-blue-500/10 text-blue-500' :
+                                    'bg-emerald-500/10 text-emerald-500'
+                                  }`}>
+                                    {schedule.reminder_type}
+                                  </span>
+                                  {isPast && !schedule.is_completed && (
+                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-red-500/10 text-red-500">Overdue</span>
+                                  )}
+                                </div>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     ) : (
+                        <div className="text-center py-32 border-2 border-dashed border-black/5 rounded-[40px] text-apple-near-black/30 font-medium">
+                           No scheduled events found for this student.
                         </div>
                      )}
                   </div>
@@ -476,7 +567,7 @@ export function UserRegistryView() {
                           const data = await signUp(newUser.email, newUser.password, newUser.fullName);
                           toast.success("Account initialized successfully.");
                           if (data?.user) {
-                            sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName);
+                            sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
                           }
                           setShowAddUserModal(false);
                           setNewUser({ fullName: '', email: '', password: '' });

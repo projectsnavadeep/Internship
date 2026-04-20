@@ -145,7 +145,7 @@ export function Dashboard({ applications, reminders, stats, profile }: Dashboard
         <h1 className="text-[64px] md:text-[88px] font-medium tracking-mc-tight leading-[0.95] text-mc-ink-black dark:text-white mb-6">
           {getTimeGreeting()},<br />
           <span className="text-apple-blue font-bold">
-            {profile?.full_name || 'Professional'}
+            {profile?.full_name || 'Rana'}
           </span>
           {profile?.role === 'admin' && <span className="text-[24px] uppercase tracking-[0.2em] ml-4 font-black text-mc-ink-black/20 dark:text-white/20">Admin</span>}
         </h1>

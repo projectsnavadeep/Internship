@@ -799,6 +799,19 @@ export const adminGetUserInternships = async (userId: string) => {
   return data || [];
 };
 
+// Fetch calendar/schedule data for a specific student (admin drill-down)
+export const adminGetUserReminders = async (userId: string) => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('reminders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('reminder_date', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+};
+
 // ============================================
 // ERROR LOGGING SYSTEM
 // ============================================
