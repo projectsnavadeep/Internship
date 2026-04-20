@@ -832,7 +832,7 @@ export const adminPromoteUserByEmail = async (email: string) => {
   const { data: authData, error: authError } = await admin.auth.admin.listUsers();
   if (authError) throw authError;
 
-  const targetUser = authData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  const targetUser = authData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
   if (!targetUser) throw new Error("User with that email not found in the identity system.");
 
   const { error: profileError } = await admin
