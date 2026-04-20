@@ -63,7 +63,7 @@ function App() {
   }, [activeTab, isAdmin]);
 
   const loadData = useCallback(async () => {
-    if (!user || isAdmin) return; // Skip student data load if admin
+    if (!user) return; // Load data for all logged in users so they can test their dashboard
     
     try {
       const userId = user.id;

@@ -157,7 +157,7 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Calendar Grid */}
         <motion.div
-          className="xl:col-span-2 mc-stadium-card p-10 bg-white"
+          className="xl:col-span-2 mc-stadium-card p-4 md:p-10 bg-white"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
@@ -199,7 +199,7 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
                   key={index}
                   onClick={() => setSelectedDate(day.dateObj)}
                   className={`
-                    relative min-h-[120px] p-2 flex flex-col items-center justify-start transition-all group
+                    relative min-h-[80px] md:min-h-[120px] p-2 flex flex-col items-center justify-start transition-all group
                     ${!day.isCurrentMonth ? 'bg-zinc-100/50 text-zinc-400' : 'bg-white text-zinc-900'}
                     ${isSelected(day.dateObj) ? 'bg-zinc-100 z-10' : 'hover:bg-zinc-50'}
                   `}
@@ -237,7 +237,7 @@ export function CalendarView({ applications, reminders, onRefresh }: CalendarVie
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <div className="mc-stadium-card p-10 bg-white flex-1 flex flex-col relative overflow-hidden">
+          <div className="mc-stadium-card p-6 md:p-10 bg-white flex-1 flex flex-col relative overflow-hidden">
             <AnimatePresence mode="wait">
               {!showEventModal ? (
                 <motion.div
