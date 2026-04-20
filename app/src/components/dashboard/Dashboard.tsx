@@ -97,7 +97,7 @@ export function Dashboard({ applications, reminders, stats }: DashboardProps) {
       {/* Empty State / Welcome Screen */}
       {stats.total_applications === 0 && (
         <motion.div
-           className="mc-stadium-card bg-mc-lifted-cream p-16 border border-mc-ink-black/10 text-center mb-16"
+           className="mc-stadium-card bg-mc-lifted-cream p-8 md:p-16 border border-mc-ink-black/10 text-center mb-16"
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
         >
@@ -161,7 +161,7 @@ export function Dashboard({ applications, reminders, stats }: DashboardProps) {
 
       {/* Quick Tips - Mastercard Magazine Style */}
       <motion.div
-        className="mc-stadium-card bg-mc-ink-black text-mc-canvas-cream p-12 md:p-16 relative overflow-hidden"
+        className="mc-stadium-card bg-mc-ink-black text-mc-canvas-cream p-6 md:p-16 relative overflow-hidden"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
