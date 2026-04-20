@@ -114,7 +114,11 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
     
     setIsUploading(true);
     try {
+      if (!userId) throw new Error('Session expired. Please log in again.');
+
+      console.log('Initiating upload for:', file.name, 'Size:', file.size);
       const { publicUrl, size } = await uploadDocumentFile(file, userId);
+      console.log('Upload successful. Public URL:', publicUrl);
       
       // Use the user-selected document type, or auto-detect
       let docType = selectedDocType;
@@ -136,10 +140,10 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
       });
       
       setDocs(prev => [newDoc, ...prev]);
-      toast.success(`"${file.name}" uploaded successfully as ${docType}.`);
+      toast.success(`Success: "${file.name}" is now stored as ${docType}.`);
     } catch (err: any) {
-      console.error('Upload error:', err);
-      toast.error(err.message || 'Error occurred during upload. Please try again.');
+      console.error('CRITICAL UPLOAD FAILURE:', err);
+      toast.error(`Upload Failed: ${err.message || 'Database connection error'}`);
     } finally {
       setIsUploading(false);
     }

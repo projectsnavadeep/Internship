@@ -58,6 +58,10 @@ module.exports = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "apple-blue": "#0071E3",
+        "apple-gray": "#F5F5F7",
+        "apple-black": "#000000",
+        "apple-near-black": "#1D1D1F",
       },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",
@@ -87,6 +91,7 @@ module.exports = {
         "mc-float": "rgba(0, 0, 0, 0.04) 0px 4px 24px 0px",
         "mc-lifted": "rgba(0, 0, 0, 0.08) 0px 24px 48px 0px",
         "mc-deep": "rgba(0, 0, 0, 0.25) 0px 70px 110px 0px",
+        "apple": "0 20px 40px rgba(0, 0, 0, 0.1)",
       },
       keyframes: {
         "accordion-down": {

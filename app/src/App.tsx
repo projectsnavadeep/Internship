@@ -152,7 +152,7 @@ function App() {
     // This callback just refreshes the local state.
     setShowAppModal(false);
     setEditingApp(null);
-    loadData();
+    await loadData();
   };
 
   const handleDeleteApplication = async (id: string) => {
@@ -275,8 +275,40 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen relative flex flex-col items-center justify-center bg-apple-gray dark:bg-apple-black py-12 gap-8 overflow-y-auto">
-        <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
+      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-apple-black overflow-hidden">
+        {/* Pic Block */}
+        <div className="hidden lg:block relative overflow-hidden bg-apple-gray dark:bg-zinc-900 border-r border-black/5 dark:border-white/5">
+          <div className="absolute inset-0 bg-gradient-to-br from-apple-blue/20 to-transparent z-10" />
+          <motion.img 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5, ease: 'easeOut' }}
+            src="/hero-auth.png"
+            className="w-full h-full object-cover"
+            alt="Career Journey"
+          />
+          <div className="absolute bottom-12 left-12 right-12 z-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 1 }}
+            >
+              <h2 className="text-[48px] font-bold text-white tracking-tight leading-tight mb-4 drop-shadow-2xl">
+                Elevate your <br /> career trajectory.
+              </h2>
+              <p className="text-[19px] text-white/80 font-medium tracking-tight max-w-[400px]">
+                The professional console for tracking, managing, and securing your next big opportunity.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+        
+        {/* Auth Block */}
+        <div className="flex items-center justify-center p-8 lg:p-12 relative">
+          <div className="w-full max-w-[440px]">
+            <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
+          </div>
+        </div>
       </div>
     );
   }

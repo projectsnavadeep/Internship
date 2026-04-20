@@ -92,17 +92,34 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
 
     setIsSaving(true);
 
-    // Build clean payload - strip empty strings
-    const payload: any = {};
-    for (const [key, val] of Object.entries(formData)) {
-      if (val !== '' && val !== undefined && val !== null && val !== 0) {
-        payload[key] = val;
-      }
-    }
-    payload.company_name = formData.company_name;
-    payload.job_title = formData.job_title;
-
     try {
+      if (!userId) {
+        throw new Error('Authentication failure: user_id is missing. Please sign out and sign back in.');
+      }
+
+      // Build clean payload - only include non-empty values
+      const payload: any = {
+        user_id: userId,
+        company_name: formData.company_name?.trim(),
+        job_title: formData.job_title?.trim(),
+      };
+
+      // Add optional fields only if they have values
+      if (formData.location?.trim()) payload.location = formData.location.trim();
+      if (formData.job_url?.trim()) payload.job_url = formData.job_url.trim();
+      if (formData.salary_range?.trim()) payload.salary_range = formData.salary_range.trim();
+      if (formData.job_description?.trim()) payload.job_description = formData.job_description.trim();
+      if (formData.notes?.trim()) payload.notes = formData.notes.trim();
+      if (formData.recruiter_name?.trim()) payload.recruiter_name = formData.recruiter_name.trim();
+      if (formData.recruiter_email?.trim()) payload.recruiter_email = formData.recruiter_email.trim();
+      if (formData.recruiter_phone?.trim()) payload.recruiter_phone = formData.recruiter_phone.trim();
+      
+      if (formData.employment_type) payload.employment_type = formData.employment_type;
+      if (formData.status) payload.status = formData.status;
+      if (formData.applied_date) payload.applied_date = formData.applied_date;
+      if (formData.deadline_date) payload.deadline_date = formData.deadline_date;
+      if (formData.rating !== undefined) payload.rating = formData.rating;
+
       if (application) {
         // UPDATE existing
         const { data, error } = await supabase
@@ -113,32 +130,37 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
           .single();
 
         if (error) throw error;
-        toast.success('Application updated!');
-        onSave(data); // Notify parent to refresh
+        toast.success('Database synchronized: Application updated.');
+        onSave(data);
       } else {
         // INSERT new
-        payload.user_id = userId;
         const { data, error } = await supabase
           .from('applications')
-          .insert(payload)
+          .insert([payload])
           .select()
           .single();
 
         if (error) throw error;
-        toast.success('Application added!');
-        onSave(data); // Notify parent to refresh
+        toast.success('Database synchronized: Application created.');
+        onSave(data);
       }
       onClose();
     } catch (err: any) {
-      console.error('SAVE FAILED:', err);
-      toast.error(err.message || 'Failed to save application');
-      logError(
-        application ? 'application_update' : 'application_save',
-        err.message || 'Unknown error',
-        `Saving: ${formData.company_name} - ${formData.job_title}`,
-        JSON.stringify(err),
-        userId
-      );
+      console.error('CRITICAL SAVE FAILURE:', err);
+      toast.error(`Save Failed: ${err.message || 'Unknown database error'}`);
+      
+      // Attempt to log the error to the database for debugging
+      try {
+        logError(
+          application ? 'application_update_fail' : 'application_insert_fail',
+          err.message || 'Unknown',
+          `Company: ${formData.company_name}`,
+          JSON.stringify(err),
+          userId || 'unknown'
+        );
+      } catch (logErr) {
+        console.error('Failed to log error to DB:', logErr);
+      }
     } finally {
       setIsSaving(false);
     }

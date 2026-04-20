@@ -49,7 +49,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
         {/* Logo & Header */}
         <div className="text-center mb-10">
           <motion.div 
-            className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-apple-blue shadow-lg shadow-apple-blue/20 mb-6 text-white"
+            className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-apple-blue shadow-lg shadow-apple-blue/40 mb-6 text-white"
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
@@ -59,7 +59,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
           <h1 className="text-[32px] font-bold tracking-apple-tight text-apple-near-black dark:text-white mb-2">
             {isLogin ? 'Sign In.' : 'Create an Account.'}
           </h1>
-          <p className="text-[17px] text-apple-near-black/40 dark:text-white/40 tracking-apple-tight">
+          <p className="text-[17px] text-apple-near-black/70 dark:text-white/70 tracking-apple-tight">
             {isLogin ? 'Welcome back to your professional console.' : 'Start tracking your career journey today.'}
           </p>
         </div>
@@ -79,7 +79,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
               {/* Full Name */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">
+                  <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
                     Full Name
                   </label>
                   <input
@@ -94,7 +94,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
 
               {/* Email */}
               <div className="space-y-2">
-                <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">
+                <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
                   Email
                 </label>
                 <input
@@ -109,7 +109,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
 
               {/* Password */}
               <div className="space-y-2">
-                <label className="text-[13px] font-bold text-apple-near-black/50 dark:text-white/50 uppercase tracking-widest ml-1">
+                <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
                   Password
                 </label>
                 <input
@@ -157,7 +157,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
 
         {/* Toggle Mode */}
         <div className="mt-8 text-center flex flex-col items-center gap-2">
-          <span className="text-[15px] text-apple-near-black/50 dark:text-white/50">
+          <span className="text-[15px] text-apple-near-black/70 dark:text-white/70">
             {isLogin ? "Don't have an account yet?" : "Already have an account?"}
           </span>
           <button
