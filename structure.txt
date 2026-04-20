@@ -1,0 +1,32 @@
+1. The Core Backend Stack
+Database: PostgreSQL hosted on Supabase. It stores everything from student profiles to job applications and interview notes.
+Authentication: Supabase Auth (JWT-based). It handles signups, logins, and session persistence.
+Storage: Supabase Storage buckets are used to store student resumes, cover letters, and profile avatars.
+Communication: EmailJS acts as a serverless relay to send automated onboarding emails directly from the frontend using secure environment variables.
+2. How it Handles Request Updates (Architecture)
+The project uses a modern "Thick Client" architecture, where the logic for data fetching and updates lives in the React app, but security is enforced at the database level.
+
+A. Secure Data Pipeline (RLS)
+Unlike traditional backends that use API endpoints to guard data, this project uses Row Level Security (RLS).
+
+Every request sent to Supabase includes the user's JWT (JSON Web Token).
+The database itself checks the token: if a student tries to update an application, the database policy ensures the user_id matches their own ID. If it doesn't, the request is rejected immediately at the source.
+B. Singleton Client Pattern
+To handle high-frequency updates during development (like Vite hot-reloads) without crashing, the backend client is initialized as a Singleton on the globalThis object (found in supabase.ts). This ensures all network requests route through a single, stable authenticated pipeline.
+
+C. Session Persistence Strategy
+A key architectural update implemented in the project is the Sync-First Auth Flow:
+
+On login, the session is stored in the browser's localStorage under the key internship-auth-token.
+When the app restarts or refreshes, it reads this token synchronously before the UI even renders.
+This prevents "data flickering" or accidental logouts where the UI loads before the session is verified.
+D. Admin Override
+For system-wide updates (like "User Registry" management), the architecture includes a secondary supabaseAdmin client initialized with a service_role key. This allows the Admin panel to bypass RLS and perform global operations that regular students are physically blocked from doing.
+
+You can find more detail on this flow in 
+
+ARCHITECTURE_FLOW.md
+ and the data schema in 
+
+project_documentation.md
+.

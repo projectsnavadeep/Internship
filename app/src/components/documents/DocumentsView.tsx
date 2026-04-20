@@ -143,7 +143,9 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
       toast.success(`Success: "${file.name}" is now stored as ${docType}.`);
     } catch (err: any) {
       console.error('CRITICAL UPLOAD FAILURE:', err);
-      toast.error(`Upload Failed: ${err.message || 'Database connection error'}`);
+      // Detailed error breakdown for senior-level debugging
+      const errorMessage = err.message || err.error_description || 'Database connection error';
+      toast.error(`Upload Failed: ${errorMessage}`);
     } finally {
       setIsUploading(false);
     }
@@ -250,9 +252,15 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
         transition={{ delay: 0.1, duration: 0.5 }}
       >
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-3xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center mb-6 text-apple-blue shadow-inner group transition-transform">
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="w-20 h-20 rounded-3xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center mb-6 text-apple-blue shadow-inner group transition-transform hover:scale-105 hover:shadow-md disabled:opacity-50 disabled:hover:scale-100"
+            title="Click to select file"
+          >
              <Upload size={32} strokeWidth={1.5} className={isDragging ? 'animate-bounce' : ''} />
-          </div>
+          </button>
           <h3 className="section-heading text-apple-near-black dark:text-white mb-2">
             {isDragging ? 'Drop to Store' : 'Repository Upload'}
           </h3>

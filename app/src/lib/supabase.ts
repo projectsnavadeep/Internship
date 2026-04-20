@@ -422,16 +422,32 @@ export const getDocuments = async (userId: string) => {
 };
 
 export const createDocument = async (docData: any) => {
+  const user = await getUserOrFail();
+  
+  const cleanData = {
+    ...docData,
+    user_id: user.id // Safety: force the auth UID
+  };
+
+  trace('INSERT DOCUMENT', cleanData);
+
   const { data, error } = await supabase
     .from('documents')
-    .insert(docData)
+    .insert(cleanData)
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Document Insert Error:', error);
+    throw error;
+  }
   return data;
 };
 export const updateDocument = async (id: string, updates: any) => {
+  await getUserOrFail();
+  
+  trace('UPDATE DOCUMENT', { id, updates });
+
   const { data, error } = await supabase
     .from('documents')
     .update(updates)
@@ -439,7 +455,10 @@ export const updateDocument = async (id: string, updates: any) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Document Update Error:', error);
+    throw error;
+  }
   return data;
 };
 
@@ -465,15 +484,27 @@ export const deleteDocument = async (id: string, fileUrl: string) => {
 };
 
 export const uploadDocumentFile = async (file: File, userId: string) => {
+  // Ensure we have a fresh session before binary transfer
+  await getUserOrFail();
+  
   const fileExt = file.name.split('.').pop();
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const filePath = `${userId}/${Date.now()}-${sanitizedName}`;
 
+  trace('DOCUMENT UPLOAD INITIATED', { filePath, size: file.size, type: file.type });
+
   const { error: uploadError } = await supabase.storage
     .from('documents')
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: file.type || 'application/octet-stream'
+    });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('Storage Upload Error:', uploadError);
+    throw uploadError;
+  }
 
   const { data: { publicUrl } } = supabase.storage
     .from('documents')
