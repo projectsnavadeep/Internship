@@ -17,6 +17,7 @@ interface ApplicationListProps {
   applications: Application[];
   onEdit: (app: Application) => void;
   onDelete: (id: string) => void;
+  onView: (app: Application) => void;
   onAdd: () => void;
   onStatusChange: (id: string, newStatus: string) => void;
   loading?: boolean;

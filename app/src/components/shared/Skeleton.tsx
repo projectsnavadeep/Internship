@@ -4,9 +4,10 @@ import { cn } from '@/lib/utils';
 interface SkeletonProps {
   className?: string;
   variant?: 'rect' | 'circle' | 'text';
+  style?: React.CSSProperties;
 }
 
-export function Skeleton({ className, variant = 'rect' }: SkeletonProps) {
+export function Skeleton({ className, variant = 'rect', style }: SkeletonProps) {
   return (
     <motion.div
       initial={{ opacity: 0.3 }}

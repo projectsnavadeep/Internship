@@ -1,4 +1,4 @@
-import { Skeleton, SkeletonCircle, SkeletonRect, SkeletonText } from './Skeleton';
+import { SkeletonCircle, SkeletonRect } from './Skeleton';
 
 export function DashboardSkeleton() {
   return (
