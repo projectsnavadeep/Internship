@@ -27,41 +27,58 @@ export function useAuth() {
 
   useEffect(() => {
     // Safety timeout: Ensure loading always eventually finishes
+    // If we have a hint that a session SHOULD exist, we wait longer before giving up
+    const sessionHint = localStorage.getItem('internship-auth-token');
+    const timeoutDuration = sessionHint ? 8000 : 4000;
+    
     const safetyTimer = setTimeout(() => {
       console.warn('Auth initialization taking too long, forcing load completion...');
       setLoading(false);
-    }, 5000);
+    }, timeoutDuration);
 
-    // Check current user on mount
-    getCurrentUser().then(async (user) => {
-      if (user) {
-        let role: UserRole = 'student';
-        try {
-          role = await fetchUserRole(user.id);
-        } catch (err: any) {
-          console.error('Role fetch failed:', err);
-          logError({
-            errorType: 'auth',
-            errorMessage: err.message || 'Initial role fetch failed',
-            actionAttempted: 'fetchUserRole',
-            userId: user.id
+    const initializeAuth = async () => {
+      try {
+        // Primary check: getUser (verified by server)
+        let userRecord = await getCurrentUser();
+        
+        // Secondary check: getSession (faster, from local state if available)
+        if (!userRecord && sessionHint) {
+          const session = await getSession();
+          if (session?.user) {
+            userRecord = session.user;
+          }
+        }
+
+        if (userRecord) {
+          let role: UserRole = 'student';
+          try {
+            role = await fetchUserRole(userRecord.id);
+          } catch (err: any) {
+            console.error('Role fetch failed:', err);
+            logError({
+              errorType: 'auth',
+              errorMessage: err.message || 'Initial role fetch failed',
+              actionAttempted: 'fetchUserRole',
+              userId: userRecord.id
+            });
+          }
+          
+          setUser({
+            id: userRecord.id,
+            email: userRecord.email,
+            user_metadata: userRecord.user_metadata,
+            role,
           });
         }
-        
-        setUser({
-          id: user.id,
-          email: user.email,
-          user_metadata: user.user_metadata,
-          role,
-        });
+      } catch (err: any) {
+        console.error('Auth initialization error:', err);
+      } finally {
+        clearTimeout(safetyTimer);
+        setLoading(false);
       }
-      clearTimeout(safetyTimer);
-      setLoading(false);
-    }).catch((err: any) => {
-      console.error('Session check failed:', err);
-      clearTimeout(safetyTimer);
-      setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {

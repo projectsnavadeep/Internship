@@ -45,10 +45,13 @@ function App() {
 
   // History and Persistence Sync
   useEffect(() => {
-    // Update hash and localStorage when tab changes
-    window.location.hash = activeTab;
-    localStorage.setItem('activeTab', activeTab);
-  }, [activeTab]);
+    // Only update hash if we are authenticated to avoid leaking state to login page
+    // and to prevent wiping the hash during the initial loading "hang"
+    if (isAuthenticated) {
+      window.location.hash = activeTab;
+      localStorage.setItem('activeTab', activeTab);
+    }
+  }, [activeTab, isAuthenticated]);
 
   useEffect(() => {
     // Handle Browser Back/Forward buttons
