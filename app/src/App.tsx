@@ -96,7 +96,18 @@ function App() {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Can keep variable if needed internally, but won't be used
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [showReloadOption, setShowReloadOption] = useState(false);
+
+  // Recovery timer for loading screen
+  useEffect(() => {
+    if (authLoading) {
+      const timer = setTimeout(() => setShowReloadOption(true), 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowReloadOption(false);
+    }
+  }, [authLoading]);
 
   // Guard: non-admin users cannot access admin tab
   useEffect(() => {
@@ -382,12 +393,30 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
         <motion.div
-          className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent"
+          className="w-16 h-16 rounded-full border-4 border-apple-blue border-t-transparent"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         />
+        <AnimatePresence>
+          {showReloadOption && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-12 text-center"
+            >
+              <p className="text-[17px] text-zinc-500 font-medium mb-6">Synchronization is taking longer than usual.</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="apple-pill-filled px-10 py-3 bg-zinc-900 text-white"
+              >
+                Force Reload Session
+              </button>
+              <p className="mt-4 text-[11px] font-black uppercase tracking-widest text-zinc-400">Status: Connection Latency Detected</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }

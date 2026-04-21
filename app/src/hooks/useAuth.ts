@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity } from '@/lib/supabase';
+import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, logError } from '@/lib/supabase';
 import type { UserRole } from '@/types';
 
 interface AuthUser {
@@ -26,14 +26,26 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    // Safety timeout: Ensure loading always eventually finishes
+    const safetyTimer = setTimeout(() => {
+      console.warn('Auth initialization taking too long, forcing load completion...');
+      setLoading(false);
+    }, 5000);
+
     // Check current user on mount
     getCurrentUser().then(async (user) => {
       if (user) {
         let role: UserRole = 'student';
         try {
           role = await fetchUserRole(user.id);
-        } catch (err) {
+        } catch (err: any) {
           console.error('Role fetch failed:', err);
+          logError({
+            errorType: 'auth',
+            errorMessage: err.message || 'Initial role fetch failed',
+            actionAttempted: 'fetchUserRole',
+            userId: user.id
+          });
         }
         
         setUser({
@@ -43,8 +55,11 @@ export function useAuth() {
           role,
         });
       }
+      clearTimeout(safetyTimer);
       setLoading(false);
-    }).catch(() => {
+    }).catch((err: any) => {
+      console.error('Session check failed:', err);
+      clearTimeout(safetyTimer);
       setLoading(false);
     });
 
@@ -61,6 +76,7 @@ export function useAuth() {
             user_metadata: session.user.user_metadata,
             role,
           });
+          clearTimeout(safetyTimer);
           setLoading(false);
         } else {
           // For other events, update basic info without resetting loading
