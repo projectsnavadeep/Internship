@@ -18,7 +18,7 @@ export function useAuth() {
     // Synchronous check on mount
     return !!localStorage.getItem('internship-auth-token');
   });
- Broadway
+
 
   // Fetch user role from profiles table
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
