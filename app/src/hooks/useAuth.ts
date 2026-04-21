@@ -14,7 +14,7 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasSessionHint, setHasSessionHint] = useState<boolean>(() => {
+  const [hasSessionHint] = useState<boolean>(() => {
     // Synchronous check on mount
     return !!localStorage.getItem('internship-auth-token');
   });
