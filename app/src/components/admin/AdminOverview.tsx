@@ -6,11 +6,9 @@ import {
   Activity, 
   TrendingUp, 
   Loader2,
-  Clock,
   Shield,
   Zap,
   Terminal,
-  Cpu,
   Globe,
   Radio
 } from 'lucide-react';
