@@ -10,6 +10,7 @@ interface SkeletonProps {
 export function Skeleton({ className, variant = 'rect', style }: SkeletonProps) {
   return (
     <motion.div
+      style={style}
       initial={{ opacity: 0.3 }}
       animate={{ opacity: [0.3, 0.6, 0.3] }}
       transition={{ 
