@@ -17,6 +17,7 @@ import { StatusChart } from './StatusChart';
 import { MonthlyChart } from './MonthlyChart';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
+import { DashboardSkeleton } from '../shared/ViewSkeletons';
 import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
 
 interface DashboardProps {
@@ -25,9 +26,11 @@ interface DashboardProps {
   stats: ApplicationStats;
   profile?: Profile | null;
   onNavigate?: (tab: string) => void;
+  loading?: boolean;
 }
 
-export function Dashboard({ applications, reminders, stats, profile, onNavigate }: DashboardProps) {
+export function Dashboard({ applications, reminders, stats, profile, onNavigate, loading }: DashboardProps) {
+  if (loading) return <DashboardSkeleton />;
   const [statusData, setStatusData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [upcomingAlerts, setUpcomingAlerts] = useState<Reminder[]>([]);
