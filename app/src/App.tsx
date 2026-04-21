@@ -399,7 +399,9 @@ function App() {
     }
   };
 
-  if (authLoading) {
+  // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user yet.
+  // This prevents background session refreshes from interrupting the user experience.
+  if (authLoading && !isAuthenticated) {
     return (
       <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
         <motion.div

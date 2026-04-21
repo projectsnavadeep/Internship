@@ -83,9 +83,12 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
       if (session?.user) {
-        // Only fetch role if it's a significant auth event
+        // Silent Hydration: Only block if this is the first time we see any user
+        const isInitialLoad = !user;
+        
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
-          setLoading(true);
+          if (isInitialLoad) setLoading(true);
+          
           const role = await fetchUserRole(session.user.id);
           setUser({
             id: session.user.id,
@@ -93,23 +96,32 @@ export function useAuth() {
             user_metadata: session.user.user_metadata,
             role,
           });
-          clearTimeout(safetyTimer);
-          setLoading(false);
+          
+          if (isInitialLoad) {
+            clearTimeout(safetyTimer);
+            setLoading(false);
+          }
         } else {
-          // For other events, update basic info without resetting loading
+          // For other events (token refresh etc), update basic info silently
           setUser(curr => curr ? {
             ...curr,
             id: session.user.id,
             email: session.user.email,
             user_metadata: session.user.user_metadata,
-          } : null);
+          } : {
+            id: session.user.id,
+            email: session.user.email,
+            user_metadata: session.user.user_metadata,
+            role: 'student',
+          });
         }
       } else {
+        // No session: only drop loading if we were actually expecting one
         setUser(null);
         setLoading(false);
       }
     });
-
+ Broadway
     return () => subscription.unsubscribe();
   }, [fetchUserRole]);
 
