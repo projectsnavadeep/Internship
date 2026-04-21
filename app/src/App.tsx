@@ -39,12 +39,46 @@ function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin } = useAuth();
   
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('activeTab') || 'dashboard';
+    const hash = window.location.hash.replace('#', '');
+    return hash || localStorage.getItem('activeTab') || 'dashboard';
   });
 
-  // Persist active tab
+  // History and Persistence Sync
   useEffect(() => {
+    // Update hash and localStorage when tab changes
+    window.location.hash = activeTab;
     localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    // Handle Browser Back/Forward buttons
+    const handlePopState = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && hash !== activeTab) {
+        setActiveTab(hash);
+      }
+    };
+
+    // Exit Guard / Accidental Closure Prevention
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (activeTab !== 'dashboard') {
+        e.preventDefault();
+        e.returnValue = 'Professional progress detected. Are you sure you wish to disconnect?';
+        return e.returnValue;
+      }
+    };
+
+    // Push initial history state to prevent immediate tab closing on first "Back" gesture
+    if (window.history.length <= 1) {
+      window.history.pushState({ initialized: true }, '');
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [activeTab]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);

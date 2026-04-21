@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getDocuments, uploadDocumentFile, createDocument, deleteDocument, updateDocument } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
 
 interface DocumentInterface {
   id: string;
@@ -50,6 +51,7 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDocType, setSelectedDocType] = useState('Resume');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [viewerDoc, setViewerDoc] = useState<{url: string, name: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -392,21 +394,26 @@ export function DocumentsView({ userId }: DocumentsViewProps) {
 
                 <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
                    <p className="text-[13px] font-medium text-apple-near-black/40">Uploaded {new Date(doc.created_at).toLocaleDateString()}</p>
-                   <a 
-                     href={doc.file_url} 
-                     target="_blank" 
-                     rel="noopener noreferrer"
+                   <button 
+                     onClick={() => setViewerDoc({ url: doc.file_url, name: doc.name })}
                      className="text-apple-blue font-bold text-[14px] flex items-center gap-1 group"
                    >
                      View Document
                      <Download size={14} className="group-hover:translate-y-1 transition-transform" />
-                   </a>
+                   </button>
                 </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
+
+      <DocumentViewer
+        isOpen={!!viewerDoc}
+        onClose={() => setViewerDoc(null)}
+        url={viewerDoc?.url || ''}
+        name={viewerDoc?.name || ''}
+      />
     </div>
   );
 }
