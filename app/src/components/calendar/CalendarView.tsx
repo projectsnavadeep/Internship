@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createReminder, updateReminder, deleteReminder } from '@/lib/supabase';
+import { createReminder, updateReminder, deleteReminder, logError } from '@/lib/supabase';
 import type { Application, Reminder } from '@/types';
 
 interface CalendarViewProps {
@@ -146,6 +146,14 @@ export function CalendarView({ applications, reminders, userId, onRefresh }: Cal
       if (onRefresh) onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to process event');
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Reminder processing failed',
+        errorStack: error.stack,
+        actionAttempted: editingReminder ? 'update_reminder' : 'create_reminder',
+        userId: userId,
+        source: 'frontend'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -174,6 +182,14 @@ export function CalendarView({ applications, reminders, userId, onRefresh }: Cal
       if (onRefresh) onRefresh();
     } catch (error: any) {
       toast.error('Failed to delete event');
+      logError({
+        errorType: 'application_delete',
+        errorMessage: error.message || 'Reminder deletion failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleDeleteClick',
+        userId: userId,
+        source: 'frontend'
+      });
     }
   };
 

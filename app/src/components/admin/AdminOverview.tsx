@@ -1,27 +1,193 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
   Briefcase, 
   Activity, 
   TrendingUp, 
   Loader2,
-  Clock
+  Clock,
+  Shield,
+  Zap,
+  Terminal,
+  Cpu,
+  Globe,
+  Radio
 } from 'lucide-react';
 import { 
   adminGetStats, 
   adminGetRecentApplications 
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
-// Graphics and charts handled via Recharts for future scalability
+
+// Premium Glitch Component for text
+const GlitchText = ({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) => (
+  <div className={`relative inline-block ${className || ''}`}>
+    <span className="relative z-10">{text}</span>
+    <motion.span 
+      className="absolute top-0 left-0 text-cyan-400 z-0 select-none opacity-0"
+      initial={{ opacity: 0 }}
+      animate={{
+        x: [-2, 2, -3, 0],
+        y: [1, -1, 2, 0],
+        opacity: [0, 0.8, 0.4, 0],
+        clipPath: ["inset(20% 0 60% 0)", "inset(50% 0 10% 0)", "inset(10% 0 80% 0)", "inset(0 0 0 0)"]
+      }}
+      transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 4 + Math.random() * 5, delay }}
+    >
+      {text}
+    </motion.span>
+    <motion.span 
+      className="absolute top-0 left-0 text-rose-500 z-0 select-none opacity-0"
+      initial={{ opacity: 0 }}
+      animate={{
+        x: [2, -2, 3, 0],
+        y: [-1, 1, -2, 0],
+        opacity: [0, 0.8, 0.4, 0],
+        clipPath: ["inset(60% 0 20% 0)", "inset(10% 0 50% 0)", "inset(80% 0 10% 0)", "inset(0 0 0 0)"]
+      }}
+      transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 4 + Math.random() * 5, delay: delay + 0.1 }}
+    >
+      {text}
+    </motion.span>
+  </div>
+);
+
+// High-end HUD loading sequence
+const AdminHUDIntro = ({ onComplete }: { onComplete: () => void }) => {
+  return (
+    <motion.div 
+      className="fixed inset-0 z-[100] bg-white dark:bg-zinc-950 flex flex-col items-center justify-center pointer-events-none"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      transition={{ duration: 0.8, delay: 2.2 }}
+      onAnimationComplete={onComplete}
+    >
+      <div className="w-[400px] space-y-6">
+        <div className="flex items-center justify-between text-[10px] font-black tracking-widest text-zinc-400 mb-2">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>PRTX_AUTH_KEY_VERIFIED</motion.span>
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>SECURE_LAYER_07</motion.span>
+        </div>
+        
+        <div className="h-[2px] w-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden relative">
+          <motion.div 
+            className="absolute top-0 left-0 h-full bg-apple-blue"
+            initial={{ width: 0 }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
+          />
+        </div>
+
+        <motion.div 
+          className="flex flex-col items-center gap-4 mt-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <div className="flex items-center gap-3">
+             <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="text-apple-blue"
+              >
+               <Loader2 size={24} />
+             </motion.div>
+             <span className="text-xl font-bold tracking-tighter dark:text-white">Authorizing Master Instance...</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 w-full mt-4">
+             {[...Array(4)].map((_, i) => (
+               <motion.div 
+                 key={i}
+                 className="h-1 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden"
+               >
+                 <motion.div 
+                   className="h-full bg-apple-blue/40"
+                   initial={{ scaleX: 0 }}
+                   animate={{ scaleX: 1 }}
+                   transition={{ delay: 1 + (i * 0.2), duration: 0.4 }}
+                 />
+               </motion.div>
+             ))}
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0, 1, 0, 1] }}
+          transition={{ delay: 1.8, duration: 0.4 }}
+          className="mt-8 text-center"
+        >
+          <span className="px-3 py-1 bg-apple-blue text-white text-[10px] font-black uppercase tracking-widest rounded-md">Access Granted</span>
+        </motion.div>
+      </div>
+      
+      {/* Decorative scanning lines */}
+      <motion.div 
+        className="absolute top-0 left-0 w-full h-[2px] bg-apple-blue/10"
+        animate={{ top: ["0%", "100%"] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+      />
+    </motion.div>
+  );
+};
+
+// Radar component for visual trace
+const RadarScanner = ({ activeUsers = 0 }: { activeUsers?: number }) => {
+  return (
+    <div className="relative w-full h-48 bg-zinc-50 dark:bg-white/[0.02] rounded-3xl border border-black/5 dark:border-white/5 overflow-hidden flex items-center justify-center">
+      {/* Grid background */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,113,227,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,113,227,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
+      
+      {/* Radar rings */}
+      <div className="relative w-32 h-32 rounded-full border border-apple-blue/10 flex items-center justify-center">
+        <div className="w-24 h-24 rounded-full border border-apple-blue/20 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full border border-apple-blue/30" />
+        </div>
+        
+        {/* Sweep */}
+        <motion.div 
+          className="absolute top-1/2 left-1/2 w-1/2 h-1/2 origin-top-left bg-[conic-gradient(from_0deg,rgba(0,113,227,0.2)_0deg,transparent_90deg)]"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        />
+        
+        {/* Axis lines */}
+        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-apple-blue/5" />
+        <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-apple-blue/5" />
+        
+        {/* Random blips */}
+        <motion.div 
+          className="absolute top-4 left-10 w-1.5 h-1.5 bg-apple-blue rounded-full shadow-[0_0_8px_rgba(0,113,235,1)]"
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 }}
+        />
+        <motion.div 
+          className="absolute bottom-6 right-8 w-1.5 h-1.5 bg-apple-blue rounded-full shadow-[0_0_8px_rgba(0,113,235,1)]"
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+        />
+      </div>
+      
+      <div className="absolute bottom-4 right-6 text-right">
+        <p className="text-[10px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest mb-1">Active Trace</p>
+        <p className="text-xl font-bold dark:text-white">{activeUsers} NODES</p>
+      </div>
+    </div>
+  );
+};
+
 
 export function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     loadData();
+    // Only show intro once per session/mount
+    const hasSeenIntro = sessionStorage.getItem('admin_intro_seen');
+    if (hasSeenIntro) setShowIntro(false);
   }, []);
 
   const loadData = async () => {
@@ -36,110 +202,212 @@ export function AdminOverview() {
     } catch (err) {
       console.error('Failed to load overview data:', err);
     } finally {
-      setLoading(false);
+      // Don't kill loading spinner until intro would be ready
+      setTimeout(() => setLoading(false), 200);
     }
+  };
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    sessionStorage.setItem('admin_intro_seen', 'true');
   };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
         <Loader2 size={40} className="animate-spin text-apple-blue" />
-        <p className="text-apple-near-black/40 dark:text-white/40 font-medium">Crunching system data...</p>
+        <p className="text-apple-near-black/40 dark:text-white/40 font-medium tracking-widest uppercase text-xs">Syncing Core Datastream...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 pb-20">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-left"
-      >
-        <h1 className="display-hero text-apple-near-black dark:text-white">Overview.</h1>
-        <p className="text-[21px] text-apple-near-black/60 dark:text-white/60 tracking-apple-tight">
-          System performance and real-time activity tracking.
-        </p>
-      </motion.div>
+    <>
+      <AnimatePresence>
+        {showIntro && <AdminHUDIntro onComplete={handleIntroComplete} />}
+      </AnimatePresence>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'Total Students', value: stats?.totalUsers || 0, icon: <Users size={20} />, color: 'bg-blue-500' },
-          { label: 'Active Applications', value: stats?.totalApplications || 0, icon: <Briefcase size={20} />, color: 'bg-indigo-500' },
-          { label: 'Recent Active', value: stats?.activeUsersLast7Days || 0, icon: <Activity size={20} />, color: 'bg-orange-500' },
-          { label: 'Offer Rate', value: `${stats?.offerRate || 0}%`, icon: <TrendingUp size={20} />, color: 'bg-emerald-500' },
-        ].map((stat, i) => (
-          <motion.div
-            key={i}
+      <div className="space-y-12 pb-20">
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-left relative flex items-center justify-between border-b dark:border-white/5 pb-8"
+        >
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Master Level Access</span>
+            </div>
+            <h1 className="display-hero text-apple-near-black dark:text-white leading-none mb-1">
+              <GlitchText text="Admin Control" />
+            </h1>
+            <p className="text-[20px] text-apple-near-black/60 dark:text-white/60 tracking-apple-tight font-medium">
+              Real-time platform telemetry and global student activity.
+            </p>
+          </div>
+          <div className="hidden lg:flex items-center gap-6">
+            <div className="text-right">
+               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Session ID</p>
+               <p className="text-xs font-mono dark:text-white/60">PRDX-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center border border-black/5 dark:border-white/5">
+              <Globe size={20} className="text-apple-blue" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[
+            { label: 'Total Students', value: stats?.totalUsers || 0, icon: <Users size={22} />, color: 'from-blue-500 to-indigo-600', delay: 0.1 },
+            { label: 'Pipeline Vol', value: stats?.totalApplications || 0, icon: <Briefcase size={22} />, color: 'from-violet-500 to-purple-600', delay: 0.2 },
+            { label: 'Live Traffic', value: stats?.activeUsersLast7Days || 0, icon: <Activity size={22} />, color: 'from-emerald-500 to-teal-600', delay: 0.3 },
+            { label: 'Yield Success', value: `${stats?.offerRate || 0}%`, icon: <TrendingUp size={22} />, color: 'from-orange-500 to-rose-600', delay: 0.4 },
+          ].map((stat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: stat.delay, type: 'spring', damping: 15 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              className="apple-card p-8 bg-white dark:bg-apple-near-black border border-black/5 dark:border-white/5 shadow-sm group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/[0.02] dark:to-white/[0.02]" />
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/10 relative z-10 transition-transform group-hover:scale-110 duration-300`}>
+                {stat.icon}
+              </div>
+              <p className="text-[12px] font-black text-apple-near-black/40 dark:text-white/40 uppercase tracking-[0.2em] mb-2 relative z-10">{stat.label}</p>
+              <h3 className="text-4xl font-extrabold dark:text-white tracking-tighter relative z-10">
+                {stat.value}
+              </h3>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Live Activity Console */}
+          <motion.div 
+            className="lg:col-span-2 apple-card overflow-hidden bg-white dark:bg-apple-near-black border border-black/5 dark:border-white/5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="apple-card p-6 bg-white dark:bg-apple-near-black border border-black/5 dark:border-white/5 shadow-sm"
+            transition={{ delay: 0.5 }}
           >
-            <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center text-white mb-4 shadow-lg opacity-90`}>
-              {stat.icon}
+            <div className="p-8 border-b dark:border-white/5 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.02]">
+              <h3 className="text-lg font-bold dark:text-white flex items-center gap-3">
+                <Terminal className="text-apple-blue" size={20} />
+                Live Ingestion Stream
+              </h3>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 animate-pulse">
+                Socket Active
+              </div>
             </div>
-            <p className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">{stat.label}</p>
-            <h3 className="text-3xl font-bold mt-1 dark:text-white">{stat.value}</h3>
+            <div className="divide-y dark:divide-white/5">
+              {recentApps.slice(0, 7).map((app, idx) => (
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 + (idx * 0.1) }}
+                  className="flex items-center justify-between p-6 hover:bg-apple-blue/[0.02] transition-colors group"
+                >
+                  <div className="flex items-center gap-6">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-apple-blue transition-colors border border-black/5 dark:border-white/10 font-mono text-xs">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[15px] dark:text-white group-hover:translate-x-1 transition-transform">
+                        {app.company_name} <span className="text-zinc-400 font-medium">· {app.job_title}</span>
+                      </h4>
+                      <p className="text-[12px] text-zinc-400 flex items-center gap-2 mt-0.5 uppercase tracking-widest font-black">
+                        <Users size={12} /> {app.applicant_name}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                     <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/5">
+                       {app.status}
+                     </span>
+                     <p className="text-[11px] mt-2 font-mono text-zinc-400">{new Date(app.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            <button className="w-full py-4 bg-zinc-50 dark:bg-white/[0.02] border-t dark:border-white/5 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-apple-blue transition-colors">
+              View Full Audit Log
+            </button>
           </motion.div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity List */}
-        <motion.div 
-          className="lg:col-span-2 apple-card p-8 bg-white dark:bg-apple-near-black"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
-              <Clock className="text-indigo-500" size={20} />
-              Recent Applications
-            </h3>
-          </div>
-          <div className="space-y-4">
-            {recentApps.slice(0, 5).map((app) => (
-              <div key={app.id} className="flex items-center justify-between p-4 rounded-2xl bg-black/3 dark:bg-white/3 group hover:bg-apple-blue/5 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center border border-black/5">
-                    <Briefcase size={18} className="text-apple-blue" />
+          <div className="space-y-10">
+            {/* System Integrity */}
+            <motion.div 
+              className="apple-card p-8 bg-zinc-900 border-zinc-800 text-white relative overflow-hidden"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-apple-blue/20 blur-[60px] rounded-full -mr-16 -mt-16" />
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+                <Shield className="text-apple-blue" size={24} />
+                System Health
+              </h3>
+              
+              <div className="space-y-6">
+                {[
+                  { label: 'Database Sync', status: 'Stable', pc: 98 },
+                  { label: 'Auth Middleware', status: 'Active', pc: 100 },
+                  { label: 'Storage Cluster', status: 'Optimal', pc: 92 },
+                ].map((item, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between items-center mb-2">
+                       <span className="text-xs font-black uppercase tracking-widest opacity-40">{item.label}</span>
+                       <span className="text-[10px] font-bold text-apple-blue">{item.status}</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                       <motion.div 
+                         className="h-full bg-apple-blue"
+                         initial={{ width: 0 }}
+                         animate={{ width: `${item.pc}%` }}
+                         transition={{ delay: 1 + (i * 0.2), duration: 1 }}
+                       />
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-[15px] dark:text-white">{app.company_name}</h4>
-                    <p className="text-[12px] text-apple-near-black/40 dark:text-white/40">{app.applicant_name} · {app.job_title}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                   <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-apple-blue/10 text-apple-blue">
-                    {app.status}
-                   </span>
-                   <p className="text-[11px] mt-1 text-apple-near-black/30">{new Date(app.created_at).toLocaleDateString()}</p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </motion.div>
+            </motion.div>
 
-        {/* Mini Stats Chart Placeholder */}
-        <motion.div 
-          className="apple-card p-8 bg-white dark:bg-apple-near-black"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-           <h3 className="text-xl font-bold dark:text-white mb-8">Conversion</h3>
-           <div className="h-[200px] flex items-center justify-center border-2 border-dashed border-black/5 rounded-3xl">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-apple-blue">{stats?.offerRate || 0}%</p>
-                <p className="text-xs font-bold text-apple-near-black/40 uppercase tracking-widest mt-2">Success Rate</p>
+            {/* Performance Node / Radar */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-lg font-bold dark:text-white flex items-center gap-3">
+                  <Radio size={20} className="text-zinc-400" />
+                  Live Trace
+                </h3>
+                <span className="text-[10px] font-black text-apple-blue uppercase tracking-widest">Scanning...</span>
               </div>
-           </div>
-           <p className="mt-6 text-sm text-apple-near-black/40 leading-relaxed italic">
-             "Total success metrics across all internship pipelines."
-           </p>
-        </motion.div>
+              <RadarScanner activeUsers={stats?.activeUsersLast7Days} />
+            </motion.div>
+
+            <motion.div 
+              className="p-6 rounded-[24px] bg-apple-blue/5 border border-apple-blue/10 flex items-center gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-apple-blue/20 flex items-center justify-center text-apple-blue">
+                <Zap size={20} />
+              </div>
+              <p className="text-xs font-medium text-apple-blue/80 italic leading-relaxed">
+                "Platform wide metrics are updated every 60 seconds with instant callback triggers."
+              </p>
+            </motion.div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

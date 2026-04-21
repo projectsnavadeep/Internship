@@ -11,7 +11,7 @@ import {
   Calendar,
   BadgeCheck
 } from 'lucide-react';
-import { getProfile, uploadAvatarImage, updatePassword, updateProfile } from '@/lib/supabase';
+import { getProfile, uploadAvatarImage, updatePassword, updateProfile, logError } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { UserPreferences } from '@/types';
 
@@ -100,6 +100,14 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       setShowPasswordSection(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to change password.');
+      logError({
+        errorType: 'password_change',
+        errorMessage: error.message || 'Password update failed',
+        errorStack: error.stack,
+        actionAttempted: 'handlePasswordChange',
+        userId: userId,
+        role: userRole as any
+      });
     } finally {
       setIsChangingPassword(false);
     }
@@ -122,6 +130,14 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       setIsEditingProfile(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile.');
+      logError({
+        errorType: 'profile_update',
+        errorMessage: error.message || 'Profile sync failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleSaveProfile',
+        userId: userId,
+        role: userRole as any
+      });
     } finally {
       setIsSavingProfile(false);
     }
@@ -142,6 +158,14 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       toast.success('Profile photo updated.');
     } catch (error: any) {
       toast.error(error.message || 'Failed to upload photo.');
+      logError({
+        errorType: 'avatar_upload',
+        errorMessage: error.message || 'Photo upload failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleFileChange',
+        userId: userId,
+        role: userRole as any
+      });
     } finally {
       setIsUploading(false);
     }

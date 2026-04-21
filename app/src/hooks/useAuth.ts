@@ -29,20 +29,19 @@ export function useAuth() {
     // Check current user on mount
     getCurrentUser().then(async (user) => {
       if (user) {
-        // Set basic user info first to unblock initial UI
+        let role: UserRole = 'student';
+        try {
+          role = await fetchUserRole(user.id);
+        } catch (err) {
+          console.error('Role fetch failed:', err);
+        }
+        
         setUser({
           id: user.id,
           email: user.email,
           user_metadata: user.user_metadata,
-          role: 'student', // Default while fetching
+          role,
         });
-        
-        try {
-          const role = await fetchUserRole(user.id);
-          setUser(curr => curr ? { ...curr, role } : null);
-        } catch (err) {
-          console.error('Role fetch failed:', err);
-        }
       }
       setLoading(false);
     }).catch(() => {
@@ -50,23 +49,27 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (_event: string, session: any) => {
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
       if (session?.user) {
-        // Set basic user info quickly
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          user_metadata: session.user.user_metadata,
-          role: 'student', // Default
-        });
-        setLoading(false);
-
-        // Fetch actual role in background
-        try {
+        // Only fetch role if it's a significant auth event
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+          setLoading(true);
           const role = await fetchUserRole(session.user.id);
-          setUser(curr => curr ? { ...curr, role } : null);
-        } catch (err) {
-          console.error('Role refresh failed:', err);
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            user_metadata: session.user.user_metadata,
+            role,
+          });
+          setLoading(false);
+        } else {
+          // For other events, update basic info without resetting loading
+          setUser(curr => curr ? {
+            ...curr,
+            id: session.user.id,
+            email: session.user.email,
+            user_metadata: session.user.user_metadata,
+          } : null);
         }
       } else {
         setUser(null);

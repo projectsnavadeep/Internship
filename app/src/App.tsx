@@ -38,7 +38,14 @@ import './App.css';
 function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin } = useAuth();
   
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('activeTab') || 'dashboard';
+  });
+
+  // Persist active tab
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -88,17 +95,37 @@ function App() {
       setReminders(rems);
       setStats(appStats);
       setProfile(userProfile);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');
+      
+      logError({
+        errorType: 'data_load',
+        errorMessage: error.message || 'Bulk data load failed',
+        errorStack: error.stack,
+        actionAttempted: 'loadData',
+        userId: user.id,
+        userEmail: user.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
     }
   }, [isAuthenticated, loadData]);
+
+  // Smart Routing for Admins on mount/session load
+  useEffect(() => {
+    // Only redirect if they are on dashboard and haven't explicitly set a tab in this session
+    const hasInitialTab = sessionStorage.getItem('initial_tab_set');
+    if (isAuthenticated && isAdmin && activeTab === 'dashboard' && !hasInitialTab) {
+      setActiveTab('admin');
+      sessionStorage.setItem('initial_tab_set', 'true');
+    }
+  }, [isAuthenticated, isAdmin, activeTab]);
 
   // Handle login
   const handleLogin = async (email: string, password: string) => {
@@ -124,7 +151,7 @@ function App() {
         setActiveTab('admin');
         toast.success('Admin Console access granted.');
       } else {
-        setActiveTab('settings');
+        setActiveTab('dashboard');
         toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
       }
       
@@ -161,8 +188,18 @@ function App() {
     } catch (error: any) {
       console.error('[❌] Status Update Failed:', error);
       toast.error(error.message || 'Failed to update status');
+      
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Status change failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleStatusChange',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
-  };
+  }, [user, isAdmin, viewingApp, loadData]);
 
   const handleSaveApplication = async (_appData: Partial<Application>) => {
     // Modal now handles DB insert/update directly.
@@ -181,6 +218,16 @@ function App() {
       loadData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete application');
+      
+      logError({
+        errorType: 'application_delete',
+        errorMessage: error.message || 'App deletion failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleDeleteApplication',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
   };
 
@@ -206,6 +253,15 @@ function App() {
       toast.success('Interview note added!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to add note');
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Interview note addition failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleAddInterviewNote',
+        userId: user.id,
+        userEmail: user.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
   };
 
@@ -216,6 +272,15 @@ function App() {
       toast.success('Note deleted!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete note');
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Interview note deletion failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleDeleteInterviewNote',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
   };
 
