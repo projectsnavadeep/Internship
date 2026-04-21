@@ -16,6 +16,7 @@ import {
 import { getDocuments, uploadDocumentFile, createDocument, deleteDocument, updateDocument } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import { DocumentsSkeleton } from '../shared/ViewSkeletons';
 
 interface DocumentInterface {
   id: string;
