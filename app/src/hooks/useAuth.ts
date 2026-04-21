@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, logError } from '@/lib/supabase';
+import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, logError, getSession } from '@/lib/supabase';
 import type { UserRole } from '@/types';
 
 interface AuthUser {
