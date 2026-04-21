@@ -111,3 +111,27 @@ export function DocumentsSkeleton() {
     </div>
   );
 }
+
+export function CalendarSkeleton() {
+  return (
+    <div className="space-y-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
+          <SkeletonRect className="h-20 w-80" />
+          <SkeletonRect className="h-6 w-64" />
+        </div>
+      </div>
+      <div className="mc-stadium-card bg-white dark:bg-zinc-900/50 p-8 border border-black/5 dark:border-white/5">
+        <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-700 rounded-3xl overflow-hidden border border-black/5 dark:border-white/5">
+           {[...Array(35)].map((_, i) => (
+             <div key={i} className="bg-white dark:bg-zinc-900/80 p-4 min-h-[120px]">
+               <SkeletonCircle size={24} className="mb-4" />
+               <SkeletonRect className="h-4 w-3/4 mb-2" />
+               <SkeletonRect className="h-4 w-1/2" />
+             </div>
+           ))}
+        </div>
+      </div>
+    </div>
+  );
+}

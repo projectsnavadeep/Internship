@@ -345,6 +345,7 @@ function App() {
             stats={stats}
             profile={profile}
             onNavigate={setActiveTab}
+            loading={isSyncing}
           />
         );
       case 'applications':
@@ -356,6 +357,7 @@ function App() {
             onView={handleViewApplication}
             onAdd={() => { setEditingApp(null); setShowAppModal(true); }}
             onStatusChange={handleStatusChange}
+            loading={isSyncing}
           />
         );
       case 'calendar':
@@ -365,10 +367,11 @@ function App() {
             reminders={reminders}
             userId={user?.id}
             onRefresh={loadData}
+            loading={isSyncing}
           />
         );
       case 'documents':
-        return <DocumentsView userId={user?.id} />;
+        return <DocumentsView userId={user?.id} loading={isSyncing} />;
       case 'settings':
         return <SettingsView 
             userId={user?.id} 

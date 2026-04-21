@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createReminder, updateReminder, deleteReminder, logError } from '@/lib/supabase';
+import { CalendarSkeleton } from '../shared/ViewSkeletons';
 import type { Application, Reminder } from '@/types';
 
 interface CalendarViewProps {
@@ -10,9 +11,11 @@ interface CalendarViewProps {
   reminders: Reminder[];
   userId?: string;
   onRefresh?: () => void;
+  loading?: boolean;
 }
 
-export function CalendarView({ applications, reminders, userId, onRefresh }: CalendarViewProps) {
+export function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
+  if (loading) return <CalendarSkeleton />;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
