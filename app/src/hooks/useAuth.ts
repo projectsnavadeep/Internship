@@ -115,12 +115,12 @@ export function useAuth() {
     setUser(null);
     try {
       await signOut();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign out error:', error);
       // Optional: restore user if strict consistency is needed, but usually we just want them logged out locally anyway
       // setUser(previousUser);
     }
-  }, [user]);
+  }, []);
 
   return {
     user,

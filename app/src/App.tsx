@@ -128,7 +128,7 @@ function App() {
   }, [isAuthenticated, isAdmin, activeTab]);
 
   // Handle login
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = useCallback(async (email: string, password: string) => {
     try {
       const u = await login(email, password);
       toast.success('Welcome back!');
@@ -141,10 +141,10 @@ function App() {
       toast.error(error.message || 'Login failed');
       throw error;
     }
-  };
+  }, [login]);
 
   // Handle register
-  const handleRegister = async (email: string, password: string, fullName: string) => {
+  const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       const data = await register(email, password, fullName);
       if (email === 'admin@gmail.com' || (data?.user?.role === 'admin')) {
@@ -174,10 +174,10 @@ function App() {
       toast.error(error.message || 'Registration failed');
       throw error;
     }
-  };
+  }, [register]);
 
   // Application CRUD
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
     try {
       console.log(`[🚀] UPDATING STATUS to ${newStatus} for ${id}`);
       await updateApplication(id, { status: newStatus as any, updated_at: new Date().toISOString() });
@@ -201,15 +201,15 @@ function App() {
     }
   }, [user, isAdmin, viewingApp, loadData]);
 
-  const handleSaveApplication = async (_appData: Partial<Application>) => {
+  const handleSaveApplication = useCallback(async (_appData: Partial<Application>) => {
     // Modal now handles DB insert/update directly.
     // This callback just refreshes the local state.
     setShowAppModal(false);
     setEditingApp(null);
     await loadData();
-  };
+  }, [loadData]);
 
-  const handleDeleteApplication = async (id: string) => {
+  const handleDeleteApplication = useCallback(async (id: string) => {
     try {
       await deleteApplication(id);
       setApplications(apps => apps.filter(a => a.id !== id));
@@ -229,19 +229,19 @@ function App() {
         role: isAdmin ? 'admin' : 'student'
       });
     }
-  };
+  }, [user, isAdmin, loadData]);
 
-  const handleViewApplication = async (app: Application) => {
+  const handleViewApplication = useCallback(async (app: Application) => {
     setViewingApp(app);
     try {
       const notes = await getInterviewNotes(app.id);
       setSelectedAppNotes(notes);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading interview notes:', error);
     }
-  };
+  }, []);
 
-  const handleAddInterviewNote = async (note: Partial<InterviewNote>) => {
+  const handleAddInterviewNote = useCallback(async (note: Partial<InterviewNote>) => {
     if (!user || !viewingApp) return;
     try {
       const newNote = await createInterviewNote({
@@ -263,9 +263,9 @@ function App() {
         role: isAdmin ? 'admin' : 'student'
       });
     }
-  };
+  }, [user, isAdmin, viewingApp]);
 
-  const handleDeleteInterviewNote = async (id: string) => {
+  const handleDeleteInterviewNote = useCallback(async (id: string) => {
     try {
       await deleteInterviewNote(id);
       setSelectedAppNotes(notes => notes.filter(n => n.id !== id));
@@ -282,7 +282,7 @@ function App() {
         role: isAdmin ? 'admin' : 'student'
       });
     }
-  };
+  }, [user, isAdmin]);
 
   // Render content based on active tab
   const renderContent = () => {

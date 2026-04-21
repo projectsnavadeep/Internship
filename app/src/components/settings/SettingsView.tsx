@@ -77,7 +77,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             }));
           }
         }
-      }).catch(err => console.error("Could not load profile", err));
+      }).catch((err: any) => console.error("Could not load profile", err));
     }
   }, [userId]);
 
