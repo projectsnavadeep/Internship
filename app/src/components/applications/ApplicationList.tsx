@@ -10,15 +10,16 @@ import {
   Trash2,
   Eye
 } from 'lucide-react';
+import { ApplicationListSkeleton } from '../shared/ViewSkeletons';
 import type { Application } from '@/types';
 
 interface ApplicationListProps {
   applications: Application[];
   onEdit: (app: Application) => void;
   onDelete: (id: string) => void;
-  onView: (app: Application) => void;
   onAdd: () => void;
   onStatusChange: (id: string, newStatus: string) => void;
+  loading?: boolean;
 }
 
 const statusOrder = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
@@ -35,7 +36,8 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange }: ApplicationListProps) {
+export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
+  if (loading) return <ApplicationListSkeleton />;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('date');
