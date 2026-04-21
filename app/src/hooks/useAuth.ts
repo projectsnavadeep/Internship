@@ -121,7 +121,7 @@ export function useAuth() {
         setLoading(false);
       }
     });
- Broadway
+
     return () => subscription.unsubscribe();
   }, [fetchUserRole]);
 
