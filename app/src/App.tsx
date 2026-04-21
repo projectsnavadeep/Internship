@@ -101,6 +101,7 @@ function App() {
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
   const [showReloadOption, setShowReloadOption] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(true);
 
   // Recovery timer for loading screen
   useEffect(() => {
@@ -143,6 +144,7 @@ function App() {
       setReminders(rems);
       setStats(appStats);
       setProfile(userProfile);
+      setIsSyncing(false);
     } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');

@@ -30,6 +30,7 @@ interface DocumentInterface {
 
 interface DocumentsViewProps {
   userId?: string;
+  loading?: boolean;
 }
 
 const documentIcons: Record<string, React.ReactNode> = {
@@ -45,7 +46,8 @@ const documentIcons: Record<string, React.ReactNode> = {
 
 const documentTypes = ['Resume', 'Cover Letter', 'Transcript', 'Portfolio', 'Certificate', 'Other'];
 
-export function DocumentsView({ userId }: DocumentsViewProps) {
+export function DocumentsView({ userId, loading }: DocumentsViewProps) {
+  if (loading) return <DocumentsSkeleton />;
   const [docs, setDocs] = useState<DocumentInterface[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
