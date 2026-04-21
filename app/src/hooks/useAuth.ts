@@ -14,6 +14,11 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasSessionHint, setHasSessionHint] = useState<boolean>(() => {
+    // Synchronous check on mount
+    return !!localStorage.getItem('internship-auth-token');
+  });
+ Broadway
 
   // Fetch user role from profiles table
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
@@ -174,6 +179,7 @@ export function useAuth() {
     register,
     logout,
     isAuthenticated: !!user,
+    hasSessionHint,
     isAdmin: user?.role === 'admin' || user?.email === 'admin@admin.com' || user?.email === 'admin@gmail.com',
     isRootAdmin: user?.email === 'admin@admin.com',
   };

@@ -36,7 +36,7 @@ import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } 
 import './App.css';
 
 function App() {
-  const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin } = useAuth();
+  const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin, hasSessionHint } = useAuth();
   
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
@@ -399,9 +399,9 @@ function App() {
     }
   };
 
-  // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user yet.
-  // This prevents background session refreshes from interrupting the user experience.
-  if (authLoading && !isAuthenticated) {
+  // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user AND no local session hint.
+  // Using hasSessionHint ensures that on refresh, the user sees the App Layout/Skeletons immediately.
+  if (authLoading && !isAuthenticated && !hasSessionHint) {
     return (
       <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
         <motion.div
