@@ -103,15 +103,6 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
   const [isSyncing, setIsSyncing] = useState(true);
 
-  // Recovery timer for loading screen
-  useEffect(() => {
-    if (authLoading) {
-      const timer = setTimeout(() => setShowReloadOption(true), 4000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowReloadOption(false);
-    }
-  }, [authLoading]);
 
   // Guard: non-admin users cannot access admin tab
   useEffect(() => {
