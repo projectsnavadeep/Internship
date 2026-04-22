@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, logError, getSession } from '@/lib/supabase';
+import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, getSession } from '@/lib/supabase';
 import type { UserRole } from '@/types';
 
 interface AuthUser {
@@ -99,8 +99,7 @@ export function useAuth() {
       console.log(`[Auth] State Change: ${event}`, session?.user?.id);
       
       if (session?.user) {
-        // Hydration: Only block if this is the first time we see any user
-        const isInitialLoad = !user;
+        // Hydration
         
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
           // If we are signed in, we need the role
