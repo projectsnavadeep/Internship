@@ -41,7 +41,8 @@ const customStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
     let val = window.localStorage.getItem(key);
-    // If localStorage is empty (e.g. refresh in some incognito modes), try cookie recovery
+    console.log(`[Storage] getItem(${key}) -> Local: ${val ? 'FOUND' : 'MISSING'}`);
+    
     if (!val) {
       val = cookieStore.get(key);
       if (val) {
@@ -53,6 +54,7 @@ const customStorage = {
   },
   setItem: (key: string, value: string) => {
     if (typeof window === 'undefined') return;
+    console.log(`[Storage] setItem(${key})`);
     window.localStorage.setItem(key, value);
     cookieStore.set(key, value); // Mirror to cookie
     
@@ -61,6 +63,7 @@ const customStorage = {
   },
   removeItem: (key: string) => {
     if (typeof window === 'undefined') return;
+    console.log(`[Storage] removeItem(${key}) - SIGN OUT OR INVALIDATION DETECTED`);
     window.localStorage.removeItem(key);
     cookieStore.remove(key); // Clear mirror
     

@@ -40,13 +40,16 @@ export function useAuth() {
     }
   });
 
-
   // Fetch user role from profiles table
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
+    console.log(`[Auth] Fetching role for user: ${userId}`);
     try {
       const profile = await getProfile(userId);
-      return (profile?.role as UserRole) || 'student';
-    } catch {
+      const role = (profile?.role as UserRole) || 'student';
+      console.log(`[Auth] Role fetched for ${userId}: ${role}`);
+      return role;
+    } catch (err) {
+      console.error(`[Auth] Error fetching role for ${userId}:`, err);
       return 'student';
     }
   }, []);
@@ -54,7 +57,7 @@ export function useAuth() {
   useEffect(() => {
     // Safety timeout: Ensure loading always eventually finishes
     const sessionHint = localStorage.getItem('internship-auth-token');
-    const timeoutDuration = sessionHint ? 12000 : 5000; // Increased for reliability
+    const timeoutDuration = sessionHint ? 12000 : 5000;
     
     let isInitialized = false;
 
@@ -68,10 +71,8 @@ export function useAuth() {
     const initializeAuth = async () => {
       try {
         console.log('[Auth] Initializing...');
-        // Primary check: getUser (verified by server)
         let userRecord = await getCurrentUser();
         
-        // Secondary check: getSession (faster, from local state if available)
         if (!userRecord && (sessionHint || document.cookie.includes('internship-auth-token'))) {
           const session = await getSession();
           if (session?.user) {
@@ -89,21 +90,23 @@ export function useAuth() {
             user_metadata: userRecord.user_metadata,
             role,
           });
+          // We found a user, so we can stop loading
+          setLoading(false);
+          isInitialized = true;
+          clearTimeout(safetyTimer);
         } else {
           console.log('[Auth] No user record found in initial check');
+          const hasAnyHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
+          if (!hasAnyHint) {
+            setLoading(false);
+            isInitialized = true;
+            clearTimeout(safetyTimer);
+          }
         }
       } catch (err: any) {
         console.error('[Auth] Initialization error:', err);
-      } finally {
+        setLoading(false);
         isInitialized = true;
-        clearTimeout(safetyTimer);
-        // We don't necessarily set loading to false here yet, 
-        // as the onAuthStateChange listener might still be processing.
-        // But if we found no user and we are done, we should.
-        const hasAnyHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
-        if (!hasAnyHint) {
-          setLoading(false);
-        }
       }
     };
 
@@ -114,71 +117,70 @@ export function useAuth() {
       console.log(`[Auth] State Change: ${event}`, session?.user?.id);
       
       if (session?.user) {
-        // Hydration
+        const userRecord = session.user;
         
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
-          // If we are signed in, we need the role
-          const role = await fetchUserRole(session.user.id);
+        // Hydrate role
+        fetchUserRole(userRecord.id).then(role => {
           setUser({
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
+            id: userRecord.id,
+            email: userRecord.email,
+            user_metadata: userRecord.user_metadata,
             role,
           });
-          
+          setLoading(false);
           isInitialized = true;
           clearTimeout(safetyTimer);
-          setLoading(false);
-        } else {
-          // For other events (token refresh etc), update basic info silently
-          setUser(curr => curr ? {
-            ...curr,
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-          } : {
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-            role: 'student',
-          });
-        }
+        });
       } else {
-        // No session: only drop loading if we are sure we are done initializing
-        // OR if a SIGNED_OUT event happened
         if (event === 'SIGNED_OUT') {
+          console.warn('[Auth] Explicit SIGNED_OUT event');
           setUser(null);
           setLoading(false);
           isInitialized = true;
           clearTimeout(safetyTimer);
-        } else if (isInitialized || (!localStorage.getItem('internship-auth-token') && !document.cookie.includes('internship-auth-token'))) {
-          setUser(null);
-          setLoading(false);
+        } else {
+          const hasLS = !!localStorage.getItem('internship-auth-token');
+          const hasCookie = document.cookie.includes('internship-auth-token');
+          
+          // Only clear user if we are initialized AND there are absolutely no hints
+          // OR if we've been waiting too long (timeout handled by safetyTimer)
+          if (isInitialized && !hasLS && !hasCookie) {
+            console.log('[Auth] No session hints found, clearing user state');
+            setUser(null);
+            setLoading(false);
+          } else if (!isInitialized && (hasLS || hasCookie)) {
+            console.log('[Auth] Holding user state due to session hints...');
+          } else if (isInitialized) {
+            // If initialized but still no session from Supabase, but we HAVE hints...
+            // This is a weird state, usually means the session is invalid.
+            // We'll let the safety timer or a subsequent event handle it.
+            console.warn('[Auth] Initialized with hints but no session from Supabase');
+          }
         }
       }
     });
 
-    // Multi-tab Sync Listener for state update
+    // Multi-tab Sync
     const syncChannel = new BroadcastChannel('supabase-auth-sync');
     syncChannel.onmessage = (e) => {
       if (e.data.type === 'SESSION_REMOVED') {
         setUser(null);
         setLoading(false);
       } else if (e.data.type === 'SESSION_UPDATED' && !user) {
-        // Trigger a re-initialization if a session appears in another tab
         initializeAuth();
       }
     };
 
-    return () => subscription.unsubscribe();
-  }, [fetchUserRole]);
+    return () => {
+      subscription.unsubscribe();
+      syncChannel.close();
+    };
+  }, [fetchUserRole, user]); // Include user in deps to correctly handle sync check
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);
     if (data.user) {
-      // Track login activity
       await updateLoginActivity(data.user.id);
-
       const role = await fetchUserRole(data.user.id);
       const authUser = {
         id: data.user.id,
@@ -186,13 +188,11 @@ export function useAuth() {
         user_metadata: data.user.user_metadata,
         role,
       };
-      
       setUser(authUser);
       return authUser;
     }
     return data.user;
   }, [fetchUserRole]);
-
 
   const register = useCallback(async (email: string, password: string, fullName: string) => {
     const data = await signUp(email, password, fullName);
@@ -208,14 +208,11 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    // Optimistic UI update: clear user state immediately
     setUser(null);
     try {
       await signOut();
     } catch (error: any) {
       console.error('Sign out error:', error);
-      // Optional: restore user if strict consistency is needed, but usually we just want them logged out locally anyway
-      // setUser(previousUser);
     }
   }, []);
 
