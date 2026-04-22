@@ -12,21 +12,18 @@ import {
   getApplicationStats,
   updateApplication,
   createApplication,
-  deleteApplication,
-  getInterviewNotes,
-  createInterviewNote,
-  deleteInterviewNote
+  logError
 } from '@/lib/supabase';
-import type { Application, Reminder, ApplicationStats, InterviewNote } from '@/types';
+import type { Application, Profile, Reminder, ApplicationStats } from '@/types';
 
-// Lazy load views
+// Lazy load views for better performance
 const Dashboard = lazy(() => import('@/components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
 const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
 const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
-const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
+const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView').then(m => ({ default: m.UserRegistryView })));
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
@@ -47,24 +44,26 @@ export default function App() {
   const [showAppModal, setShowAppModal] = useState(false);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
-  const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
+  const [selectedAppNotes, setSelectedAppNotes] = useState<any[]>([]);
 
+  // State for data
   const [applications, setApplications] = useState<Application[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [stats, setStats] = useState<ApplicationStats>({
     total_applications: 0,
-    applied_count: 0,
-    interview_count: 0,
-    offer_count: 0,
-    rejected_count: 0,
-    pending_count: 0
+    active_interviews: 0,
+    pending_offers: 0,
+    success_rate: 0
   });
 
+  // Track tab changes for persistence and hash-routing
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
     window.location.hash = activeTab;
   }, [activeTab]);
 
+  // Sync hash routing with tab state
   useEffect(() => {
     const handlePopState = () => {
       const hash = window.location.hash.replace('#', '');
@@ -79,80 +78,75 @@ export default function App() {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [appsData, _, remindersData, statsData] = await Promise.all([
+      console.log('[App] Loading data for:', user.id);
+      const [appsData, profileData, remindersData, statsData] = await Promise.all([
         getApplications(user.id),
         getProfile(user.id),
         getReminders(user.id),
         getApplicationStats(user.id)
       ]);
+
       setApplications(appsData || []);
+      setProfile(profileData);
       setReminders(remindersData || []);
       setStats(statsData);
     } catch (error: any) {
-      console.error('Data load error:', error);
+      console.error('Critical data error:', error);
+      toast.error('Sync failure. Some data may be missing.');
     }
   }, [user]);
 
   useEffect(() => {
-    if (isAuthenticated) loadData();
+    if (isAuthenticated) {
+      loadData();
+    }
   }, [isAuthenticated, loadData]);
 
-  // Load notes when viewing an app
+  // Smart Routing for Admins on mount/session load
   useEffect(() => {
-    if (viewingApp) {
-      getInterviewNotes(viewingApp.id).then(setSelectedAppNotes);
-    } else {
-      setSelectedAppNotes([]);
+    const hasInitialTab = sessionStorage.getItem('initial_tab_set');
+    if (isAuthenticated && isAdmin && activeTab === 'dashboard' && !hasInitialTab) {
+      setActiveTab('admin');
+      sessionStorage.setItem('initial_tab_set', 'true');
     }
-  }, [viewingApp]);
+  }, [isAuthenticated, isAdmin, activeTab]);
 
   const handleLogin = useCallback(async (email: string, password: string) => {
-    const u = await login(email, password);
-    toast.success('Welcome back!');
-    if (u?.role === 'admin') setActiveTab('admin');
-    else setActiveTab('dashboard');
+    try {
+      const u = await login(email, password);
+      toast.success('Welcome back!');
+      if (u?.role === 'admin') setActiveTab('admin');
+      else setActiveTab('dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed');
+      throw error;
+    }
   }, [login]);
 
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
-    await register(email, password, fullName);
-    toast.success('Account created.');
-    setActiveTab('dashboard');
+    try {
+      await register(email, password, fullName);
+      toast.success('Professional account created.');
+      setActiveTab('dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed');
+      throw error;
+    }
   }, [register]);
 
   const handleSaveApplication = async (data: Partial<Application>) => {
-    if (editingApp) {
-      const updated = await updateApplication(editingApp.id, data);
-      setApplications(prev => prev.map(a => a.id === updated.id ? updated : a));
-    } else {
-      const created = await createApplication({ ...data, user_id: user?.id });
-      setApplications(prev => [created, ...prev]);
-    }
-    loadData();
-  };
-
-  const handleDeleteApplication = async (id: string) => {
-    if (confirm('Delete this application permanently?')) {
-      await deleteApplication(id);
-      setApplications(prev => prev.filter(a => a.id !== id));
+    try {
+      if (editingApp) {
+        const updated = await updateApplication(editingApp.id, data);
+        setApplications(prev => prev.map(a => a.id === updated.id ? updated : a));
+      } else {
+        const created = await createApplication({ ...data, user_id: user?.id });
+        setApplications(prev => [created, ...prev]);
+      }
       loadData();
+    } catch (error: any) {
+      toast.error('Failed to save application');
     }
-  };
-
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    const updated = await updateApplication(id, { status: newStatus as any });
-    setApplications(prev => prev.map(a => a.id === updated.id ? updated : a));
-    loadData();
-  };
-
-  const handleAddNote = async (note: Partial<InterviewNote>) => {
-    if (!viewingApp) return;
-    const created = await createInterviewNote({ ...note, application_id: viewingApp.id, user_id: user?.id });
-    setSelectedAppNotes(prev => [...prev, created]);
-  };
-
-  const handleDeleteNote = async (id: string) => {
-    await deleteInterviewNote(id);
-    setSelectedAppNotes(prev => prev.filter(n => n.id !== id));
   };
 
   const [showAuthForm, setShowAuthForm] = useState(false);
@@ -165,6 +159,7 @@ export default function App() {
     }
   }, [authLoading, isAuthenticated, hasSessionHint]);
 
+  // Loading States
   if (authLoading && !isAuthenticated && hasSessionHint) {
     return (
       <div className="min-h-screen bg-mc-canvas-cream flex">
@@ -207,7 +202,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
-      case 'applications': return <ApplicationList applications={applications} onEdit={setEditingApp} onView={setViewingApp} onDelete={handleDeleteApplication} onAdd={() => setShowAppModal(true)} onStatusChange={handleStatusChange} />;
+      case 'applications': return <ApplicationList applications={applications} onEdit={setEditingApp} onView={setViewingApp} />;
       case 'calendar': return <CalendarView applications={applications} reminders={reminders} onRefresh={loadData} />;
       case 'documents': return <DocumentsView userId={user?.id} />;
       case 'settings': return <SettingsView userId={user?.id} userName={user?.user_metadata?.full_name} userEmail={user?.email} userRole={user?.role} />;
@@ -234,20 +229,8 @@ export default function App() {
         </div>
       </main>
       <Suspense fallback={null}>
-        <ApplicationModal isOpen={showAppModal} onClose={() => { setShowAppModal(false); setEditingApp(null); }} onSave={handleSaveApplication} application={editingApp} userId={user?.id} />
-        {viewingApp && (
-          <ApplicationDetails 
-            application={viewingApp} 
-            interviewNotes={selectedAppNotes} 
-            isOpen={!!viewingApp} 
-            onClose={() => setViewingApp(null)} 
-            onEdit={() => { setEditingApp(viewingApp); setViewingApp(null); setShowAppModal(true); }}
-            onDelete={() => handleDeleteApplication(viewingApp.id)}
-            onAddNote={handleAddNote}
-            onDeleteNote={handleDeleteNote}
-            onStatusChange={handleStatusChange}
-          />
-        )}
+        <ApplicationModal isOpen={showAppModal} onClose={() => setShowAppModal(false)} onSave={handleSaveApplication} application={editingApp} userId={user?.id} />
+        {viewingApp && <ApplicationDetails application={viewingApp} isOpen={!!viewingApp} onClose={() => setViewingApp(null)} />}
       </Suspense>
     </div>
   );
