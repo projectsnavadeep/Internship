@@ -137,15 +137,19 @@ export function useAuth() {
       await updateLoginActivity(data.user.id);
 
       const role = await fetchUserRole(data.user.id);
-      setUser({
+      const authUser = {
         id: data.user.id,
         email: data.user.email,
         user_metadata: data.user.user_metadata,
         role,
-      });
+      };
+      
+      setUser(authUser);
+      return authUser;
     }
     return data.user;
   }, [fetchUserRole]);
+
 
   const register = useCallback(async (email: string, password: string, fullName: string) => {
     const data = await signUp(email, password, fullName);

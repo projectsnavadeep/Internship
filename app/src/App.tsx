@@ -15,7 +15,7 @@ const CalendarView = lazy(() => import('@/components/calendar/CalendarView').the
 const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
 const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
-const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView').then(m => ({ default: m.UserRegistryView })));
+const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
@@ -182,7 +182,10 @@ function App() {
     try {
       const u = await login(email, password);
       toast.success('Welcome back!');
-      if (u?.role === 'admin' || email === 'admin@gmail.com') {
+      
+      const isAdminEmail = email === 'admin@gmail.com' || email === 'navadeepsripathi2@gmail.com';
+      
+      if (u?.role === 'admin' || isAdminEmail) {
         setActiveTab('admin');
       } else {
         setActiveTab('dashboard');
@@ -192,6 +195,7 @@ function App() {
       throw error;
     }
   }, [login]);
+
 
   // Handle register
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {

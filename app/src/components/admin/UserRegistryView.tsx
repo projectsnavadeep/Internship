@@ -27,7 +27,7 @@ import { sendWelcomeEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
 
-export function UserRegistryView() {
+export default function UserRegistryView() {
   const [users, setUsers] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [userFilter, setUserFilter] = useState('');
