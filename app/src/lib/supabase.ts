@@ -8,9 +8,7 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 // ============================================
 // SESSION PERSISTENCE & MULTI-TAB SYNC
 // ============================================
-const g = globalThis as any;
 const AUTH_KEY = 'internship-auth-token';
-const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('supabase-auth-sync') : null;
 
 // Helper to set/get cookies for "mirroring" the session
 const cookieStore = {
@@ -46,7 +44,7 @@ const customStorage = {
       val = cookieStore.get(key);
       if (val) {
         console.log('[🚀] Recovered session from cookie mirror');
-        window.localStorage.setItem(key, val); // Restore to localStorage
+        window.localStorage.setItem(key, val); 
       }
     }
     return val;
@@ -55,35 +53,15 @@ const customStorage = {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(key, value);
     cookieStore.set(key, value); // Mirror to cookie
-    
-    // Notify other tabs
-    syncChannel?.postMessage({ type: 'SESSION_UPDATED', key, value });
   },
   removeItem: (key: string) => {
     if (typeof window === 'undefined') return;
     window.localStorage.removeItem(key);
     cookieStore.remove(key); // Clear mirror
-    
-    // Notify other tabs
-    syncChannel?.postMessage({ type: 'SESSION_REMOVED', key });
   }
 };
 
-// Listen for sync events from other tabs
-if (syncChannel) {
-  syncChannel.onmessage = (event) => {
-    if (event.data.type === 'SESSION_UPDATED') {
-      console.log('[🚀] Syncing session from another tab...');
-      window.localStorage.setItem(event.data.key, event.data.value);
-      cookieStore.set(event.data.key, event.data.value);
-    } else if (event.data.type === 'SESSION_REMOVED') {
-      console.log('[🚀] Clearing session (logout detected in another tab)...');
-      window.localStorage.removeItem(event.data.key);
-      cookieStore.remove(event.data.key);
-      // We don't force a reload here, App.tsx will handle the state change
-    }
-  };
-}
+const g = globalThis as any;
 
 if (!g.__supabase) {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -98,6 +76,7 @@ if (!g.__supabase) {
         storageKey: AUTH_KEY,
         storage: customStorage as any,
         flowType: 'pkce',
+        lock: null as any,
       },
     });
   }

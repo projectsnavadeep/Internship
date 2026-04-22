@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, signIn, signUp, signOut, getCurrentUser, getProfile, updateLoginActivity, getSession } from '@/lib/supabase';
+import { supabase, signIn, signUp, signOut, getProfile, updateLoginActivity, getCurrentUser, getSession } from '@/lib/supabase';
 import type { UserRole } from '@/types';
 
 interface AuthUser {
@@ -14,34 +14,14 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  
   const [hasSessionHint] = useState<boolean>(() => {
-    // Synchronous check on mount (localStorage + Cookie Mirror)
-    const getHint = () => {
-      const ls = localStorage.getItem('internship-auth-token');
-      if (ls) return ls;
-      if (typeof document !== 'undefined') {
-        const name = 'internship-auth-token=';
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-          let c = ca[i].trim();
-          if (c.indexOf(name) === 0) return decodeURIComponent(c.substring(name.length, c.length));
-        }
-      }
-      return null;
-    };
-
-    const hint = getHint();
-    try {
-      if (!hint) return false;
-      const parsed = JSON.parse(hint);
-      return !!(parsed.access_token && parsed.user);
-    } catch {
-      return !!hint;
-    }
+    if (typeof window === 'undefined') return false;
+    const ls = localStorage.getItem('internship-auth-token');
+    const cookie = document.cookie.includes('internship-auth-token');
+    return !!(ls || cookie);
   });
 
-
-  // Fetch user role from profiles table
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
     try {
       const profile = await getProfile(userId);
@@ -51,172 +31,114 @@ export function useAuth() {
     }
   }, []);
 
+  const hydrateUser = useCallback(async (userRecord: any) => {
+    if (!userRecord) return null;
+    const role = await fetchUserRole(userRecord.id);
+    const authUser: AuthUser = {
+      id: userRecord.id,
+      email: userRecord.email,
+      user_metadata: userRecord.user_metadata,
+      role,
+    };
+    setUser(authUser);
+    return authUser;
+  }, [fetchUserRole]);
+
   useEffect(() => {
-    // Safety timeout: Ensure loading always eventually finishes
-    const sessionHint = localStorage.getItem('internship-auth-token');
-    const timeoutDuration = sessionHint ? 12000 : 5000; // Increased for reliability
-    
+    let mounted = true;
     let isInitialized = false;
 
     const safetyTimer = setTimeout(() => {
-      if (!isInitialized) {
-        console.warn('Auth initialization timeout, forcing load completion...');
+      if (mounted && !isInitialized) {
+        console.warn('[Auth] Initialization safety timeout');
         setLoading(false);
       }
-    }, timeoutDuration);
+    }, hasSessionHint ? 10000 : 3000);
 
-    const initializeAuth = async () => {
+    const initialize = async () => {
       try {
-        console.log('[Auth] Initializing...');
-        // Primary check: getUser (verified by server)
-        let userRecord = await getCurrentUser();
-        
-        // Secondary check: getSession (faster, from local state if available)
-        if (!userRecord && (sessionHint || document.cookie.includes('internship-auth-token'))) {
-          const session = await getSession();
-          if (session?.user) {
-            userRecord = session.user;
+        // Try getting session first (fastest)
+        const session = await getSession();
+        if (session?.user && mounted) {
+          await hydrateUser(session.user);
+        } else if (mounted) {
+          // Double check with getUser (verified)
+          const userRecord = await getCurrentUser();
+          if (userRecord && mounted) {
+            await hydrateUser(userRecord);
           }
         }
-
-        if (userRecord) {
-          console.log('[Auth] Found user record:', userRecord.id);
-          const role = await fetchUserRole(userRecord.id);
-          
-          setUser({
-            id: userRecord.id,
-            email: userRecord.email,
-            user_metadata: userRecord.user_metadata,
-            role,
-          });
-        } else {
-          console.log('[Auth] No user record found in initial check');
-        }
-      } catch (err: any) {
-        console.error('[Auth] Initialization error:', err);
+      } catch (err) {
+        console.error('[Auth] Init error:', err);
       } finally {
-        isInitialized = true;
-        clearTimeout(safetyTimer);
-        // We don't necessarily set loading to false here yet, 
-        // as the onAuthStateChange listener might still be processing.
-        // But if we found no user and we are done, we should.
-        const hasAnyHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
-        if (!hasAnyHint) {
+        if (mounted) {
+          isInitialized = true;
           setLoading(false);
+          clearTimeout(safetyTimer);
         }
       }
     };
 
-    initializeAuth();
+    initialize();
 
-    // Listen for auth changes
-    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
-      console.log(`[Auth] State Change: ${event}`, session?.user?.id);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      console.log(`[Auth] Event: ${event}`, session?.user?.id);
       
+      if (!mounted) return;
+
       if (session?.user) {
-        // Hydration
-        
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
-          // If we are signed in, we need the role
-          const role = await fetchUserRole(session.user.id);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-            role,
-          });
-          
-          isInitialized = true;
-          clearTimeout(safetyTimer);
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || !user) {
+          await hydrateUser(session.user);
           setLoading(false);
         } else {
-          // For other events (token refresh etc), update basic info silently
-          setUser(curr => curr ? {
-            ...curr,
+          // Token refresh or other updates: update state silently
+          setUser(prev => prev ? {
+            ...prev,
             id: session.user.id,
             email: session.user.email,
             user_metadata: session.user.user_metadata,
-          } : {
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-            role: 'student',
-          });
+          } : prev);
         }
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        setLoading(false);
       } else {
-        // No session: only drop loading if we are sure we are done initializing
-        // OR if a SIGNED_OUT event happened
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setLoading(false);
-          isInitialized = true;
-          clearTimeout(safetyTimer);
-        } else if (isInitialized || (!localStorage.getItem('internship-auth-token') && !document.cookie.includes('internship-auth-token'))) {
+        // No session hint left?
+        const stillHasHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
+        if (!stillHasHint) {
           setUser(null);
           setLoading(false);
         }
       }
     });
 
-    // Multi-tab Sync Listener for state update
-    const syncChannel = new BroadcastChannel('supabase-auth-sync');
-    syncChannel.onmessage = (e) => {
-      if (e.data.type === 'SESSION_REMOVED') {
-        setUser(null);
-        setLoading(false);
-      } else if (e.data.type === 'SESSION_UPDATED' && !user) {
-        // Trigger a re-initialization if a session appears in another tab
-        initializeAuth();
-      }
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(safetyTimer);
     };
-
-    return () => subscription.unsubscribe();
-  }, [fetchUserRole]);
+  }, [hydrateUser, hasSessionHint, user]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);
     if (data.user) {
-      // Track login activity
       await updateLoginActivity(data.user.id);
-
-      const role = await fetchUserRole(data.user.id);
-      const authUser = {
-        id: data.user.id,
-        email: data.user.email,
-        user_metadata: data.user.user_metadata,
-        role,
-      };
-      
-      setUser(authUser);
-      return authUser;
+      return await hydrateUser(data.user);
     }
-    return data.user;
-  }, [fetchUserRole]);
-
+    return null;
+  }, [hydrateUser]);
 
   const register = useCallback(async (email: string, password: string, fullName: string) => {
     const data = await signUp(email, password, fullName);
     if (data.user) {
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        user_metadata: data.user.user_metadata,
-        role: 'student',
-      });
+      return await hydrateUser(data.user);
     }
-    return data.user;
-  }, []);
+    return null;
+  }, [hydrateUser]);
 
   const logout = useCallback(async () => {
-    // Optimistic UI update: clear user state immediately
     setUser(null);
-    try {
-      await signOut();
-    } catch (error: any) {
-      console.error('Sign out error:', error);
-      // Optional: restore user if strict consistency is needed, but usually we just want them logged out locally anyway
-      // setUser(previousUser);
-    }
+    await signOut();
   }, []);
 
   return {
@@ -227,7 +149,7 @@ export function useAuth() {
     logout,
     isAuthenticated: !!user,
     hasSessionHint,
-    isAdmin: user?.role === 'admin' || user?.email === 'admin@admin.com' || user?.email === 'admin@gmail.com',
+    isAdmin: user?.role === 'admin' || user?.email?.includes('admin@'),
     isRootAdmin: user?.email === 'admin@admin.com',
   };
 }

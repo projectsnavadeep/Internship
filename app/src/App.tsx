@@ -101,7 +101,6 @@ function App() {
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
-  const [showReloadOption, setShowReloadOption] = useState(false);
   const [isSyncing, setIsSyncing] = useState(true);
 
   // Recovery timer for loading screen
@@ -202,7 +201,7 @@ function App() {
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       const data = await register(email, password, fullName);
-      if (email === 'admin@gmail.com' || (data?.user?.role === 'admin')) {
+      if (email === 'admin@gmail.com' || (data?.role === 'admin')) {
         setActiveTab('admin');
         toast.success('Admin Console access granted.');
       } else {
@@ -210,10 +209,8 @@ function App() {
         toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
       }
       
-      // Auto-email stuff...
-      if (data?.user) {
-        const userId = data.user.id;
-        // Fire email instantly in the background
+      if (data) {
+        const userId = data.id;
         sendWelcomeEmail(userId, email, fullName).catch(err => {
           console.error('Auto-email error:', err);
           logError({
@@ -399,13 +396,33 @@ function App() {
       case 'error-logs':
         if (!isAdmin) return null;
         return <ErrorLogsView adminId={user?.id} />;
-      default:
-        return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
     }
   };
 
+  // Grace period to prevent login flicker on refresh
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      const timer = setTimeout(() => setShowAuthForm(true), hasSessionHint ? 800 : 0);
+      return () => clearTimeout(timer);
+    } else {
+      setShowAuthForm(false);
+    }
+  }, [authLoading, isAuthenticated, hasSessionHint]);
+
   // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user AND no local session hint.
   // Using hasSessionHint ensures that on refresh, the user sees the App Layout/Skeletons immediately.
+  if (authLoading && !isAuthenticated && hasSessionHint) {
+    return (
+      <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={() => {}} userName="Loading..." collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} isAdmin={false} />
+        <main className="flex-1 p-8 pt-24 md:pt-32">
+          <LoadingView message="Restoring identity..." />
+        </main>
+      </div>
+    );
+  }
+
   if (authLoading && !isAuthenticated && !hasSessionHint) {
     return (
       <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
@@ -414,29 +431,11 @@ function App() {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         />
-        <AnimatePresence>
-          {showReloadOption && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-12 text-center"
-            >
-              <p className="text-[17px] text-zinc-500 font-medium mb-6">Synchronization is taking longer than usual.</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="apple-pill-filled px-10 py-3 bg-zinc-900 text-white"
-              >
-                Force Reload Session
-              </button>
-              <p className="mt-4 text-[11px] font-black uppercase tracking-widest text-zinc-400">Status: Connection Latency Detected</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
 
-  if (!isAuthenticated && !authLoading) {
+  if (!isAuthenticated && showAuthForm) {
     return (
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-apple-black overflow-hidden">
         {/* Pic Block */}
