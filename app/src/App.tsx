@@ -1,100 +1,158 @@
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
 import { Toaster, toast } from 'sonner';
 import { Sidebar } from '@/components/shared/Sidebar';
+import { AuthForm } from '@/components/auth/AuthForm';
 import { LoadingView } from '@/components/shared/LoadingView';
-import { ViewSkeletons } from '@/components/shared/ViewSkeletons';
-import { 
-  getApplications, 
-  getProfile, 
-  getReminders, 
-  getApplicationStats,
-  updateApplication,
-  createApplication,
-  logError
-} from '@/lib/supabase';
-import type { Application, Profile, Reminder, ApplicationStats } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 
-// Lazy load views for better performance
+// Lazy load heavy components
 const Dashboard = lazy(() => import('@/components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
+const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
+const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
 const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
 const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
-const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView').then(m => ({ default: m.UserRegistryView })));
+const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
-const AuthForm = lazy(() => import('@/components/auth/AuthForm').then(m => ({ default: m.AuthForm })));
-const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
-const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));
+import { 
+  getApplications, 
+  updateApplication, 
+  deleteApplication,
+  getApplicationStats,
+  getReminders,
+  getInterviewNotes,
+  createInterviewNote,
+  deleteInterviewNote,
+  getProfile,
+  logError
+} from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/email';
+import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } from '@/types';
+import './App.css';
 
-export default function App() {
+function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin, hasSessionHint } = useAuth();
+  
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window === 'undefined') return 'dashboard';
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
     return localStorage.getItem('activeTab') || 'dashboard';
   });
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showAppModal, setShowAppModal] = useState(false);
-  const [editingApp, setEditingApp] = useState<Application | null>(null);
-  const [viewingApp, setViewingApp] = useState<Application | null>(null);
-  const [selectedAppNotes, setSelectedAppNotes] = useState<any[]>([]);
-
-  // State for data
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [stats, setStats] = useState<ApplicationStats>({
-    total_applications: 0,
-    active_interviews: 0,
-    pending_offers: 0,
-    success_rate: 0
-  });
-
-  // Track tab changes for persistence and hash-routing
+  // History and Persistence Sync
   useEffect(() => {
-    localStorage.setItem('activeTab', activeTab);
-    window.location.hash = activeTab;
-  }, [activeTab]);
+    // Only update hash if we are authenticated to avoid leaking state to login page
+    // and to prevent wiping the hash during the initial loading "hang"
+    if (isAuthenticated) {
+      window.location.hash = activeTab;
+      localStorage.setItem('activeTab', activeTab);
+    }
+  }, [activeTab, isAuthenticated]);
 
-  // Sync hash routing with tab state
   useEffect(() => {
+    // Handle Browser Back/Forward buttons
     const handlePopState = () => {
       const hash = window.location.hash.replace('#', '');
       if (hash && hash !== activeTab) {
         setActiveTab(hash);
       }
     };
+
+    // Exit Guard / Accidental Closure Prevention - handled locally by dirty components
+    // or specifically when crucial work is in progress.
+
+    // Push initial history state to prevent immediate tab closing on first "Back" gesture
+    if (window.history.length <= 1) {
+      window.history.pushState({ initialized: true }, '');
+    }
+
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [activeTab]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [stats, setStats] = useState<ApplicationStats>({
+    total_applications: 0,
+    applied_count: 0,
+    interview_count: 0,
+    offer_count: 0,
+    rejected_count: 0,
+    pending_count: 0,
+  });
+  
+  const [showAppModal, setShowAppModal] = useState(false);
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [viewingApp, setViewingApp] = useState<Application | null>(null);
+  const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [showReloadOption, setShowReloadOption] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(true);
+
+  // Recovery timer for loading screen
+  useEffect(() => {
+    if (authLoading) {
+      const timer = setTimeout(() => setShowReloadOption(true), 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowReloadOption(false);
+    }
+  }, [authLoading]);
+
+  // Guard: non-admin users cannot access admin tab
+  useEffect(() => {
+    if (activeTab === 'admin' && !isAdmin) {
+      setActiveTab('dashboard');
+      toast.error('Access denied. Admin privileges required.');
+    }
+  }, [activeTab, isAdmin]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
+    
     try {
-      console.log('[App] Loading data for:', user.id);
-      const [appsData, profileData, remindersData, statsData] = await Promise.all([
-        getApplications(user.id),
-        getProfile(user.id),
-        getReminders(user.id),
-        getApplicationStats(user.id)
-      ]);
-
-      setApplications(appsData || []);
-      setProfile(profileData);
-      setReminders(remindersData || []);
-      setStats(statsData);
+      const userId = user.id;
+      
+      // Fetch everything, but don't let one failure block the others
+      const fetchJobs = [
+        getApplications(userId).catch(e => { console.error('Apps load fail:', e); return []; }),
+        getReminders(userId).catch(e => { console.error('Reminders load fail:', e); return []; }),
+        getApplicationStats(userId).catch(e => { 
+          console.error('Stats load fail:', e); 
+          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 }; 
+        }),
+        getProfile(userId).catch(e => { console.error('Profile load fail:', e); return null; })
+      ];
+      
+      const [apps, rems, appStats, userProfile] = await Promise.all(fetchJobs);
+      
+      setApplications(apps);
+      setReminders(rems);
+      setStats(appStats);
+      setProfile(userProfile);
+      setIsSyncing(false);
     } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');
+      
+      logError({
+        errorType: 'data_load',
+        errorMessage: error.message || 'Bulk data load failed',
+        errorStack: error.stack,
+        actionAttempted: 'loadData',
+        userId: user.id,
+        userEmail: user.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -104,6 +162,7 @@ export default function App() {
 
   // Smart Routing for Admins on mount/session load
   useEffect(() => {
+    // Only redirect if they are on dashboard and haven't explicitly set a tab in this session
     const hasInitialTab = sessionStorage.getItem('initial_tab_set');
     if (isAuthenticated && isAdmin && activeTab === 'dashboard' && !hasInitialTab) {
       setActiveTab('admin');
@@ -111,127 +170,375 @@ export default function App() {
     }
   }, [isAuthenticated, isAdmin, activeTab]);
 
+  // Handle login
   const handleLogin = useCallback(async (email: string, password: string) => {
     try {
       const u = await login(email, password);
       toast.success('Welcome back!');
-      if (u?.role === 'admin') setActiveTab('admin');
-      else setActiveTab('dashboard');
+      
+      const isAdminEmail = email === 'admin@gmail.com' || email === 'navadeepsripathi2@gmail.com';
+      
+      if (u?.role === 'admin' || isAdminEmail) {
+        setActiveTab('admin');
+      } else {
+        setActiveTab('dashboard');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
       throw error;
     }
   }, [login]);
 
+
+  // Handle register
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
     try {
-      await register(email, password, fullName);
-      toast.success('Professional account created.');
-      setActiveTab('dashboard');
+      const data = await register(email, password, fullName);
+      if (email === 'admin@gmail.com' || (data?.user?.role === 'admin')) {
+        setActiveTab('admin');
+        toast.success('Admin Console access granted.');
+      } else {
+        setActiveTab('dashboard');
+        toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
+      }
+      
+      // Auto-email stuff...
+      if (data?.user) {
+        const userId = data.user.id;
+        // Fire email instantly in the background
+        sendWelcomeEmail(userId, email, fullName).catch(err => {
+          console.error('Auto-email error:', err);
+          logError({
+            errorType: 'auth',
+            errorMessage: err.message || 'Auto-email failed',
+            errorStack: err.stack,
+            actionAttempted: 'send_welcome_email',
+            userId
+          });
+        });
+      }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
       throw error;
     }
   }, [register]);
 
-  const handleSaveApplication = async (data: Partial<Application>) => {
+  // Application CRUD
+  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
     try {
-      if (editingApp) {
-        const updated = await updateApplication(editingApp.id, data);
-        setApplications(prev => prev.map(a => a.id === updated.id ? updated : a));
-      } else {
-        const created = await createApplication({ ...data, user_id: user?.id });
-        setApplications(prev => [created, ...prev]);
-      }
+      console.log(`[🚀] UPDATING STATUS to ${newStatus} for ${id}`);
+      await updateApplication(id, { status: newStatus as any, updated_at: new Date().toISOString() });
+      setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
+      if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
+      toast.success(`Status updated to ${newStatus}`);
       loadData();
     } catch (error: any) {
-      toast.error('Failed to save application');
+      console.error('[❌] Status Update Failed:', error);
+      toast.error(error.message || 'Failed to update status');
+      
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Status change failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleStatusChange',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
-  };
+  }, [user, isAdmin, viewingApp, loadData]);
 
-  const [showAuthForm, setShowAuthForm] = useState(false);
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      const timer = setTimeout(() => setShowAuthForm(true), hasSessionHint ? 800 : 0);
-      return () => clearTimeout(timer);
-    } else {
-      setShowAuthForm(false);
+  const handleSaveApplication = useCallback(async (_appData: Partial<Application>) => {
+    // Modal now handles DB insert/update directly.
+    // This callback just refreshes the local state.
+    setShowAppModal(false);
+    setEditingApp(null);
+    await loadData();
+  }, [loadData]);
+
+  const handleDeleteApplication = useCallback(async (id: string) => {
+    try {
+      await deleteApplication(id);
+      setApplications(apps => apps.filter(a => a.id !== id));
+      setViewingApp(null);
+      toast.success('Application deleted!');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete application');
+      
+      logError({
+        errorType: 'application_delete',
+        errorMessage: error.message || 'App deletion failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleDeleteApplication',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
     }
-  }, [authLoading, isAuthenticated, hasSessionHint]);
+  }, [user, isAdmin, loadData]);
 
-  // Loading States
-  if (authLoading && !isAuthenticated && hasSessionHint) {
-    return (
-      <div className="min-h-screen bg-mc-canvas-cream flex">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout} isAdmin={isAdmin} />
-        <main className="flex-1 p-8 pt-24 md:pt-32"><ViewSkeletons /></main>
-      </div>
-    );
-  }
+  const handleViewApplication = useCallback(async (app: Application) => {
+    setViewingApp(app);
+    try {
+      const notes = await getInterviewNotes(app.id);
+      setSelectedAppNotes(notes);
+    } catch (error: any) {
+      console.error('Error loading interview notes:', error);
+    }
+  }, []);
 
-  if (authLoading && !isAuthenticated && !hasSessionHint) {
-    return (
-      <div className="fixed inset-0 bg-zinc-950 flex flex-col items-center justify-center z-[100]">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-8">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-lg bg-white animate-pulse" />
-          </div>
-          <h2 className="text-white font-bold text-xl tracking-tight">Initializing Identity</h2>
-        </motion.div>
-      </div>
-    );
-  }
+  const handleAddInterviewNote = useCallback(async (note: Partial<InterviewNote>) => {
+    if (!user || !viewingApp) return;
+    try {
+      const newNote = await createInterviewNote({
+        ...note,
+        application_id: viewingApp.id,
+        user_id: user.id,
+      });
+      setSelectedAppNotes(notes => [...notes, newNote]);
+      toast.success('Interview note added!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to add note');
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Interview note addition failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleAddInterviewNote',
+        userId: user.id,
+        userEmail: user.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
+    }
+  }, [user, isAdmin, viewingApp]);
 
-  if (!isAuthenticated && showAuthForm) {
-    return (
-      <div className="min-h-screen bg-mc-canvas-cream flex items-center justify-center p-4">
-        <Suspense fallback={<LoadingView />}><AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} /></Suspense>
-      </div>
-    );
-  }
+  const handleDeleteInterviewNote = useCallback(async (id: string) => {
+    try {
+      await deleteInterviewNote(id);
+      setSelectedAppNotes(notes => notes.filter(n => n.id !== id));
+      toast.success('Note deleted!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete note');
+      logError({
+        errorType: 'application_update',
+        errorMessage: error.message || 'Interview note deletion failed',
+        errorStack: error.stack,
+        actionAttempted: 'handleDeleteInterviewNote',
+        userId: user?.id,
+        userEmail: user?.email,
+        role: isAdmin ? 'admin' : 'student'
+      });
+    }
+  }, [user, isAdmin]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-mc-canvas-cream flex">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout} isAdmin={isAdmin} />
-        <main className="flex-1 p-8 pt-24 md:pt-32"><ViewSkeletons /></main>
-      </div>
-    );
-  }
-
+  // Render content based on active tab
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
-      case 'applications': return <ApplicationList applications={applications} onEdit={setEditingApp} onView={setViewingApp} />;
-      case 'calendar': return <CalendarView applications={applications} reminders={reminders} onRefresh={loadData} />;
-      case 'documents': return <DocumentsView userId={user?.id} />;
-      case 'settings': return <SettingsView userId={user?.id} userName={user?.user_metadata?.full_name} userEmail={user?.email} userRole={user?.role} />;
-      case 'admin': return isAdmin ? <AdminOverview /> : null;
-      case 'users': return isAdmin ? <UserRegistryView /> : null;
-      case 'security': return isAdmin ? <SecurityConsole /> : null;
-      case 'admin-settings': return isAdmin ? <AdminSettings /> : null;
-      case 'error-logs': return isAdmin ? <ErrorLogsView adminId={user?.id} /> : null;
-      default: return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
+      case 'dashboard':
+        return (
+          <Dashboard 
+            applications={applications} 
+            reminders={reminders}
+            stats={stats}
+            profile={profile}
+            onNavigate={setActiveTab}
+            loading={isSyncing}
+          />
+        );
+      case 'applications':
+        return (
+          <ApplicationList
+            applications={applications}
+            onEdit={(app) => { setEditingApp(app); setShowAppModal(true); }}
+            onDelete={handleDeleteApplication}
+            onView={handleViewApplication}
+            onAdd={() => { setEditingApp(null); setShowAppModal(true); }}
+            onStatusChange={handleStatusChange}
+            loading={isSyncing}
+          />
+        );
+      case 'calendar':
+        return (
+          <CalendarView 
+            applications={applications}
+            reminders={reminders}
+            userId={user?.id}
+            onRefresh={loadData}
+            loading={isSyncing}
+          />
+        );
+      case 'documents':
+        return <DocumentsView userId={user?.id} loading={isSyncing} />;
+      case 'settings':
+        return <SettingsView 
+            userId={user?.id} 
+            userName={user?.user_metadata?.full_name || 'User'} 
+            userEmail={user?.email || ''}
+            userRole={user?.role || 'student'}
+          />;
+      case 'admin':
+        if (!isAdmin) return null;
+        return <AdminOverview />;
+      case 'users':
+        if (!isAdmin) return null;
+        return <UserRegistryView />;
+      case 'security':
+        if (!isAdmin) return null;
+        return <SecurityConsole />;
+      case 'admin-settings':
+        if (!isAdmin) return null;
+        return <AdminSettings />;
+      case 'error-logs':
+        if (!isAdmin) return null;
+        return <ErrorLogsView adminId={user?.id} />;
+      default:
+        return <Dashboard applications={applications} reminders={reminders} stats={stats} />;
     }
   };
+
+  // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user AND no local session hint.
+  // Using hasSessionHint ensures that on refresh, the user sees the App Layout/Skeletons immediately.
+  if (authLoading && !isAuthenticated && !hasSessionHint) {
+    return (
+      <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
+        <motion.div
+          className="w-16 h-16 rounded-full border-4 border-apple-blue border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        />
+        <AnimatePresence>
+          {showReloadOption && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-12 text-center"
+            >
+              <p className="text-[17px] text-zinc-500 font-medium mb-6">Synchronization is taking longer than usual.</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="apple-pill-filled px-10 py-3 bg-zinc-900 text-white"
+              >
+                Force Reload Session
+              </button>
+              <p className="mt-4 text-[11px] font-black uppercase tracking-widest text-zinc-400">Status: Connection Latency Detected</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !authLoading) {
+    return (
+      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-apple-black overflow-hidden">
+        {/* Pic Block */}
+        <div className="hidden lg:block relative overflow-hidden bg-apple-gray dark:bg-zinc-900 border-r border-black/5 dark:border-white/5">
+          <div className="absolute inset-0 bg-gradient-to-br from-apple-blue/20 to-transparent z-10" />
+          <motion.img 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5, ease: 'easeOut' }}
+            src="/hero-auth.png"
+            className="w-full h-full object-cover"
+            alt="Career Journey"
+          />
+          <div className="absolute bottom-12 left-12 right-12 z-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 1 }}
+            >
+              <h2 className="text-[48px] font-bold text-white tracking-tight leading-tight mb-4 drop-shadow-2xl">
+                Elevate your <br /> career trajectory.
+              </h2>
+              <p className="text-[19px] text-white/80 font-medium tracking-tight max-w-[400px]">
+                The professional console for tracking, managing, and securing your next big opportunity.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+        
+        {/* Auth Block */}
+        <div className="flex items-center justify-center p-8 lg:p-12 relative">
+          <div className="w-full max-w-[440px]">
+            <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
-      <Toaster position="top-right" />
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout} userName={user?.user_metadata?.full_name} collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} isAdmin={isAdmin} />
-      <main className="flex-1 min-h-screen p-4 md:px-8 mt-16 md:mt-32 transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#141413',
+            color: '#FFFFFF',
+            borderRadius: '20px',
+            border: 'none',
+            fontSize: '14px',
+            fontFamily: 'Sofia Sans, sans-serif',
+          },
+        }}
+      />
+      
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        onLogout={() => { logout(); setActiveTab('dashboard'); }}
+        userName={user?.user_metadata?.full_name || 'My Profile'}
+        collapsed={isSidebarCollapsed}
+        setCollapsed={setIsSidebarCollapsed}
+        isAdmin={isAdmin}
+      />
+
+      {/* Main Content */}
+      <main 
+        className="flex-1 min-h-screen p-4 md:px-8 mt-16 md:mt-32 transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
+      >
         <div className="max-w-[1200px] mx-auto">
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-              <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>{renderContent()}</Suspense>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>
+                {renderContent()}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Modals */}
       <Suspense fallback={null}>
-        <ApplicationModal isOpen={showAppModal} onClose={() => setShowAppModal(false)} onSave={handleSaveApplication} application={editingApp} userId={user?.id} />
-        {viewingApp && <ApplicationDetails application={viewingApp} isOpen={!!viewingApp} onClose={() => setViewingApp(null)} />}
+        <ApplicationModal
+          isOpen={showAppModal}
+          onClose={() => { setShowAppModal(false); setEditingApp(null); }}
+          onSave={handleSaveApplication}
+          application={editingApp}
+          userId={user?.id}
+        />
+
+        <ApplicationDetails
+          application={viewingApp!}
+          interviewNotes={selectedAppNotes}
+          isOpen={!!viewingApp}
+          onClose={() => setViewingApp(null)}
+          onEdit={() => { setEditingApp(viewingApp); setViewingApp(null); setShowAppModal(true); }}
+          onDelete={() => handleDeleteApplication(viewingApp!.id)}
+          onAddNote={handleAddInterviewNote}
+          onDeleteNote={handleDeleteInterviewNote}
+          onStatusChange={handleStatusChange}
+        />
       </Suspense>
     </div>
   );
 }
+
+export default App;
