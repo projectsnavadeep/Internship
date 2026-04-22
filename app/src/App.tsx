@@ -63,14 +63,8 @@ function App() {
       }
     };
 
-    // Exit Guard / Accidental Closure Prevention
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (activeTab !== 'dashboard') {
-        e.preventDefault();
-        e.returnValue = 'Professional progress detected. Are you sure you wish to disconnect?';
-        return e.returnValue;
-      }
-    };
+    // Exit Guard / Accidental Closure Prevention - handled locally by dirty components
+    // or specifically when crucial work is in progress.
 
     // Push initial history state to prevent immediate tab closing on first "Back" gesture
     if (window.history.length <= 1) {

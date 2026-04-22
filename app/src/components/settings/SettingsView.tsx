@@ -37,6 +37,8 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     signup_date: '',
   });
 
+  const [baseline, setBaseline] = useState(profile);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -55,11 +57,12 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
 
   useEffect(() => {
     if (userId) {
+      console.log('[Settings] Loading profile for:', userId);
       getProfile(userId).then(data => {
         if (data) {
-          setProfile(prev => ({
-            ...prev,
-            fullName: data.full_name || prev.fullName,
+          const profileData = {
+            fullName: data.full_name || userName,
+            email: data.email || userEmail,
             university: data.university || '',
             major: data.major || '',
             graduation_year: data.graduation_year?.toString() || '',
@@ -69,17 +72,39 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
             merit: data.merit || '',
             additional_data: data.additional_data || '',
             signup_date: data.signup_date || data.created_at?.split('T')[0] || '',
-          }));
+          };
+          setProfile(profileData);
+          setBaseline(profileData); // Synchronize baseline after fetch
+          
           if (data.preferences) {
             setNotifications(prev => ({
               ...prev,
-              ...(data.preferences as UserPreferences),
+              ...(data.preferences as any),
             }));
           }
         }
-      }).catch((err: any) => console.error("Could not load profile", err));
+      }).catch((err: any) => {
+        console.error("Could not load profile", err);
+        toast.error('Identity sync failed. Data may be stale.');
+      });
     }
-  }, [userId]);
+  }, [userId, userName, userEmail]);
+
+  // Handle Unsaved Changes Warning (Targeted)
+  useEffect(() => {
+    const isDirty = JSON.stringify(profile) !== JSON.stringify(baseline);
+    
+    if (isDirty) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes in your profile. Discard them?';
+        return e.returnValue;
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [profile, baseline]);
 
   useEffect(() => {
     if (userEmail) {
@@ -127,6 +152,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         additional_data: profile.additional_data,
       });
       toast.success('Professional identity synchronized.');
+      setBaseline(profile); // Update baseline to current state after successful save
       setIsEditingProfile(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile.');
