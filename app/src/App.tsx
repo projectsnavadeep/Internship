@@ -72,10 +72,8 @@ function App() {
     }
 
     window.addEventListener('popstate', handlePopState);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeTab]);
   const [applications, setApplications] = useState<Application[]>([]);
