@@ -16,7 +16,14 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [hasSessionHint] = useState<boolean>(() => {
     // Synchronous check on mount
-    return !!localStorage.getItem('internship-auth-token');
+    const hint = localStorage.getItem('internship-auth-token');
+    try {
+      if (!hint) return false;
+      const parsed = JSON.parse(hint);
+      return !!(parsed.access_token && parsed.user);
+    } catch {
+      return !!hint;
+    }
   });
 
 
@@ -32,17 +39,21 @@ export function useAuth() {
 
   useEffect(() => {
     // Safety timeout: Ensure loading always eventually finishes
-    // If we have a hint that a session SHOULD exist, we wait longer before giving up
     const sessionHint = localStorage.getItem('internship-auth-token');
-    const timeoutDuration = sessionHint ? 8000 : 4000;
+    const timeoutDuration = sessionHint ? 12000 : 5000; // Increased for reliability
     
+    let isInitialized = false;
+
     const safetyTimer = setTimeout(() => {
-      console.warn('Auth initialization taking too long, forcing load completion...');
-      setLoading(false);
+      if (!isInitialized) {
+        console.warn('Auth initialization timeout, forcing load completion...');
+        setLoading(false);
+      }
     }, timeoutDuration);
 
     const initializeAuth = async () => {
       try {
+        console.log('[Auth] Initializing...');
         // Primary check: getUser (verified by server)
         let userRecord = await getCurrentUser();
         
@@ -55,18 +66,8 @@ export function useAuth() {
         }
 
         if (userRecord) {
-          let role: UserRole = 'student';
-          try {
-            role = await fetchUserRole(userRecord.id);
-          } catch (err: any) {
-            console.error('Role fetch failed:', err);
-            logError({
-              errorType: 'auth',
-              errorMessage: err.message || 'Initial role fetch failed',
-              actionAttempted: 'fetchUserRole',
-              userId: userRecord.id
-            });
-          }
+          console.log('[Auth] Found user record:', userRecord.id);
+          const role = await fetchUserRole(userRecord.id);
           
           setUser({
             id: userRecord.id,
@@ -74,12 +75,20 @@ export function useAuth() {
             user_metadata: userRecord.user_metadata,
             role,
           });
+        } else {
+          console.log('[Auth] No user record found in initial check');
         }
       } catch (err: any) {
-        console.error('Auth initialization error:', err);
+        console.error('[Auth] Initialization error:', err);
       } finally {
+        isInitialized = true;
         clearTimeout(safetyTimer);
-        setLoading(false);
+        // We don't necessarily set loading to false here yet, 
+        // as the onAuthStateChange listener might still be processing.
+        // But if we found no user and we are done, we should.
+        if (!localStorage.getItem('internship-auth-token')) {
+          setLoading(false);
+        }
       }
     };
 
@@ -87,13 +96,14 @@ export function useAuth() {
 
     // Listen for auth changes
     const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
+      console.log(`[Auth] State Change: ${event}`, session?.user?.id);
+      
       if (session?.user) {
-        // Silent Hydration: Only block if this is the first time we see any user
+        // Hydration: Only block if this is the first time we see any user
         const isInitialLoad = !user;
         
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
-          if (isInitialLoad) setLoading(true);
-          
+          // If we are signed in, we need the role
           const role = await fetchUserRole(session.user.id);
           setUser({
             id: session.user.id,
@@ -102,10 +112,9 @@ export function useAuth() {
             role,
           });
           
-          if (isInitialLoad) {
-            clearTimeout(safetyTimer);
-            setLoading(false);
-          }
+          isInitialized = true;
+          clearTimeout(safetyTimer);
+          setLoading(false);
         } else {
           // For other events (token refresh etc), update basic info silently
           setUser(curr => curr ? {
@@ -121,9 +130,17 @@ export function useAuth() {
           });
         }
       } else {
-        // No session: only drop loading if we were actually expecting one
-        setUser(null);
-        setLoading(false);
+        // No session: only drop loading if we are sure we are done initializing
+        // OR if a SIGNED_OUT event happened
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setLoading(false);
+          isInitialized = true;
+          clearTimeout(safetyTimer);
+        } else if (isInitialized || !localStorage.getItem('internship-auth-token')) {
+          setUser(null);
+          setLoading(false);
+        }
       }
     });
 

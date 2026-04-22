@@ -23,8 +23,9 @@ if (!g.__supabase) {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        flowType: 'implicit',
         storageKey: 'internship-auth-token',
+        storage: window.localStorage,
+        flowType: 'pkce', // Modern standard for SPAs
       },
     });
   }

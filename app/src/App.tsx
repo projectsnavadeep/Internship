@@ -40,7 +40,8 @@ function App() {
   
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    return hash || localStorage.getItem('activeTab') || 'dashboard';
+    if (hash) return hash;
+    return localStorage.getItem('activeTab') || 'dashboard';
   });
 
   // History and Persistence Sync
@@ -435,7 +436,7 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !authLoading) {
     return (
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-apple-black overflow-hidden">
         {/* Pic Block */}
