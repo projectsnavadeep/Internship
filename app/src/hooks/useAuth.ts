@@ -15,8 +15,22 @@ export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasSessionHint] = useState<boolean>(() => {
-    // Synchronous check on mount
-    const hint = localStorage.getItem('internship-auth-token');
+    // Synchronous check on mount (localStorage + Cookie Mirror)
+    const getHint = () => {
+      const ls = localStorage.getItem('internship-auth-token');
+      if (ls) return ls;
+      if (typeof document !== 'undefined') {
+        const name = 'internship-auth-token=';
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i].trim();
+          if (c.indexOf(name) === 0) return decodeURIComponent(c.substring(name.length, c.length));
+        }
+      }
+      return null;
+    };
+
+    const hint = getHint();
     try {
       if (!hint) return false;
       const parsed = JSON.parse(hint);
@@ -58,7 +72,7 @@ export function useAuth() {
         let userRecord = await getCurrentUser();
         
         // Secondary check: getSession (faster, from local state if available)
-        if (!userRecord && sessionHint) {
+        if (!userRecord && (sessionHint || document.cookie.includes('internship-auth-token'))) {
           const session = await getSession();
           if (session?.user) {
             userRecord = session.user;
@@ -86,7 +100,8 @@ export function useAuth() {
         // We don't necessarily set loading to false here yet, 
         // as the onAuthStateChange listener might still be processing.
         // But if we found no user and we are done, we should.
-        if (!localStorage.getItem('internship-auth-token')) {
+        const hasAnyHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
+        if (!hasAnyHint) {
           setLoading(false);
         }
       }
@@ -136,12 +151,24 @@ export function useAuth() {
           setLoading(false);
           isInitialized = true;
           clearTimeout(safetyTimer);
-        } else if (isInitialized || !localStorage.getItem('internship-auth-token')) {
+        } else if (isInitialized || (!localStorage.getItem('internship-auth-token') && !document.cookie.includes('internship-auth-token'))) {
           setUser(null);
           setLoading(false);
         }
       }
     });
+
+    // Multi-tab Sync Listener for state update
+    const syncChannel = new BroadcastChannel('supabase-auth-sync');
+    syncChannel.onmessage = (e) => {
+      if (e.data.type === 'SESSION_REMOVED') {
+        setUser(null);
+        setLoading(false);
+      } else if (e.data.type === 'SESSION_UPDATED' && !user) {
+        // Trigger a re-initialization if a session appears in another tab
+        initializeAuth();
+      }
+    };
 
     return () => subscription.unsubscribe();
   }, [fetchUserRole]);

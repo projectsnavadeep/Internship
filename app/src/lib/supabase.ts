@@ -8,6 +8,7 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 // ============================================
 // SESSION PERSISTENCE & MULTI-TAB SYNC
 // ============================================
+const g = globalThis as any;
 const AUTH_KEY = 'internship-auth-token';
 const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('supabase-auth-sync') : null;
 
