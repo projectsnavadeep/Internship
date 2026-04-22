@@ -6,26 +6,97 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
 // ============================================
-// BULLETPROOF SINGLETON - survives Vite HMR
-// Duplicate GoTrueClient instances deadlock the
-// browser's navigator.locks and freeze all
-// Supabase calls (insert, upload, select, etc).
+// SESSION PERSISTENCE & MULTI-TAB SYNC
 // ============================================
-const g = globalThis as any;
+const AUTH_KEY = 'internship-auth-token';
+const syncChannel = typeof window !== 'undefined' ? new BroadcastChannel('supabase-auth-sync') : null;
+
+// Helper to set/get cookies for "mirroring" the session
+const cookieStore = {
+  set: (key: string, value: string) => {
+    if (typeof document === 'undefined') return;
+    const expires = new Date();
+    expires.setFullYear(expires.getFullYear() + 1); // 1 year persistence
+    document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
+  },
+  get: (key: string) => {
+    if (typeof document === 'undefined') return null;
+    const name = `${key}=`;
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i].trim();
+      if (c.indexOf(name) === 0) return c.substring(name.length, c.length);
+    }
+    return null;
+  },
+  remove: (key: string) => {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  }
+};
+
+const customStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    let val = window.localStorage.getItem(key);
+    // If localStorage is empty (e.g. refresh in some incognito modes), try cookie recovery
+    if (!val) {
+      val = cookieStore.get(key);
+      if (val) {
+        console.log('[🚀] Recovered session from cookie mirror');
+        window.localStorage.setItem(key, val); // Restore to localStorage
+      }
+    }
+    return val;
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, value);
+    cookieStore.set(key, value); // Mirror to cookie
+    
+    // Notify other tabs
+    syncChannel?.postMessage({ type: 'SESSION_UPDATED', key, value });
+  },
+  removeItem: (key: string) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(key);
+    cookieStore.remove(key); // Clear mirror
+    
+    // Notify other tabs
+    syncChannel?.postMessage({ type: 'SESSION_REMOVED', key });
+  }
+};
+
+// Listen for sync events from other tabs
+if (syncChannel) {
+  syncChannel.onmessage = (event) => {
+    if (event.data.type === 'SESSION_UPDATED') {
+      console.log('[🚀] Syncing session from another tab...');
+      window.localStorage.setItem(event.data.key, event.data.value);
+      cookieStore.set(event.data.key, event.data.value);
+    } else if (event.data.type === 'SESSION_REMOVED') {
+      console.log('[🚀] Clearing session (logout detected in another tab)...');
+      window.localStorage.removeItem(event.data.key);
+      cookieStore.remove(event.data.key);
+      // We don't force a reload here, App.tsx will handle the state change
+    }
+  };
+}
 
 if (!g.__supabase) {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('CRITICAL: Supabase URL or Anon Key is missing from .env! Requests will fail.');
   } else {
-    console.log('[🚀] Initializing Supabase Singleton...');
+    console.log('[🚀] Initializing Supabase Singleton with Persistent Sync...');
     g.__supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        storageKey: 'internship-auth-token',
-        storage: window.localStorage,
-        flowType: 'pkce', // Modern standard for SPAs
+        storageKey: AUTH_KEY,
+        storage: customStorage as any,
+        flowType: 'pkce',
       },
     });
   }
