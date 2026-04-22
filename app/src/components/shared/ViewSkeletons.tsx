@@ -135,3 +135,13 @@ export function CalendarSkeleton() {
     </div>
   );
 }
+export function ViewSkeletons() {
+  return (
+    <div className="space-y-24">
+      <DashboardSkeleton />
+      <div className="border-t border-black/5 dark:border-white/5 pt-24">
+        <ApplicationListSkeleton />
+      </div>
+    </div>
+  );
+}
