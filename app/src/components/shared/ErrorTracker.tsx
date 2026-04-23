@@ -24,6 +24,16 @@ export class ErrorTracker extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
+    // Auto-reload once for dynamic import failures (often chunk hash mismatch)
+    if (error.message && error.message.includes('Failed to fetch dynamically imported module')) {
+      const isReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
+      if (!isReloaded) {
+        sessionStorage.setItem('chunk_load_error_reloaded', 'true');
+        window.location.reload();
+        return;
+      }
+    }
+
     logError({
       errorType: 'rendering',
       errorMessage: error.message || 'Rendering error',

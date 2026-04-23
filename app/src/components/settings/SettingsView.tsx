@@ -9,7 +9,8 @@ import {
   Loader2,
   Lock,
   Calendar,
-  BadgeCheck
+  BadgeCheck,
+  LogOut
 } from 'lucide-react';
 import { getProfile, uploadAvatarImage, updatePassword, updateProfile, logError } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -20,9 +21,11 @@ interface SettingsViewProps {
   userName?: string;
   userEmail?: string;
   userRole?: string;
+  profileData?: any;
+  onLogout?: () => void;
 }
 
-export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student' }: SettingsViewProps) {
+export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
     email: userEmail,
@@ -54,7 +57,27 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
   });
 
   useEffect(() => {
-    if (userId) {
+    if (profileData) {
+      setProfile(prev => ({
+        ...prev,
+        fullName: profileData.full_name || profileData.fullName || prev.fullName,
+        university: profileData.university || '',
+        major: profileData.major || '',
+        graduation_year: profileData.graduation_year?.toString() || '',
+        avatar_url: profileData.avatar_url || '',
+        joined_at: profileData.created_at || '',
+        dob: profileData.dob || '',
+        merit: profileData.merit || '',
+        additional_data: profileData.additional_data || '',
+        signup_date: profileData.signup_date || profileData.created_at?.split('T')[0] || '',
+      }));
+      if (profileData.preferences) {
+        setNotifications(prev => ({
+          ...prev,
+          ...(profileData.preferences as UserPreferences),
+        }));
+      }
+    } else if (userId) {
       getProfile(userId).then(data => {
         if (data) {
           setProfile(prev => ({
@@ -79,7 +102,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         }
       }).catch((err: any) => console.error("Could not load profile", err));
     }
-  }, [userId]);
+  }, [userId, profileData]);
 
   useEffect(() => {
     if (userEmail) {
@@ -396,6 +419,26 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                 </div>
               ))}
             </div>
+          </motion.div>
+
+          {/* Sign Out Card */}
+          <motion.div 
+            className="mc-stadium-card p-6 bg-white border border-red-500/10 flex items-center justify-between group cursor-pointer hover:bg-red-50 transition-colors"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+            onClick={onLogout}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 shadow-sm border border-red-100">
+                <LogOut size={20} />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-red-600">Sign Out</p>
+                <p className="text-[11px] text-red-400 font-medium uppercase tracking-widest">Terminate current session</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-red-300 group-hover:translate-x-1 transition-transform" />
           </motion.div>
         </div>
       </div>

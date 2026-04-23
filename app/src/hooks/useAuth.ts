@@ -46,40 +46,13 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true;
-    let isInitialized = false;
 
     const safetyTimer = setTimeout(() => {
-      if (mounted && !isInitialized) {
+      if (mounted) {
         console.warn('[Auth] Initialization safety timeout');
         setLoading(false);
       }
-    }, hasSessionHint ? 10000 : 3000);
-
-    const initialize = async () => {
-      try {
-        // Try getting session first (fastest)
-        const session = await getSession();
-        if (session?.user && mounted) {
-          await hydrateUser(session.user);
-        } else if (mounted) {
-          // Double check with getUser (verified)
-          const userRecord = await getCurrentUser();
-          if (userRecord && mounted) {
-            await hydrateUser(userRecord);
-          }
-        }
-      } catch (err) {
-        console.error('[Auth] Init error:', err);
-      } finally {
-        if (mounted) {
-          isInitialized = true;
-          setLoading(false);
-          clearTimeout(safetyTimer);
-        }
-      }
-    };
-
-    initialize();
+    }, hasSessionHint ? 8000 : 2000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log(`[Auth] Event: ${event}`, session?.user?.id);
@@ -87,25 +60,52 @@ export function useAuth() {
       if (!mounted) return;
 
       if (session?.user) {
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || !user) {
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
           await hydrateUser(session.user);
           setLoading(false);
+          clearTimeout(safetyTimer);
         } else {
           // Token refresh or other updates: update state silently
-          setUser(prev => prev ? {
-            ...prev,
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-          } : prev);
+          setUser(prev => {
+             if (!prev) {
+                hydrateUser(session.user).then(() => {
+                   if (mounted) setLoading(false);
+                });
+                return prev;
+             }
+             return {
+               ...prev,
+               id: session.user.id,
+               email: session.user.email,
+               user_metadata: session.user.user_metadata,
+             };
+          });
         }
       } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         setUser(null);
         setLoading(false);
+        clearTimeout(safetyTimer);
+      } else if (event === 'INITIAL_SESSION') {
+        // No session found on startup. Check one last time just in case of race condition.
+        try {
+           const fallbackSession = await getSession();
+           if (fallbackSession?.user && mounted) {
+              await hydrateUser(fallbackSession.user);
+           } else if (mounted) {
+              setUser(null);
+           }
+        } catch {
+           if (mounted) setUser(null);
+        } finally {
+           if (mounted) {
+              setLoading(false);
+              clearTimeout(safetyTimer);
+           }
+        }
       } else {
         // No session hint left?
         const stillHasHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
-        if (!stillHasHint) {
+        if (!stillHasHint && mounted) {
           setUser(null);
           setLoading(false);
         }
@@ -117,7 +117,7 @@ export function useAuth() {
       subscription.unsubscribe();
       clearTimeout(safetyTimer);
     };
-  }, [hydrateUser, hasSessionHint, user]);
+  }, [hydrateUser, hasSessionHint]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);

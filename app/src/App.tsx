@@ -368,9 +368,11 @@ function App() {
       case 'settings':
         return <SettingsView 
             userId={user?.id} 
-            userName={user?.user_metadata?.full_name || 'User'} 
+            userName={profile?.full_name || user?.user_metadata?.full_name || 'User'} 
             userEmail={user?.email || ''}
             userRole={user?.role || 'student'}
+            profileData={profile}
+            onLogout={() => { logout(); setActiveTab('dashboard'); }}
           />;
       case 'admin':
         if (!isAdmin) return null;
