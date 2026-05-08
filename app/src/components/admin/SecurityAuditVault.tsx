@@ -4,19 +4,15 @@ import {
   Shield, 
   Search, 
   Terminal, 
-  Cpu, 
-  Globe, 
   Lock, 
   Activity,
   ChevronRight,
   Database,
   Fingerprint,
   RefreshCw,
-  Clock,
   ExternalLink
 } from 'lucide-react';
 import { adminGetDailySessions } from '@/lib/supabase';
-import { PremiumLoader } from '@/components/shared/PremiumLoader';
 import { toast } from 'sonner';
 
 const DiffViewer = ({ previous, changes }: { previous: any, changes: any }) => {
@@ -227,7 +223,7 @@ export function SecurityAuditVault() {
                         </div>
                         
                         <div className="space-y-4">
-                          {session.activity_stream.map((log: any, lIdx: number) => (
+                          {session.activity_stream.map((log: any) => (
                             <div key={log.id} className="flex items-start justify-between group/item">
                               <div className="flex gap-4">
                                 <div className="mt-1 w-2 h-2 rounded-full bg-apple-blue shadow-[0_0_8px_rgba(0,122,255,0.5)]" />

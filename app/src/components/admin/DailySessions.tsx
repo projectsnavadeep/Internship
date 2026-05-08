@@ -6,10 +6,8 @@ import {
   ChevronUp, 
   User, 
   Shield, 
-  Clock, 
   Activity,
-  Calendar,
-  ExternalLink
+  Calendar
 } from 'lucide-react';
 import { adminGetDailySessions } from '@/lib/supabase';
 import { PremiumLoader } from '@/components/shared/PremiumLoader';
@@ -132,7 +130,7 @@ export function DailySessions() {
                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Time-stamp</span>
                         </div>
                         <div className="space-y-4 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-zinc-100 dark:before:bg-white/5">
-                          {session.activity_stream.map((log: any, lIdx: number) => (
+                          {session.activity_stream.map((log: any) => (
                             <div key={log.id} className="flex items-start justify-between relative z-10 pl-8">
                               <div className="absolute left-0 top-1.5 w-[24px] h-[24px] rounded-full bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-white/10 flex items-center justify-center">
                                 <div className="w-2 h-2 rounded-full bg-apple-blue" />
