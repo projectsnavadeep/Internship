@@ -19,38 +19,7 @@ import {
 import type { AdminStats, AdminRecentApplication } from '@/types';
 import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
 
-// Premium Glitch Component for text
-const GlitchText = ({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) => (
-  <div className={`relative inline-block ${className || ''}`}>
-    <span className="relative z-10">{text}</span>
-    <motion.span 
-      className="absolute top-0 left-0 text-cyan-400 z-0 select-none opacity-0"
-      initial={{ opacity: 0 }}
-      animate={{
-        x: [-2, 2, -3, 0],
-        y: [1, -1, 2, 0],
-        opacity: [0, 0.8, 0.4, 0],
-        clipPath: ["inset(20% 0 60% 0)", "inset(50% 0 10% 0)", "inset(10% 0 80% 0)", "inset(0 0 0 0)"]
-      }}
-      transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 4 + Math.random() * 5, delay }}
-    >
-      {text}
-    </motion.span>
-    <motion.span 
-      className="absolute top-0 left-0 text-rose-500 z-0 select-none opacity-0"
-      initial={{ opacity: 0 }}
-      animate={{
-        x: [2, -2, 3, 0],
-        y: [-1, 1, -2, 0],
-        opacity: [0, 0.8, 0.4, 0],
-        clipPath: ["inset(60% 0 20% 0)", "inset(10% 0 50% 0)", "inset(80% 0 10% 0)", "inset(0 0 0 0)"]
-      }}
-      transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 4 + Math.random() * 5, delay: delay + 0.1 }}
-    >
-      {text}
-    </motion.span>
-  </div>
-);
+
 
 // High-end HUD loading sequence
 const AdminHUDIntro = ({ onComplete }: { onComplete: () => void }) => {
