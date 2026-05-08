@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Users, 
   Briefcase, 
@@ -17,7 +17,7 @@ import {
   adminGetRecentApplications 
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
-import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 
 
 
