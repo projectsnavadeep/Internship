@@ -1059,3 +1059,51 @@ export const adminGetErrorStats = async () => {
     }, {}),
   };
 };
+// ============================================
+// Activity & Session Tracking
+// ============================================
+export const logActivity = async (actionType: string, description: string, metadata: any = {}) => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    await supabase
+      .from('activity_logs')
+      .insert({
+        user_id: user.id,
+        action_type: actionType,
+        description,
+        metadata: {
+          ...metadata,
+          session_id: window.sessionStorage.getItem('current_session_id') || 'UNKNOWN'
+        }
+      });
+  } catch (err) {
+    console.error('Failed to log activity:', err);
+  }
+};
+
+export const adminGetDailySessions = async () => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('daily_sessions')
+    .select('*')
+    .order('session_date', { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+export const adminGetSessionDetails = async (userId: string, date: string) => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('activity_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('created_at', `${date}T00:00:00Z`)
+    .lte('created_at', `${date}T23:59:59Z`)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+};

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
+import { DailySessions } from './DailySessions';
 
 export function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
@@ -61,7 +62,7 @@ export function AdminSettings() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Admin Delegation */}
         <motion.div 
-          className="mc-stadium-card p-10 bg-white border border-black/5 flex flex-col"
+          className="mc-stadium-card p-10 bg-white dark:bg-apple-near-black border border-black/5 dark:border-white/5 flex flex-col"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -70,14 +71,14 @@ export function AdminSettings() {
                 <UserPlus size={28} />
              </div>
              <div>
-                <h3 className="text-[24px] font-bold text-mc-ink-black leading-tight">Admin Delegation</h3>
-                <p className="text-[14px] text-mc-ink-black/40 font-medium">Promote a peer to coordinator.</p>
+                <h3 className="text-[24px] font-bold dark:text-white leading-tight">Admin Delegation</h3>
+                <p className="text-[14px] text-zinc-400 font-medium">Promote a peer to coordinator.</p>
              </div>
           </div>
 
           <div className="space-y-6 flex-1">
              <div className="relative group">
-                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-mc-ink-black/20 group-focus-within:text-apple-blue transition-colors">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-apple-blue transition-colors">
                   <Mail size={20} />
                 </div>
                 <input 
@@ -85,7 +86,7 @@ export function AdminSettings() {
                   placeholder="Peer email address..."
                   value={promoEmail}
                   onChange={e => setPromoEmail(e.target.value)}
-                  className="w-full pl-14 pr-6 py-5 rounded-[24px] bg-black/5 border-none focus:ring-4 focus:ring-apple-blue/5 font-medium text-[16px] transition-all placeholder:text-mc-ink-black/20"
+                  className="w-full pl-14 pr-6 py-5 rounded-[24px] bg-black/5 dark:bg-white/5 border-none focus:ring-4 focus:ring-apple-blue/5 font-medium text-[16px] transition-all placeholder:text-zinc-400 dark:text-white"
                 />
              </div>
              
@@ -111,7 +112,7 @@ export function AdminSettings() {
 
         {/* System Diagnostics */}
         <motion.div 
-          className="mc-stadium-card p-10 bg-white border border-black/5 flex flex-col"
+          className="mc-stadium-card p-10 bg-white dark:bg-apple-near-black border border-black/5 dark:border-white/5 flex flex-col"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -121,8 +122,8 @@ export function AdminSettings() {
                 <Activity size={28} />
              </div>
              <div>
-                <h3 className="text-[24px] font-bold text-mc-ink-black leading-tight">System Status</h3>
-                <p className="text-[14px] text-mc-ink-black/40 font-medium">Real-time platform diagnostics.</p>
+                <h3 className="text-[24px] font-bold dark:text-white leading-tight">System Status</h3>
+                <p className="text-[14px] text-zinc-400 font-medium">Real-time platform diagnostics.</p>
              </div>
           </div>
 
@@ -134,8 +135,8 @@ export function AdminSettings() {
                { icon: <Lock size={18} />, label: 'RLS Policies', status: 'Hardened', color: 'text-apple-blue' },
                { icon: <ShieldCheck size={18} />, label: 'API Security', status: 'Active', color: 'text-apple-blue' },
              ].map((svc, i) => (
-               <div key={i} className="flex items-center justify-between p-5 rounded-[22px] bg-zinc-50 border border-zinc-100 hover:scale-[1.02] transition-transform cursor-default">
-                  <div className="flex items-center gap-4 text-mc-ink-black/80 font-bold text-[14px]">
+               <div key={i} className="flex items-center justify-between p-5 rounded-[22px] bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 hover:scale-[1.02] transition-transform cursor-default">
+                  <div className="flex items-center gap-4 text-zinc-600 dark:text-white/80 font-bold text-[14px]">
                     <span className={svc.color}>{svc.icon}</span>
                     {svc.label}
                   </div>
@@ -147,11 +148,25 @@ export function AdminSettings() {
              ))}
           </div>
 
-          <div className="mt-auto pt-8 flex items-center justify-center gap-2 text-mc-ink-black/30 text-[12px] font-medium uppercase tracking-widest">
+          <div className="mt-auto pt-8 flex items-center justify-center gap-2 text-zinc-400 text-[12px] font-medium uppercase tracking-widest">
             Audit logs synced 2m ago
           </div>
         </motion.div>
       </div>
+
+      {/* Operational Streams Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tighter dark:text-white">Operational Monitoring.</h2>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full">Live Sessions</span>
+        </div>
+        <DailySessions />
+      </motion.div>
+    </div>
     </div>
   );
 }
