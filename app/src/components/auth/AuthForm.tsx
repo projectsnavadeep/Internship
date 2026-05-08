@@ -152,7 +152,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
               <button
                 type="submit"
                 disabled={combinedLoading}
-                className="w-full py-4 rounded-2xl bg-[#0071E3] text-white font-black shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-[16px] tracking-tight"
+                className="w-full py-4 rounded-2xl bg-[#0071E3] text-white font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-[16px] tracking-tight"
               >
                 {combinedLoading ? (
                   <InlineLoader size={22} color="bg-white" />
@@ -174,7 +174,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
           </span>
           <button
             onClick={toggleMode}
-            className="group flex items-center gap-2 text-[18px] font-black text-zinc-900 dark:text-white hover:text-[#0071E3] dark:hover:text-[#0071E3] transition-colors"
+            className="group flex items-center gap-2 text-[18px] font-semibold text-zinc-900 dark:text-white hover:text-[#0071E3] dark:hover:text-[#0071E3] transition-colors"
           >
             {isLogin ? 'Create an account' : 'Sign in to your account'}
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
