@@ -9,22 +9,28 @@ interface SkeletonProps {
 
 export function Skeleton({ className, variant = 'rect', style }: SkeletonProps) {
   return (
-    <motion.div
+    <div
       style={style}
-      initial={{ opacity: 0.3 }}
-      animate={{ opacity: [0.3, 0.6, 0.3] }}
-      transition={{ 
-        duration: 2, 
-        repeat: Infinity, 
-        ease: "easeInOut" 
-      }}
       className={cn(
-        "bg-zinc-200 dark:bg-zinc-800",
+        "relative overflow-hidden bg-zinc-200 dark:bg-zinc-800",
         variant === 'circle' ? "rounded-full" : 
         variant === 'text' ? "rounded-md h-3 w-full" : "rounded-2xl",
         className
       )}
-    />
+    >
+      {/* Shimmer Overlay */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent -translate-x-full"
+        animate={{
+          x: ['-100%', '100%'],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+    </div>
   );
 }
 
