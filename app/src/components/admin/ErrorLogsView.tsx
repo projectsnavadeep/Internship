@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle2, Trash2, Loader2, RefreshCw,
+  CheckCircle2, Trash2, RefreshCw,
   Clock, User, Bug, FileWarning, Shield, ChevronUp, ChevronDown, MessageSquare
 } from 'lucide-react';
 import { adminGetErrorLogs, adminResolveError, adminDeleteErrorLog } from '@/lib/supabase';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 import { toast } from 'sonner';
 
 interface ErrorLog {
@@ -100,8 +101,7 @@ export function ErrorLogsView({ adminId }: { adminId?: string }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
-        <Loader2 size={40} className="animate-spin text-red-500" />
-        <p className="text-apple-near-black/40 dark:text-white/40">Loading error logs...</p>
+        <PremiumLoader message="Loading error logs..." size="sm" />
       </div>
     );
   }

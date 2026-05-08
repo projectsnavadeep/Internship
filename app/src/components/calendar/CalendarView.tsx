@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Loader2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Briefcase, Plus, X, Trash2 } from 'lucide-react';
+import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { toast } from 'sonner';
 import { createReminder, updateReminder, deleteReminder, logError } from '@/lib/supabase';
 import { CalendarSkeleton } from '../shared/ViewSkeletons';
@@ -205,10 +206,10 @@ export function CalendarView({ applications, reminders, userId, onRefresh, loadi
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         className="text-left"
       >
-        <h1 className="text-[48px] md:text-[64px] font-medium tracking-tight leading-none text-zinc-900 mb-4">
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
           Calendar.
         </h1>
-        <p className="text-[20px] text-zinc-500 tracking-tight">
+        <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
           Synchronize your professional timeline.
         </p>
       </motion.div>
@@ -501,7 +502,7 @@ export function CalendarView({ applications, reminders, userId, onRefresh, loadi
                               exit={{ opacity: 0, y: -10 }}
                               className="flex items-center gap-2 text-white text-[15px]"
                             >
-                              <Loader2 size={16} className="animate-spin" />
+                              <InlineLoader size={16} />
                               Scheduling...
                             </motion.div>
                           ) : (

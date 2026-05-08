@@ -5,7 +5,7 @@ import {
   Briefcase, 
   Activity, 
   TrendingUp, 
-  Loader2,
+
   Shield,
   Zap,
   Terminal,
@@ -17,6 +17,7 @@ import {
   adminGetRecentApplications 
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
+import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
 
 // Premium Glitch Component for text
 const GlitchText = ({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) => (
@@ -83,13 +84,7 @@ const AdminHUDIntro = ({ onComplete }: { onComplete: () => void }) => {
           transition={{ delay: 0.8 }}
         >
           <div className="flex items-center gap-3">
-             <motion.div 
-                animate={{ rotate: 360 }} 
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="text-apple-blue"
-              >
-               <Loader2 size={24} />
-             </motion.div>
+               <InlineLoader size={24} />
              <span className="text-xl font-bold tracking-tighter dark:text-white">Authorizing Master Instance...</span>
           </div>
           <div className="grid grid-cols-4 gap-2 w-full mt-4">
@@ -213,8 +208,7 @@ export function AdminOverview() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
-        <Loader2 size={40} className="animate-spin text-apple-blue" />
-        <p className="text-apple-near-black/40 dark:text-white/40 font-medium tracking-widest uppercase text-xs">Syncing Core Datastream...</p>
+        <PremiumLoader message="Syncing Core Datastream..." size="md" />
       </div>
     );
   }

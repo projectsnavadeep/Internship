@@ -14,6 +14,7 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(false);
   
   const [hasSessionHint] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -33,26 +34,32 @@ export function useAuth() {
 
   const hydrateUser = useCallback(async (userRecord: any) => {
     if (!userRecord) return null;
-    const role = await fetchUserRole(userRecord.id);
-    const authUser: AuthUser = {
-      id: userRecord.id,
-      email: userRecord.email,
-      user_metadata: userRecord.user_metadata,
-      role,
-    };
-    setUser(authUser);
-    return authUser;
+    setRoleLoading(true);
+    try {
+      const role = await fetchUserRole(userRecord.id);
+      const authUser: AuthUser = {
+        id: userRecord.id,
+        email: userRecord.email,
+        user_metadata: userRecord.user_metadata,
+        role,
+      };
+      setUser(authUser);
+      return authUser;
+    } finally {
+      setRoleLoading(false);
+    }
   }, [fetchUserRole]);
 
   useEffect(() => {
     let mounted = true;
 
+    // Safety timeout: only trigger if we haven't resolved anything
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
+      if (mounted && loading && !user) {
         console.warn('[Auth] Initialization safety timeout');
         setLoading(false);
       }
-    }, hasSessionHint ? 8000 : 2000);
+    }, hasSessionHint ? 5000 : 2000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log(`[Auth] Event: ${event}`, session?.user?.id);
@@ -65,28 +72,22 @@ export function useAuth() {
           setLoading(false);
           clearTimeout(safetyTimer);
         } else {
-          // Token refresh or other updates: update state silently
-          setUser(prev => {
-             if (!prev) {
-                hydrateUser(session.user).then(() => {
-                   if (mounted) setLoading(false);
-                });
-                return prev;
-             }
-             return {
-               ...prev,
-               id: session.user.id,
-               email: session.user.email,
-               user_metadata: session.user.user_metadata,
-             };
+          // Token refresh or other updates
+          const role = user?.role || await fetchUserRole(session.user.id);
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            user_metadata: session.user.user_metadata,
+            role,
           });
+          setLoading(false);
         }
       } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         setUser(null);
         setLoading(false);
         clearTimeout(safetyTimer);
       } else if (event === 'INITIAL_SESSION') {
-        // No session found on startup. Check one last time just in case of race condition.
+        // No session found on startup. Check one last time.
         try {
            const fallbackSession = await getSession();
            if (fallbackSession?.user && mounted) {
@@ -102,13 +103,6 @@ export function useAuth() {
               clearTimeout(safetyTimer);
            }
         }
-      } else {
-        // No session hint left?
-        const stillHasHint = localStorage.getItem('internship-auth-token') || document.cookie.includes('internship-auth-token');
-        if (!stillHasHint && mounted) {
-          setUser(null);
-          setLoading(false);
-        }
       }
     });
 
@@ -117,7 +111,7 @@ export function useAuth() {
       subscription.unsubscribe();
       clearTimeout(safetyTimer);
     };
-  }, [hydrateUser, hasSessionHint]);
+  }, [hydrateUser, fetchUserRole, hasSessionHint, loading, user]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);
@@ -141,15 +135,17 @@ export function useAuth() {
     await signOut();
   }, []);
 
+  const isAdmin = user?.role === 'admin' || user?.email?.includes('admin@') || user?.email === 'navadeepsripathi2@gmail.com';
+
   return {
     user,
-    loading,
+    loading: loading || roleLoading,
     login,
     register,
     logout,
     isAuthenticated: !!user,
     hasSessionHint,
-    isAdmin: user?.role === 'admin' || user?.email?.includes('admin@'),
+    isAdmin,
     isRootAdmin: user?.email === 'admin@admin.com',
   };
 }

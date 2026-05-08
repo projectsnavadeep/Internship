@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { InlineLoader } from '@/components/shared/PremiumLoader';
+import { Logo } from '@/components/shared/Logo';
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -14,11 +16,31 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
+  const combinedLoading = loading || formLoading;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#signup') setIsLogin(false);
+      if (hash === '#login') setIsLogin(true);
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const toggleMode = () => {
+    const newIsLogin = !isLogin;
+    setIsLogin(newIsLogin);
+    window.location.hash = newIsLogin ? 'login' : 'signup';
+    setError('');
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-
+    setFormLoading(true);
     try {
       if (isLogin) {
         await onLogin(email, password);
@@ -31,123 +53,102 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
+    } finally {
+      setFormLoading(false);
     }
   };
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError('');
-  };
-
   return (
-    <div className="w-full max-w-[400px] mx-auto p-4">
+    <div className="w-full max-w-[400px] mx-auto p-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
       >
-        {/* Logo & Header */}
-        <div className="text-center mb-10">
-          <motion.div 
-            className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-apple-blue shadow-lg shadow-apple-blue/40 mb-6 text-white"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-          >
-            <Briefcase size={24} />
-          </motion.div>
-          <h1 className="text-[32px] font-bold tracking-apple-tight text-apple-near-black dark:text-white mb-2">
-            {isLogin ? 'Sign In.' : 'Create an Account.'}
-          </h1>
-          <p className="text-[17px] text-apple-near-black/70 dark:text-white/70 tracking-apple-tight">
-            {isLogin ? 'Welcome back to your professional console.' : 'Start tracking your career journey today.'}
-          </p>
-        </div>
+          {/* Logo Header */}
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-10">
+              <Logo size="lg" />
+            </div>
+            <h1 className="text-[34px] font-semibold tracking-tight text-zinc-900 dark:text-white mb-2">
+              {isLogin ? 'Welcome back' : 'Get started'}
+            </h1>
+            <p className="text-[16px] text-zinc-500 dark:text-zinc-400 font-medium tracking-tight">
+              {isLogin ? 'Sign in to your account to continue.' : 'Create an account to track your journey.'}
+            </p>
+          </div>
 
         {/* Form Card */}
-        <div className="apple-card p-1 bg-white dark:bg-apple-near-black ring-1 ring-black/5 dark:ring-white/5 shadow-apple overflow-hidden">
+        <div className="bg-white dark:bg-zinc-950 border border-black/5 dark:border-white/10 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5">
           <AnimatePresence mode="wait">
             <motion.form
               key={isLogin ? 'login' : 'register'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
               onSubmit={handleSubmit}
               className="p-8 space-y-6"
             >
-              {/* Full Name */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
+                  <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">
                     Full Name
                   </label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 text-apple-near-black dark:text-white border-none focus:ring-2 focus:ring-apple-blue/20 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-apple-blue/30 transition-all placeholder:text-zinc-400"
                     placeholder="John Appleseed"
                   />
                 </div>
               )}
 
-              {/* Email */}
               <div className="space-y-2">
-                <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
+                <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">
                   Email
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 text-apple-near-black dark:text-white border-none focus:ring-2 focus:ring-apple-blue/20 transition-all"
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-apple-blue/30 transition-all placeholder:text-zinc-400"
                   placeholder="name@example.com"
                   required
                 />
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
-                <label className="text-[13px] font-bold text-apple-near-black/60 dark:text-white/60 uppercase tracking-widest ml-1">
+                <label className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">
                   Password
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-apple-gray dark:bg-zinc-900 text-apple-near-black dark:text-white border-none focus:ring-2 focus:ring-apple-blue/20 transition-all"
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-apple-blue/30 transition-all placeholder:text-zinc-400"
                   placeholder="••••••••"
                   required
                   minLength={6}
                 />
               </div>
 
-              {/* Error Message */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-3 rounded-lg bg-red-500/10 text-red-500 text-xs font-semibold text-center"
-                  >
-                    {error}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {error && (
+                <p className="text-red-500 text-sm font-medium text-center">{error}</p>
+              )}
 
-              {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
-                className="apple-pill-filled w-full flex items-center justify-center gap-2 group"
+                disabled={combinedLoading}
+                className="w-full py-4 rounded-xl bg-apple-blue text-white font-bold shadow-lg shadow-apple-blue/20 hover:shadow-xl hover:shadow-apple-blue/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                {combinedLoading ? (
+                  <InlineLoader size={20} color="bg-white" />
                 ) : (
                   <>
-                    <span>{isLogin ? 'Sign In' : 'Register'}</span>
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <ArrowRight size={18} />
                   </>
                 )}
               </button>
@@ -155,14 +156,14 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
           </AnimatePresence>
         </div>
 
-        {/* Toggle Mode */}
-        <div className="mt-8 text-center flex flex-col items-center gap-2">
-          <span className="text-[15px] text-apple-near-black/70 dark:text-white/70">
-            {isLogin ? "Don't have an account yet?" : "Already have an account?"}
+        {/* Footer Toggle */}
+        <div className="mt-10 text-center flex flex-col items-center gap-3">
+          <span className="text-[16px] text-apple-near-black/50 dark:text-white/40 font-medium">
+            {isLogin ? "Don't have an account yet?" : 'Already have an account?'}
           </span>
           <button
             onClick={toggleMode}
-            className="text-[16px] font-bold text-apple-blue hover:text-apple-blue/80 transition-colors px-4 py-2 rounded-full hover:bg-apple-blue/5"
+            className="text-[20px] font-black text-apple-blue hover:opacity-80 transition-opacity"
           >
             {isLogin ? 'Sign up for free' : 'Sign in instead'}
           </button>

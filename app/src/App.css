@@ -96,19 +96,26 @@ button,
   user-select: none;
 }
 
-/* Loading spinner */
-.loading-spinner {
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #3B82F6;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 1s linear infinite;
+/* Premium Loading Animations */
+@keyframes orbitalPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.98);
   }
 }
 
@@ -117,9 +124,8 @@ button,
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
+@keyframes pulse-simple {
+  0%, 100% {
     opacity: 1;
   }
   50% {

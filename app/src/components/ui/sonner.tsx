@@ -1,7 +1,6 @@
 import {
   CircleCheckIcon,
   InfoIcon,
-  Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
@@ -20,7 +19,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
         info: <InfoIcon className="size-4" />,
         warning: <TriangleAlertIcon className="size-4" />,
         error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        loading: (
+          <span className="flex items-center gap-[3px]">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="block w-1 h-1 rounded-full bg-current"
+                style={{
+                  animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }}
+              />
+            ))}
+          </span>
+        ),
       }}
       style={
         {

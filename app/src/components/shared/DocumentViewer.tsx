@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Download, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { X, ExternalLink, Download, FileText, AlertCircle } from 'lucide-react';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 import { useState, useEffect } from 'react';
 
 interface DocumentViewerProps {
@@ -96,7 +97,7 @@ export function DocumentViewer({ url, name, isOpen, onClose }: DocumentViewerPro
           <div className="flex-1 bg-apple-gray dark:bg-zinc-950/50 relative overflow-hidden">
             {loading && !error && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm z-10 transition-opacity">
-                <Loader2 size={32} className="text-apple-blue animate-spin" />
+                <PremiumLoader message="Loading document..." size="sm" />
               </div>
             )}
 

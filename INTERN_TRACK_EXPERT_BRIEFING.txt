@@ -1,0 +1,101 @@
+================================================================================
+                    INTERNTRACK: PROJECT BRIEF
+            FOR: Presentation to Stakeholders & Development Team
+            FROM: AI Expert / HR Management Oversight
+            DATE: May 6, 2026
+================================================================================
+
+EXECUTIVE SUMMARY
+-----------------
+InternTrack is a high-performance, enterprise-grade internship application 
+tracking platform. It bridges the gap between student workflow management and 
+administrative oversight. Built with a "Security-First" and "Aesthetics-Driven" 
+philosophy, it utilizes a modern serverless architecture to deliver a seamless, 
+Apple-inspired user experience.
+
+1. THE "A TO Z" TECH STACK
+--------------------------
+Our stack was selected for maximum developer velocity, type safety, and 
+UI fluidity.
+
+[FRONTEND]
+- CORE: React 19 (Latest stable, utilizing concurrent rendering features).
+- BUILD TOOL: Vite 7 (Ultra-fast HMR and optimized production bundling).
+- LANGUAGE: TypeScript 5.9 (Strict typing for zero runtime interface errors).
+- STYLING: Tailwind CSS 3.4 (Utility-first system for responsive design).
+- UI ENGINE: Shadcn/UI + Radix UI (Accessible, unstyled primitives).
+- ANIMATIONS: Framer Motion 12 (Used for glassmorphism transitions and reveals).
+- CHARTS: Recharts (Data visualization for application funnels and stats).
+- ICONS: Lucide React (Clean, consistent vector iconography).
+
+[BACKEND & INFRASTRUCTURE]
+- BACKEND-AS-A-SERVICE: Supabase.
+- DATABASE: PostgreSQL (Relational integrity for complex application linking).
+- AUTHENTICATION: Supabase Auth (JWT-based session management).
+- STORAGE: Supabase Storage (S3-compatible buckets for resumes/portfolios).
+- EMAIL RELAY: EmailJS (Decoupled email delivery for onboarding/reminders).
+- HOSTING: Render (Static site hosting with custom rewrite rules for SPA).
+
+2. CORE SYSTEM LOGIC & ARCHITECTURE
+-----------------------------------
+This project moves beyond a simple "CRUD" app by implementing professional 
+enterprise logic:
+
+- ROLE-BASED ACCESS CONTROL (RBAC): 
+  The system identifies users as 'Student' or 'Admin'. Admins gain access to the 
+  "Command Center" (Global Analytics, User Registry, and Security Console).
+  
+- ROW-LEVEL SECURITY (RLS): 
+  Security is enforced at the DATABASE level. A user cannot physically query 
+  another user's applications even if they have their ID, thanks to Postgres 
+  policies checking the `auth.uid()`.
+
+- AUTOMATED ONBOARDING FLOW:
+  Logic: [Sign Up] -> [Postgres Trigger] -> [Create Profile] -> [EmailJS Relay] 
+  -> [Welcome Email Sent]. This ensures zero "orphan" accounts.
+
+- SINGLETON CLIENT PATTERN: 
+  The Supabase client is initialized as a global singleton to prevent 
+  authentication state drops during hot-reloads or complex navigation.
+
+- LEVEL-BASED PURGE: 
+  A unique HR feature. Level 1 Deletion removes user access while keeping 
+  records for audit. Level 2 Deletion performs a full GDPR-compliant data wipe.
+
+3. DATABASE SCHEMA (ENTITIES)
+-----------------------------
+- PROFILES: Identity, major, university, merit, login stats.
+- APPLICATIONS: Company, title, status (Applied, Interviewing, Offer, etc.).
+- INTERVIEW_NOTES: Multi-round tracking (Round 1, 2, Final).
+- REMINDERS: Deadlines and calendar events.
+- DOCUMENTS: Encrypted links to resumes and transcripts.
+
+4. PRESENTATION COMMANDS & CLI REFERENCE
+----------------------------------------
+To demonstrate the project or prepare for hand-off, use these commands:
+
+# 1. Start Development Environment
+npm run dev
+
+# 2. Production Build (Generates /dist folder)
+npm run build
+
+# 3. Local Preview of Production Build
+npm run preview
+
+# 4. Code Quality Check
+npm run lint
+
+5. HR & TEAM READINESS CHECKLIST
+-------------------------------
+[ ] ENVIRONMENT: Ensure VITE_SUPABASE_URL and ANON_KEY are in .env.
+[ ] SECURITY: Verify RLS is "Enabled" on all tables in Supabase Console.
+[ ] ASSETS: Check that 'avatars' and 'documents' storage buckets are 'Public'.
+[ ] PRESENTATION TIP: Highlight the "Security Console" during the demo to show 
+    stakeholders the compliance score and RLS status.
+
+--------------------------------------------------------------------------------
+"The goal of InternTrack isn't just to track jobs—it's to professionalize 
+the internship journey through state-of-the-art tooling."
+--------------------------------------------------------------------------------
+EOF

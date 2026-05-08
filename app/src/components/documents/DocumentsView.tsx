@@ -9,13 +9,14 @@ import {
   FileSpreadsheet,
   Image,
   Star,
-  Loader2,
+
   AlertCircle,
   ChevronDown
 } from 'lucide-react';
 import { getDocuments, uploadDocumentFile, createDocument, deleteDocument, updateDocument } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import { InlineLoader, PremiumLoader } from '@/components/shared/PremiumLoader';
 import { DocumentsSkeleton } from '../shared/ViewSkeletons';
 
 interface DocumentInterface {
@@ -209,7 +210,9 @@ export function DocumentsView({ userId, loading }: DocumentsViewProps) {
           animate={{ opacity: 1, y: 0 }}
           className="text-left"
         >
-          <h1 className="display-hero text-apple-near-black dark:text-white mb-2">Documents.</h1>
+          <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+            Documents.
+          </h1>
         </motion.div>
         <motion.div
           className="apple-card p-12 bg-white dark:bg-apple-near-black text-center"
@@ -237,8 +240,10 @@ export function DocumentsView({ userId, loading }: DocumentsViewProps) {
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         className="text-left"
       >
-        <h1 className="display-hero text-apple-near-black dark:text-white mb-2">Documents.</h1>
-        <p className="text-[21px] text-apple-near-black/60 dark:text-white/60 tracking-apple-tight">
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          Documents.
+        </h1>
+        <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
           Centralize your credentials and portfolio.
         </p>
       </motion.div>
@@ -321,7 +326,7 @@ export function DocumentsView({ userId, loading }: DocumentsViewProps) {
             disabled={isUploading}
             className="apple-pill-filled px-10 flex items-center gap-2 disabled:opacity-50"
           >
-            {isUploading && <Loader2 size={16} className="animate-spin" />}
+            {isUploading && <InlineLoader size={16} />}
             {isUploading ? 'Uploading...' : 'Upload from Desktop'}
           </button>
         </div>
@@ -329,7 +334,7 @@ export function DocumentsView({ userId, loading }: DocumentsViewProps) {
 
       {isLoading && (
         <div className="flex justify-center py-20 text-apple-blue">
-          <Loader2 size={32} className="animate-spin" />
+          <PremiumLoader message="Loading documents..." size="sm" />
         </div>
       )}
 

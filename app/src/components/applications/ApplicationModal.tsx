@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
+import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { logError, createApplication, updateApplication } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { Application, ApplicationStatus, EmploymentType } from '@/types';
@@ -286,7 +287,7 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
                 </button>
                 <button type="submit" disabled={isSaving}
                   className="mc-pill-ink flex items-center gap-2">
-                  {isSaving && <Loader2 size={16} className="animate-spin" />}
+                  {isSaving && <InlineLoader size={16} />}
                   {isSaving ? 'Processing' : application ? 'Confirm' : 'Add Application'}
                 </button>
               </div>

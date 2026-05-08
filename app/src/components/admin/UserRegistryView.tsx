@@ -4,7 +4,7 @@ import {
   Users, 
   Search, 
   UserPlus, 
-  Loader2,
+
   ShieldCheck,
   Briefcase,
   Building2,
@@ -15,7 +15,9 @@ import {
   Lock as LockIcon,
   Mail,
   Clock,
-  X
+  X,
+  Send,
+  PenTool
 } from 'lucide-react';
 import { 
   adminGetAllUsers, 
@@ -23,9 +25,10 @@ import {
   adminGetUserReminders,
   signUp
 } from '@/lib/supabase';
-import { sendWelcomeEmail } from '@/lib/email';
+import { sendWelcomeEmail, sendCustomEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 
 export default function UserRegistryView() {
   const [users, setUsers] = useState<UserActivity[]>([]);
@@ -41,6 +44,13 @@ export default function UserRegistryView() {
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '' });
   const [creatingUser, setCreatingUser] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [sendingBulkEmail, setSendingBulkEmail] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastContent, setBroadcastContent] = useState({ 
+    subject: 'Test InternTrack Broadcast', 
+    message: 'This is a demo broadcasting email.\nIf you receive this email, please ignore.\n\nNote: The email broadcasting system is now LIVE.\nVisit the platform: https://internship-0sf2.onrender.com/' 
+  });
+  const [broadcastProgress, setBroadcastProgress] = useState<number | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -113,8 +123,7 @@ export default function UserRegistryView() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
-        <Loader2 size={40} className="animate-spin text-purple-500" />
-        <p className="text-apple-near-black/40 dark:text-white/40">Opening registry...</p>
+        <PremiumLoader message="Opening registry..." size="md" />
       </div>
     );
   }
@@ -132,18 +141,28 @@ export default function UserRegistryView() {
             Deep-dive into student profiles and system participants.
           </p>
         </div>
-        <button 
-          onClick={() => setShowAddUserModal(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-apple-blue text-white font-bold text-[15px] shadow-lg shadow-apple-blue/20 hover:scale-105 transition-all"
-        >
-          <UserPlus size={18} />
-          <span>Add Peer</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setShowBroadcastModal(true)}
+            disabled={sendingBulkEmail || users.length === 0}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all disabled:opacity-50"
+          >
+            <PenTool size={18} className="text-apple-blue" />
+            <span>Compose Broadcast</span>
+          </button>
+          <button 
+            onClick={() => setShowAddUserModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-apple-blue text-white font-bold text-[15px] shadow-lg shadow-apple-blue/20 hover:scale-105 transition-all"
+          >
+            <UserPlus size={18} />
+            <span>Add Peer</span>
+          </button>
+        </div>
       </motion.div>
 
       {/* Registry Table Shell */}
       <motion.div 
-        className="apple-card bg-white dark:bg-apple-near-black overflow-hidden border border-black/5 dark:border-white/5"
+        className="rounded-2xl shadow-sm border border-black/5"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
       >
@@ -249,29 +268,25 @@ export default function UserRegistryView() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-5xl bg-apple-gray dark:bg-zinc-900 rounded-[40px] shadow-2xl overflow-hidden border border-black/10 flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-5xl bg-apple-gray dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border border-black/10 flex flex-col max-h-[90vh]"
             >
-              {/* Modal Header */}
-              <div className="p-10 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-[32px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl overflow-hidden border-2 border-white dark:border-zinc-800">
+              <div className="p-8 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4 w-[300px]">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg overflow-hidden border-2 border-white dark:border-zinc-800">
                     {selectedUserDetail.avatar_url ? (
                       <img src={selectedUserDetail.avatar_url} className="w-full h-full object-cover" alt={selectedUserDetail.full_name || ''} />
                     ) : (
                       selectedUserDetail.full_name?.charAt(0)
                     )}
                   </div>
-                  <div>
-                    <h2 className="text-3xl font-black dark:text-white tracking-tight">{selectedUserDetail.full_name}</h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <p className="text-apple-near-black/40 dark:text-white/40 font-medium">{selectedUserDetail.email}</p>
-                      <div className="w-1 h-1 rounded-full bg-black/10" />
-                      <p className="text-apple-blue font-bold text-sm uppercase tracking-widest">{selectedUserDetail.role}</p>
-                    </div>
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold dark:text-white truncate tracking-tight">{selectedUserDetail.full_name}</h2>
+                    <p className="text-[12px] text-apple-near-black/40 dark:text-white/40 truncate font-medium">{selectedUserDetail.email}</p>
                   </div>
                 </div>
-                <div className="flex gap-4">
-                   <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl">
+
+                <div className="flex-1 flex justify-center">
+                   <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-full border border-black/5">
                       {[
                         { id: 'overview', label: 'Overview', icon: <Users size={14} /> },
                         { id: 'internships', label: 'Internships', icon: <Briefcase size={14} /> },
@@ -281,7 +296,7 @@ export default function UserRegistryView() {
                         <button
                           key={tab.id}
                           onClick={() => setActiveModalTab(tab.id as any)}
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                          className={`flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-bold transition-all ${
                             activeModalTab === tab.id 
                             ? 'bg-white dark:bg-zinc-700 text-apple-blue shadow-sm' 
                             : 'text-apple-near-black/40 dark:text-white/40 hover:text-apple-near-black'
@@ -291,11 +306,15 @@ export default function UserRegistryView() {
                         </button>
                       ))}
                    </div>
+                </div>
+
+                <div className="w-[300px] flex justify-end">
                    <button 
                      onClick={() => setSelectedUserDetail(null)}
-                     className="px-6 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition-all font-bold text-[14px] text-mc-ink-black/60 gap-2 border border-black/5"
+                     className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition-all text-mc-ink-black/60 border border-black/5 shadow-sm active:scale-95"
+                     title="Close"
                    >
-                     Exit <X size={16} />
+                     <X size={20} />
                    </button>
                 </div>
               </div>
@@ -308,7 +327,7 @@ export default function UserRegistryView() {
                         <div className="flex items-center gap-2 text-[11px] font-black text-apple-near-black/30 uppercase tracking-[0.2em] mb-4">
                            <CalendarDays size={14} /> Academic Standing
                         </div>
-                        <div className="apple-card p-8 bg-white dark:bg-zinc-800 space-y-6">
+                        <div className="apple-card p-8 bg-white dark:bg-zinc-800 space-y-6 rounded-2xl">
                            <div className="flex justify-between items-center py-3 border-b border-black/5">
                               <span className="text-[15px] font-medium text-apple-near-black/50">University</span>
                               <span className="font-bold dark:text-white">{selectedUserDetail.university || 'N/A'}</span>
@@ -329,15 +348,15 @@ export default function UserRegistryView() {
                            <Activity size={14} /> System Engagement
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 text-center">
+                           <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-black/5">
                               <p className="text-3xl font-black text-apple-blue">{selectedUserDetail.application_count}</p>
                               <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Applications</p>
                            </div>
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 text-center">
+                           <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-black/5">
                               <p className="text-3xl font-black text-indigo-500">{selectedUserDetail.login_count}</p>
                               <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Sessions</p>
                            </div>
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 col-span-2 flex items-center justify-between">
+                           <div className="p-6 bg-white dark:bg-zinc-800 col-span-2 flex items-center justify-between rounded-2xl shadow-sm border border-black/5">
                               <div className="text-left">
                                  <p className="text-[13px] font-bold dark:text-white">Active Status</p>
                                  <p className="text-[11px] text-apple-near-black/40">Last seen {selectedUserDetail.last_login_at ? new Date(selectedUserDetail.last_login_at).toLocaleDateString() : 'Never'}</p>
@@ -353,7 +372,7 @@ export default function UserRegistryView() {
                   <div className="space-y-6">
                      <h3 className="text-lg font-bold dark:text-white border-b border-black/5 pb-4 mb-6">Full Internship History</h3>
                      {loadingInternships ? (
-                       <div className="flex justify-center py-20"><Loader2 className="animate-spin text-apple-blue" /></div>
+                       <div className="flex justify-center py-20"><PremiumLoader message="Loading internships..." size="sm" /></div>
                      ) : userInternships.length > 0 ? (
                        <div className="space-y-4">
                          {userInternships.map(app => (
@@ -390,7 +409,7 @@ export default function UserRegistryView() {
                        Calendar & Scheduled Events
                      </h3>
                      {loadingSchedules ? (
-                       <div className="flex justify-center py-20"><Loader2 className="animate-spin text-apple-blue" /></div>
+                       <div className="flex justify-center py-20"><PremiumLoader message="Loading schedules..." size="sm" /></div>
                      ) : userSchedules.length > 0 ? (
                        <div className="space-y-4">
                          {userSchedules.map((schedule: any) => {
@@ -450,7 +469,7 @@ export default function UserRegistryView() {
                      <section>
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-apple-near-black/30 mb-6 font-mono">Peer Security Audit</h4>
                         <div className="space-y-4">
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5">
+                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 rounded-2xl shadow-sm">
                               <div className="flex items-center gap-4">
                                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><ShieldCheck size={20} /></div>
                                  <div>
@@ -460,7 +479,7 @@ export default function UserRegistryView() {
                               </div>
                               <span className="text-[10px] font-black uppercase bg-emerald-500 text-white px-2 py-1 rounded">ACTIVE</span>
                            </div>
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 opacity-50 grayscale">
+                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 opacity-50 grayscale rounded-2xl shadow-sm">
                               <div className="flex items-center gap-4">
                                  <div className="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-apple-blue"><LockIcon size={20} /></div>
                                  <p className="font-bold dark:text-white">Two-Factor Auth</p>
@@ -469,7 +488,7 @@ export default function UserRegistryView() {
                            </div>
                            
                            {/* Welcome Email Manual Send */}
-                           <div className="apple-card p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5">
+                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 rounded-2xl shadow-sm">
                               <div className="flex items-center gap-4">
                                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                                     <Mail size={20} />
@@ -503,7 +522,7 @@ export default function UserRegistryView() {
                                   }
                                 }}
                                 disabled={sendingEmail === selectedUserDetail.user_id}
-                                className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                                className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${
                                   selectedUserDetail.welcome_email_sent 
                                   ? 'bg-black/5 text-black/40 hover:bg-black/10' 
                                   : 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 hover:scale-105'
@@ -541,7 +560,7 @@ export default function UserRegistryView() {
                               }
                             }
                           }}
-                          className="flex-1 py-4 rounded-2xl bg-rose-500 text-white font-bold text-[15px] shadow-lg shadow-rose-500/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                          className="flex-1 py-4 rounded-xl bg-rose-500 text-white font-bold text-[15px] shadow-lg shadow-rose-500/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
                         >
                           <Trash2 size={18} /> 
                           <span>Terminate Access</span>
@@ -575,7 +594,7 @@ export default function UserRegistryView() {
                           const data = await signUp(newUser.email, newUser.password, newUser.fullName);
                           toast.success("Account initialized successfully.");
                           if (data?.user) {
-                            sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
+                            await sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
                           }
                           setShowAddUserModal(false);
                           setNewUser({ fullName: '', email: '', password: '' });
@@ -595,6 +614,118 @@ export default function UserRegistryView() {
             </motion.div>
          </div>
       )}
+      {/* Broadcast Modal */}
+      <AnimatePresence>
+        {showBroadcastModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !sendingBulkEmail && setShowBroadcastModal(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl overflow-hidden border border-black/5"
+            >
+              <div className="p-8 border-b border-black/5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-black dark:text-white">Broadcast Center</h3>
+                  <p className="text-sm text-apple-near-black/40 font-medium">Sending to {users.length} active students</p>
+                </div>
+                <button 
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Email Subject</label>
+                  <input 
+                    type="text"
+                    value={broadcastContent.subject}
+                    onChange={(e) => setBroadcastContent({ ...broadcastContent, subject: e.target.value })}
+                    placeholder="E.g. Important Update Regarding Internships"
+                    className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 border border-transparent focus:border-apple-blue/20 focus:bg-white dark:focus:bg-zinc-800 transition-all font-bold outline-none dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Message Content</label>
+                  <textarea 
+                    rows={6}
+                    value={broadcastContent.message}
+                    onChange={(e) => setBroadcastContent({ ...broadcastContent, message: e.target.value })}
+                    placeholder="Write your announcement here..."
+                    className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 border border-transparent focus:border-apple-blue/20 focus:bg-white dark:focus:bg-zinc-800 transition-all font-bold outline-none dark:text-white resize-none"
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <button 
+                    onClick={async () => {
+                      if (!broadcastContent.subject || !broadcastContent.message) {
+                        toast.error("Please complete the subject and message.");
+                        return;
+                      }
+                      
+                      console.log('[📢] Starting Broadcast to', users.length, 'users');
+                      setSendingBulkEmail(true);
+                      setBroadcastProgress(0);
+                      let successCount = 0;
+                      
+                      for (let i = 0; i < users.length; i++) {
+                        const u = users[i];
+                        setBroadcastProgress(i + 1);
+                        console.log(`[📨] Sending to ${u.email} (${i + 1}/${users.length})`);
+                        
+                        try {
+                          const success = await sendCustomEmail(
+                            u.email, 
+                            u.full_name, 
+                            broadcastContent.subject, 
+                            broadcastContent.message
+                          );
+                          if (success) {
+                            successCount++;
+                            console.log(`[✅] Delivered to ${u.email}`);
+                          } else {
+                            console.warn(`[❌] Failed to deliver to ${u.email}`);
+                          }
+                        } catch (err) {
+                          console.error(`[🚨] Error sending to ${u.email}:`, err);
+                        }
+                      }
+
+                      console.log('[🏁] Broadcast Finished. Total success:', successCount);
+                      toast.success(`Broadcast Complete: ${successCount}/${users.length} delivered.`);
+                      setSendingBulkEmail(false);
+                      setBroadcastProgress(null);
+                      setShowBroadcastModal(false);
+                    } }
+                    disabled={sendingBulkEmail}
+                    className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black text-lg shadow-xl shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    <Send size={20} />
+                    <span>
+                      {sendingBulkEmail 
+                        ? `Sending ${broadcastProgress}/${users.length}...` 
+                        : 'Send Broadcast Now'
+                      }
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

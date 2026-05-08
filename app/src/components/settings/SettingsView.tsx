@@ -6,13 +6,14 @@ import {
   Shield, 
   Camera,
   ChevronRight,
-  Loader2,
+
   Lock,
   Calendar,
   BadgeCheck,
   LogOut
 } from 'lucide-react';
 import { getProfile, uploadAvatarImage, updatePassword, updateProfile, logError } from '@/lib/supabase';
+import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { toast } from 'sonner';
 import type { UserPreferences } from '@/types';
 
@@ -202,9 +203,11 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         className="text-left"
       >
-        <h1 className="text-[48px] md:text-[64px] font-medium tracking-tight leading-none text-zinc-900 mb-4">Settings.</h1>
-        <p className="text-[20px] text-zinc-500 tracking-tight">
-          Personalize your professional console.
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          Settings.
+        </h1>
+        <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
+          Personalize your professional identity.
         </p>
       </motion.div>
 
@@ -229,7 +232,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                     disabled={isSavingProfile}
                     className="px-5 py-2 rounded-xl text-[14px] font-bold bg-apple-blue text-white shadow-lg shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
                   >
-                    {isSavingProfile ? <Loader2 size={16} className="animate-spin" /> : 'Save Changes'}
+                    {isSavingProfile ? <InlineLoader size={16} /> : 'Save Changes'}
                   </button>
                 )}
                 <button
@@ -267,7 +270,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                 disabled={isUploading}
                 className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-zinc-900 text-white shadow-md flex items-center justify-center hover:bg-zinc-800 transition-colors border border-zinc-800 disabled:opacity-50"
               >
-                {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+                {isUploading ? <InlineLoader size={18} /> : <Camera size={18} />}
               </button>
             </div>
             <div className="text-center md:text-left">
@@ -385,7 +388,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={handlePasswordChange} disabled={isChangingPassword} className="flex-1 bg-zinc-900 text-white rounded-xl py-2 text-[13px] font-semibold flex justify-center items-center">
-                      {isChangingPassword ? <Loader2 size={14} className="animate-spin" /> : 'Update'}
+                      {isChangingPassword ? <InlineLoader size={14} /> : 'Update'}
                     </button>
                     <button onClick={() => { setShowPasswordSection(false); setNewPassword(''); }} className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-xl text-[13px] font-semibold">Cancel</button>
                   </div>

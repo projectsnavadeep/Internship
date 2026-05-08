@@ -4,6 +4,7 @@ import { Toaster, toast } from 'sonner';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { LoadingView } from '@/components/shared/LoadingView';
+import { FullScreenLoader } from '@/components/shared/PremiumLoader';
 import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load heavy components
@@ -41,7 +42,13 @@ function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
-    return localStorage.getItem('activeTab') || 'dashboard';
+    
+    // Check if we were an admin last time to avoid flicker
+    const wasAdmin = sessionStorage.getItem('was_admin') === 'true';
+    const lastTab = localStorage.getItem('activeTab');
+    
+    if (wasAdmin && (!lastTab || lastTab === 'dashboard')) return 'admin';
+    return lastTab || 'dashboard';
   });
 
   // History and Persistence Sync
@@ -51,8 +58,13 @@ function App() {
     if (isAuthenticated) {
       window.location.hash = activeTab;
       localStorage.setItem('activeTab', activeTab);
+      if (isAdmin) {
+        sessionStorage.setItem('was_admin', 'true');
+      } else {
+        sessionStorage.removeItem('was_admin');
+      }
     }
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, isAuthenticated, isAdmin]);
 
   useEffect(() => {
     // Handle Browser Back/Forward buttons
@@ -158,13 +170,11 @@ function App() {
     }
   }, [isAuthenticated, loadData]);
 
-  // Smart Routing for Admins on mount/session load
   useEffect(() => {
-    // Only redirect if they are on dashboard and haven't explicitly set a tab in this session
-    const hasInitialTab = sessionStorage.getItem('initial_tab_set');
-    if (isAuthenticated && isAdmin && activeTab === 'dashboard' && !hasInitialTab) {
+    // Redirect admins from dashboard to admin page
+    if (isAuthenticated && isAdmin && activeTab === 'dashboard') {
       setActiveTab('admin');
-      sessionStorage.setItem('initial_tab_set', 'true');
+      window.location.hash = 'admin';
     }
   }, [isAuthenticated, isAdmin, activeTab]);
 
@@ -202,7 +212,9 @@ function App() {
       
       if (data) {
         const userId = data.id;
-        sendWelcomeEmail(userId, email, fullName).catch(err => {
+        try {
+          await sendWelcomeEmail(userId, email, fullName);
+        } catch (err: any) {
           console.error('Auto-email error:', err);
           logError({
             errorType: 'auth',
@@ -211,7 +223,7 @@ function App() {
             actionAttempted: 'send_welcome_email',
             userId
           });
-        });
+        }
       }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
@@ -331,6 +343,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
+        if (isAdmin) return null;
         return (
           <Dashboard 
             applications={applications} 
@@ -407,25 +420,14 @@ function App() {
   // Using hasSessionHint ensures that on refresh, the user sees the App Layout/Skeletons immediately.
   if (authLoading && !isAuthenticated && hasSessionHint) {
     return (
-      <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={() => {}} userName="Loading..." collapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} isAdmin={false} />
-        <main className="flex-1 p-8 pt-24 md:pt-32">
-          <LoadingView message="Restoring identity..." />
-        </main>
+      <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+        <FullScreenLoader message="Restoring Session..." />
       </div>
     );
   }
 
   if (authLoading && !isAuthenticated && !hasSessionHint) {
-    return (
-      <div className="min-h-screen border-t-2 border-apple-blue/50 flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-apple-black">
-        <motion.div
-          className="w-16 h-16 rounded-full border-4 border-apple-blue border-t-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        />
-      </div>
-    );
+    return <FullScreenLoader message="Connecting..." />;
   }
 
   if (!isAuthenticated && showAuthForm) {
@@ -487,7 +489,7 @@ function App() {
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        onLogout={() => { logout(); setActiveTab('dashboard'); }}
+        onLogout={() => { logout(); setActiveTab('dashboard'); window.location.hash = '#login'; }}
         userName={user?.user_metadata?.full_name || 'My Profile'}
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
@@ -496,7 +498,7 @@ function App() {
 
       {/* Main Content */}
       <main 
-        className="flex-1 min-h-screen p-4 md:px-8 mt-16 md:mt-32 transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
+        className="flex-1 min-h-screen p-4 md:px-8 mt-[100px] transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
         <div className="max-w-[1200px] mx-auto">
           <AnimatePresence mode="wait">

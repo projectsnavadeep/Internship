@@ -11,6 +11,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { InlineLoader } from '@/components/shared/PremiumLoader';
 
 export function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
@@ -93,8 +94,8 @@ export function AdminSettings() {
                disabled={promoting}
                className="w-full py-5 rounded-[24px] bg-apple-blue text-white font-bold text-[16px] hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-apple-blue/20 flex items-center justify-center gap-3"
              >
-               {promoting ? "Verifying..." : "Authorize Delegation"}
-               <ChevronRight size={18} />
+               {promoting ? <InlineLoader size={20} /> : "Authorize Delegation"}
+               {!promoting && <ChevronRight size={18} />}
              </button>
           </div>
           

@@ -89,8 +89,10 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
         className="flex flex-col md:flex-row md:items-end justify-between gap-6"
       >
         <div className="text-left">
-          <h1 className="display-hero text-apple-near-black dark:text-white mb-2">Applications.</h1>
-          <p className="text-[21px] text-apple-near-black/60 dark:text-white/60 tracking-apple-tight">
+          <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+            Applications.
+          </h1>
+          <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
             {filteredApplications.length} opportunities discovered.
           </p>
         </div>

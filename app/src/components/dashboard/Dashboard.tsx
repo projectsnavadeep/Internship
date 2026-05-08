@@ -142,15 +142,15 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         className="text-left py-12 md:py-20 max-w-4xl"
       >
-        <h1 className="text-[64px] md:text-[88px] font-medium tracking-mc-tight leading-[0.95] text-mc-ink-black dark:text-white mb-6">
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-[1.1] text-zinc-900 dark:text-white mb-6">
           {getTimeGreeting()},<br />
-          <span className="text-apple-blue font-bold">
-            {(profile?.full_name || 'there').split(' ')[0]}
+          <span className="text-apple-blue">
+            {(profile?.full_name || 'there').split(' ')[0]}.
           </span>
         </h1>
-        <p className="text-[24px] text-mc-ink-black/60 dark:text-white/60 tracking-mc-tight max-w-2xl font-medium">
+        <p className="text-[24px] text-apple-near-black/50 dark:text-white/40 tracking-tight max-w-2xl font-medium">
           {stats.total_applications > 0 
-            ? `You've tracked ${stats.total_applications} opportunities. You have ${stats.interview_count} interviews pending.`
+            ? `${stats.total_applications} opportunities tracked. ${stats.interview_count} interviews pending.`
             : 'Your journey starts here. Add your first application to see insights.'}
         </p>
       </motion.div>
