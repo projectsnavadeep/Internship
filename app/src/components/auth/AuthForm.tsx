@@ -70,11 +70,11 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
         className="w-full max-w-[480px] relative z-10 flex flex-col items-center"
       >
           {/* Logo Header */}
-          <div className="text-center mb-6 flex flex-col items-center w-full">
-            <div className="flex justify-center mb-6">
+          <div className="text-center mb-4 flex flex-col items-center w-full">
+            <div className="flex justify-center mb-4">
               <Logo size="lg" />
             </div>
-            <h1 className="text-[48px] md:text-[64px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-3">
+            <h1 className="text-[48px] md:text-[64px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-1">
               {isLogin ? 'Welcome back.' : 'Join the Track.'}
             </h1>
             <p className="text-[17px] text-zinc-400 dark:text-zinc-500 font-medium tracking-tight max-w-[360px] mx-auto">
@@ -92,7 +92,7 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.3 }}
               onSubmit={handleSubmit}
-              className="p-8 space-y-4"
+              className="p-7 space-y-4"
             >
               {!isLogin && (
                 <div className="space-y-2">
