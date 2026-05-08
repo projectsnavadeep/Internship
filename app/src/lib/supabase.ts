@@ -652,27 +652,22 @@ const getAdminClient = () => {
 export const adminGetAllUsers = async (): Promise<UserActivity[]> => {
   const admin = getAdminClient();
   
-  // Get profiles
-  const { data: profiles, error: profileError } = await admin
-    .from('profiles')
-    .select('*')
-    .order('last_login_at', { ascending: false });
+  const [
+    { data: profiles, error: profileError },
+    { data: authData, error: authError },
+    { data: apps, error: appError }
+  ] = await Promise.all([
+    admin.from('profiles').select('*').order('last_login_at', { ascending: false }),
+    admin.auth.admin.listUsers(),
+    admin.from('applications').select('user_id')
+  ]);
   
   if (profileError) throw profileError;
-
-  // Get auth users for emails
-  const { data: authData, error: authError } = await admin.auth.admin.listUsers();
   if (authError) throw authError;
+  if (appError) throw appError;
 
   const authUsers = authData?.users || [];
   
-  // Get application counts per user
-  const { data: apps, error: appError } = await admin
-    .from('applications')
-    .select('user_id');
-  
-  if (appError) throw appError;
-
   const appCounts: Record<string, number> = {};
   (apps || []).forEach((a: any) => {
     appCounts[a.user_id] = (appCounts[a.user_id] || 0) + 1;
@@ -706,29 +701,20 @@ export const adminGetAllUsers = async (): Promise<UserActivity[]> => {
 export const adminGetStats = async () => {
   const admin = getAdminClient();
 
-  // Total users
-  const { count: userCount } = await admin
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('role', 'student');
-
-  // Total applications
-  const { count: appCount } = await admin
-    .from('applications')
-    .select('*', { count: 'exact', head: true });
-
-  // Active users (last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const { count: activeCount } = await admin
-    .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .gte('last_login_at', sevenDaysAgo.toISOString());
 
-  // Offer rate
-  const { data: allApps } = await admin
-    .from('applications')
-    .select('status');
+  const [
+    { count: userCount },
+    { count: appCount },
+    { count: activeCount },
+    { data: allApps }
+  ] = await Promise.all([
+    admin.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+    admin.from('applications').select('*', { count: 'exact', head: true }),
+    admin.from('profiles').select('*', { count: 'exact', head: true }).gte('last_login_at', sevenDaysAgo.toISOString()),
+    admin.from('applications').select('status')
+  ]);
   
   const total = allApps?.length || 0;
   const offers = allApps?.filter((a: any) => a.status === 'Offer').length || 0;
