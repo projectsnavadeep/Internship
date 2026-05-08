@@ -389,7 +389,7 @@ function App() {
           />;
       case 'admin':
         if (!isAdmin) return null;
-        return <AdminOverview />;
+        return <AdminOverview onNavigate={setActiveTab} />;
       case 'users':
         if (!isAdmin) return null;
         return <UserRegistryView />;

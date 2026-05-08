@@ -139,7 +139,11 @@ const RadarScanner = ({ activeUsers = 0 }: { activeUsers?: number }) => {
 };
 
 
-export function AdminOverview() {
+interface AdminOverviewProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export function AdminOverview({ onNavigate }: AdminOverviewProps) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -293,7 +297,10 @@ export function AdminOverview() {
                 </motion.div>
               ))}
             </div>
-            <button className="w-full py-4 bg-zinc-50 dark:bg-white/[0.02] border-t dark:border-white/5 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-apple-blue transition-colors">
+            <button 
+              onClick={() => onNavigate?.('security')}
+              className="w-full py-4 bg-zinc-50 dark:bg-white/[0.02] border-t dark:border-white/5 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-apple-blue transition-colors cursor-pointer"
+            >
               View Full Audit Log
             </button>
           </motion.div>
