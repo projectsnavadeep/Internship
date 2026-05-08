@@ -35,21 +35,6 @@ const adminNavItems = [
   { id: 'admin-settings', label: 'System Console' },
 ];
 
-/** Clean static logo for everyone */
-function BrandLogo({ size = 40 }: { size?: number }) {
-  return (
-    <div
-      className="flex items-center justify-center overflow-hidden"
-      style={{ width: size, height: size }}
-    >
-      <img
-        src="/logo.png"
-        alt="InternTrack"
-        className="object-contain w-full h-full opacity-90 hover:opacity-100 transition-opacity"
-      />
-    </div>
-  );
-}
 
 export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarProps) {
   const navItems = isAdmin ? adminNavItems : studentNavItems;
@@ -69,14 +54,6 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
               className="flex items-center hover:opacity-80 transition-opacity"
             >
               <Logo size="md" />
-              {isAdmin && (
-                <div className="ml-4 pl-4 border-l border-black/10 dark:border-white/10">
-                  <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.15em] text-red-500">
-                    <ShieldCheck size={12} />
-                    Admin
-                  </span>
-                </div>
-              )}
             </button>
           </div>
 
@@ -146,17 +123,7 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
           onClick={() => onTabChange(homeTab)}
           className="flex items-center gap-3 hover:opacity-70 transition-opacity"
         >
-          <BrandLogo size={34} />
-          <div className="flex flex-col items-start">
-            <span className="text-[16px] font-bold text-zinc-900 dark:text-white tracking-tight leading-tight">
-              InternTrack
-            </span>
-            {isAdmin && (
-              <span className="text-[9px] font-black uppercase tracking-widest text-red-500 leading-tight">
-                Admin
-              </span>
-            )}
-          </div>
+          <Logo size="sm" showPlatform={false} />
         </button>
         <div className="flex items-center gap-3">
           <button onClick={() => setMobileMenuOpen(true)}>

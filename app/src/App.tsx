@@ -432,39 +432,12 @@ function App() {
 
   if (!isAuthenticated && showAuthForm) {
     return (
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-apple-black overflow-hidden">
-        {/* Pic Block */}
-        <div className="hidden lg:block relative overflow-hidden bg-apple-gray dark:bg-zinc-900 border-r border-black/5 dark:border-white/5">
-          <div className="absolute inset-0 bg-gradient-to-br from-apple-blue/20 to-transparent z-10" />
-          <motion.img 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            src="/hero-auth.png"
-            className="w-full h-full object-cover"
-            alt="Career Journey"
-          />
-          <div className="absolute bottom-12 left-12 right-12 z-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 1 }}
-            >
-              <h2 className="text-[48px] font-bold text-white tracking-tight leading-tight mb-4 drop-shadow-2xl">
-                Elevate your <br /> career trajectory.
-              </h2>
-              <p className="text-[19px] text-white/80 font-medium tracking-tight max-w-[400px]">
-                The professional console for tracking, managing, and securing your next big opportunity.
-              </p>
-            </motion.div>
-          </div>
-        </div>
+      <div className="h-screen bg-white dark:bg-zinc-950 bg-grid-pattern flex items-center justify-center p-4 overflow-hidden relative">
+        {/* Subtle top light effect */}
+        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#0071E3]/[0.02] to-transparent pointer-events-none" />
         
-        {/* Auth Block */}
-        <div className="flex items-center justify-center p-8 lg:p-12 relative">
-          <div className="w-full max-w-[440px]">
-            <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
-          </div>
+        <div className="w-full max-w-[440px] relative z-10">
+          <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
         </div>
       </div>
     );
