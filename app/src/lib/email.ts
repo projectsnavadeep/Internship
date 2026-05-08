@@ -15,7 +15,7 @@ export const sendWelcomeEmail = async (
   initialPassword?: string
 ) => {
   try {
-    const { data, error } = await supabase.functions.invoke('resend', {
+    const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
         reply_to: 'support@gmail.com',
@@ -76,7 +76,7 @@ export const sendCustomEmail = async (
   message: string
 ) => {
   try {
-    const { data, error } = await supabase.functions.invoke('resend', {
+    const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
         reply_to: 'support@gmail.com',
