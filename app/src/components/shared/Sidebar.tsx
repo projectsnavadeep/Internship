@@ -4,7 +4,6 @@ import {
   Menu,
   X,
   LogOut,
-  ShieldCheck,
 } from 'lucide-react';
 
 import { Logo } from './Logo';
