@@ -76,8 +76,15 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionId, setSessionId] = useState('PRDX-...');
 
   useEffect(() => {
+    let storedId = sessionStorage.getItem('admin_trace_session_id');
+    if (!storedId) {
+      storedId = `PRDX-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      sessionStorage.setItem('admin_trace_session_id', storedId);
+    }
+    setSessionId(storedId);
     loadData();
   }, []);
 
@@ -129,7 +136,7 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
           <div className="hidden lg:flex items-center gap-6">
             <div className="text-right">
                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Session ID</p>
-               <p className="text-xs font-mono dark:text-white/60">PRDX-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+               <p className="text-xs font-mono dark:text-white/60">{sessionId}</p>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center border border-black/5 dark:border-white/5">
               <Globe size={20} className="text-apple-blue" />
