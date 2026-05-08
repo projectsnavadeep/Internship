@@ -76,14 +76,23 @@
     user-select: text;
   }
 
-  /* Typography Optical Sizing Mockup */
-  h1, h2, .display-hero {
-    letter-spacing: -0.02em;
-    line-height: 1;
-    font-weight: 500;
+  /* Fluid Typography for Premium Feel */
+  h1, .display-hero {
+    font-size: clamp(40px, 8vw, 80px);
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-weight: 600;
   }
 
-  h3, h4, .section-heading {
+  h2 {
+    font-size: clamp(32px, 6vw, 48px);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    font-weight: 600;
+  }
+
+  h3, .section-heading {
+    font-size: clamp(24px, 4vw, 32px);
     letter-spacing: -0.02em;
     line-height: 1.2;
     font-weight: 500;

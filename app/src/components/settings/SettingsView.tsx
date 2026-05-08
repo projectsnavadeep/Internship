@@ -24,9 +24,10 @@ interface SettingsViewProps {
   userRole?: string;
   profileData?: any;
   onLogout?: () => void;
+  onUpdate?: () => void;
 }
 
-export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout }: SettingsViewProps) {
+export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout, onUpdate }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
     email: userEmail,
@@ -58,7 +59,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
   });
 
   useEffect(() => {
-    if (profileData) {
+    if (profileData && !isEditingProfile && !isSavingProfile) {
       setProfile(prev => ({
         ...prev,
         fullName: profileData.full_name || profileData.fullName || prev.fullName,
@@ -151,6 +152,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         additional_data: profile.additional_data,
       });
       toast.success('Professional identity synchronized.');
+      if (onUpdate) await onUpdate();
       setIsEditingProfile(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile.');
@@ -178,6 +180,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       const publicUrl = await uploadAvatarImage(file, userId);
       // Persist the avatar URL to the profiles table in the database
       await updateProfile(userId, { avatar_url: publicUrl });
+      if (onUpdate) await onUpdate();
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       toast.success('Profile photo updated.');
     } catch (error: any) {
@@ -203,10 +206,10 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
         className="text-left"
       >
-        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+        <h1 className="mb-4 leading-tight">
           Settings.
         </h1>
-        <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
+        <p className="text-[18px] md:text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
           Personalize your professional identity.
         </p>
       </motion.div>
@@ -214,7 +217,7 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Card */}
         <motion.div
-          className="lg:col-span-2 mc-stadium-card p-10 bg-white"
+          className="lg:col-span-2 mc-stadium-card p-6 md:p-10 bg-white"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}

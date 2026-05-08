@@ -30,7 +30,8 @@ import {
   createInterviewNote,
   deleteInterviewNote,
   getProfile,
-  logError
+  logError,
+  logActivity
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } from '@/types';
@@ -188,8 +189,10 @@ function App() {
       
       if (u?.role === 'admin' || isAdminEmail) {
         setActiveTab('admin');
+        await logActivity('admin_login', 'Admin session initialized', { email });
       } else {
         setActiveTab('dashboard');
+        await logActivity('user_login', 'User session initialized', { email });
       }
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
@@ -205,9 +208,11 @@ function App() {
       if (email === 'admin@gmail.com' || (data?.role === 'admin')) {
         setActiveTab('admin');
         toast.success('Admin Console access granted.');
+        await logActivity('admin_registration', 'New admin account created', { email });
       } else {
         setActiveTab('dashboard');
         toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
+        await logActivity('user_registration', 'New user account created', { email });
       }
       
       if (data) {
@@ -239,6 +244,7 @@ function App() {
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
       if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
       toast.success(`Status updated to ${newStatus}`);
+      await logActivity('application_status_update', `Application status changed to ${newStatus}`, { applicationId: id, status: newStatus });
       loadData();
     } catch (error: any) {
       console.error('[❌] Status Update Failed:', error);
@@ -270,6 +276,7 @@ function App() {
       setApplications(apps => apps.filter(a => a.id !== id));
       setViewingApp(null);
       toast.success('Application deleted!');
+      await logActivity('application_delete', 'Application removed from system', { applicationId: id });
       loadData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete application');
@@ -306,6 +313,7 @@ function App() {
       });
       setSelectedAppNotes(notes => [...notes, newNote]);
       toast.success('Interview note added!');
+      await logActivity('interview_note_add', 'New interview note recorded', { applicationId: viewingApp.id });
     } catch (error: any) {
       toast.error(error.message || 'Failed to add note');
       logError({
@@ -386,6 +394,7 @@ function App() {
             userRole={user?.role || 'student'}
             profileData={profile}
             onLogout={() => { logout(); setActiveTab('dashboard'); }}
+            onUpdate={loadData}
           />;
       case 'admin':
         if (!isAdmin) return null;

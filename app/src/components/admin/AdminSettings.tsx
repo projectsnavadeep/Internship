@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
-import { DailySessions } from './DailySessions';
+import { SecurityAuditVault } from './SecurityAuditVault';
+import { logActivity } from '@/lib/supabase';
 
 export function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
@@ -28,6 +29,7 @@ export function AdminSettings() {
       toast.info("Verifying identity and issuing promotion...");
       const { adminPromoteUserByEmail } = await import('@/lib/supabase');
       await adminPromoteUserByEmail(promoEmail);
+      await logActivity('admin_delegation', `Promoted ${promoEmail} to Coordinator`, { targetEmail: promoEmail });
       toast.success(`${promoEmail} has been elevated to Coordinator (Admin).`);
       setPromoEmail('');
     } catch (err: any) {
@@ -154,19 +156,24 @@ export function AdminSettings() {
         </motion.div>
       </div>
 
-      {/* Operational Streams Section */}
+      {/* Security Operations Center (SOC) Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
       >
         <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tighter dark:text-white">Operational Monitoring.</h2>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full">Live Sessions</span>
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-bold tracking-tighter dark:text-white text-apple-blue">Command Intelligence.</h2>
+            <div className="px-3 py-1 rounded-full bg-apple-blue/10 border border-apple-blue/20 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-apple-blue animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-apple-blue">Audit Vault Active</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full">Secure Telemetry</span>
         </div>
-        <DailySessions />
+        <SecurityAuditVault />
       </motion.div>
-    </div>
     </div>
   );
 }

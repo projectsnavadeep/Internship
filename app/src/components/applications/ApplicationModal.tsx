@@ -279,16 +279,22 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
                   className="w-full p-6 rounded-[24px] bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black resize-none" placeholder="Add some context..." />
               </section>
 
-              {/* Submit */}
-              <div className="flex items-center justify-end gap-4 pt-10 pb-4 border-t border-mc-ink-black/10">
-                <button type="button" onClick={onClose}
-                  className="mc-pill-outline">
+              {/* Submit / Footer Actions */}
+              <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-3 pt-8 pb-4 border-t border-mc-ink-black/10">
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  className="w-full md:w-auto mc-pill-outline py-3"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={isSaving}
-                  className="mc-pill-ink flex items-center gap-2">
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="w-full md:w-auto mc-pill-ink py-3 flex items-center justify-center gap-2"
+                >
                   {isSaving && <InlineLoader size={16} />}
-                  {isSaving ? 'Processing' : application ? 'Confirm' : 'Add Application'}
+                  {isSaving ? 'Processing' : application ? 'Confirm Changes' : 'Add Application'}
                 </button>
               </div>
             </form>

@@ -89,10 +89,10 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
         className="flex flex-col md:flex-row md:items-end justify-between gap-6"
       >
         <div className="text-left">
-          <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          <h1 className="mb-4 leading-tight">
             Applications.
           </h1>
-          <p className="text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
+          <p className="text-[18px] md:text-[20px] text-apple-near-black/50 dark:text-white/40 font-medium tracking-tight">
             {filteredApplications.length} opportunities discovered.
           </p>
         </div>
@@ -107,7 +107,7 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
 
       {/* Search and Filters - Clean Mastercard Style */}
       <motion.div
-        className="mc-nav-pill bg-white/70 dark:bg-zinc-900/70 border-none flex flex-col md:flex-row gap-4 items-center justify-between"
+        className="mc-nav-pill bg-white/70 dark:bg-zinc-900/70 border-none flex flex-col md:flex-row gap-4 items-center justify-between p-2 md:p-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}

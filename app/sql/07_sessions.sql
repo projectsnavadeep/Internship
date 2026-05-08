@@ -33,13 +33,15 @@ CREATE POLICY "System can insert activity logs"
   WITH CHECK (true); -- Usually restricted to authenticated users in code
 
 -- 4. Daily Sessions View
--- Aggregates activity into daily buckets for easier management view.
+-- Aggregates activity into daily buckets with a unique Session ID.
 CREATE OR REPLACE VIEW public.daily_sessions AS
 SELECT 
   al.user_id,
   p.full_name as user_name,
   p.role as user_role,
   date(al.created_at) as session_date,
+  -- Generate a stable Session ID: e.g., MAY08(A1B2)
+  upper(to_char(date(al.created_at), 'MONDD')) || '(' || upper(substring(md5(al.user_id::text || date(al.created_at)::text), 1, 4)) || ')' as session_id,
   count(*) as total_actions,
   json_agg(json_build_object(
     'id', al.id,

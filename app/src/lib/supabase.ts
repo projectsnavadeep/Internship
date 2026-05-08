@@ -201,6 +201,8 @@ export const getProfile = async (userId: string) => {
 };
 
 export const updateProfile = async (userId: string, profileData: Partial<any>) => {
+  const oldProfile = await getProfile(userId);
+
   const { data, error } = await supabase
     .from('profiles')
     .update(profileData)
@@ -212,6 +214,12 @@ export const updateProfile = async (userId: string, profileData: Partial<any>) =
     console.error('Update Profile Error:', error);
     throw error;
   }
+
+  await logActivity('profile_update', 'User updated identity parameters', { 
+    previous: oldProfile,
+    changes: profileData 
+  });
+
   return data;
 };
 
@@ -246,6 +254,8 @@ export const uploadAvatarImage = async (file: File, userId: string) => {
   const { data: { publicUrl } } = supabase.storage
     .from('avatars')
     .getPublicUrl(filePath);
+
+  await logActivity('avatar_update', 'User updated profile visualization', { publicUrl });
 
   return publicUrl;
 };
@@ -304,6 +314,12 @@ export const createApplication = async (application: Partial<Application>) => {
     console.error("Supabase API Error on Save:", error);
     throw error;
   }
+  
+  await logActivity('application_create', `New application submitted for ${cleanData.company_name}`, { 
+    company: cleanData.company_name, 
+    role: cleanData.job_title 
+  });
+
   return data;
 };
 
@@ -329,6 +345,12 @@ export const updateApplication = async (id: string, updates: Partial<Application
     console.error('Update Profile Error:', error);
     throw error;
   }
+
+  await logActivity('application_update', `Application parameters modified for ${data.company_name}`, { 
+    applicationId: id,
+    changes: updates 
+  });
+
   return data;
 };
 
@@ -414,6 +436,12 @@ export const createReminder = async (reminder: Partial<Reminder>) => {
     console.error("Reminder Save Error:", error);
     throw error;
   }
+
+  await logActivity('reminder_create', `Calendar entry scheduled: ${cleanData.title}`, { 
+    title: cleanData.title,
+    date: cleanData.reminder_date 
+  });
+
   return data as Reminder;
 };
 
@@ -426,6 +454,11 @@ export const completeReminder = async (id: string) => {
     .single();
   
   if (error) throw error;
+
+  await logActivity('reminder_complete', `Calendar milestone achieved: ${data.title}`, { 
+    reminderId: id 
+  });
+
   return data as Reminder;
 };
 
@@ -493,6 +526,12 @@ export const createDocument = async (docData: any) => {
     console.error('Document Insert Error:', error);
     throw error;
   }
+
+  await logActivity('document_create', `Digital asset ingested: ${cleanData.name}`, { 
+    name: cleanData.name, 
+    type: cleanData.type 
+  });
+
   return data;
 };
 export const updateDocument = async (id: string, updates: any) => {
@@ -533,6 +572,8 @@ export const deleteDocument = async (id: string, fileUrl: string) => {
     .eq('id', id);
     
   if (error) throw error;
+
+  await logActivity('document_delete', `Digital asset purged: ${id}`, { documentId: id });
 };
 
 export const uploadDocumentFile = async (file: File, userId: string) => {

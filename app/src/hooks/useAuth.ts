@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, signIn, signUp, signOut, getProfile, updateLoginActivity, getSession } from '@/lib/supabase';
+import { supabase, signIn, signUp, signOut, getProfile, updateLoginActivity, getSession, logActivity } from '@/lib/supabase';
 import type { UserRole } from '@/types';
 
 interface AuthUser {
@@ -131,6 +131,7 @@ export function useAuth() {
   }, [hydrateUser]);
 
   const logout = useCallback(async () => {
+    await logActivity('user_logout', 'User session terminated');
     setUser(null);
     await signOut();
   }, []);

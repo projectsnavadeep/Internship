@@ -140,9 +140,9 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        className="text-left py-12 md:py-20 max-w-4xl"
+        className="text-left py-8 md:py-20 max-w-4xl"
       >
-        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-[1.1] text-zinc-900 dark:text-white mb-6">
+        <h1 className="mb-6 leading-tight">
           {getTimeGreeting()},<br />
           <span className="text-apple-blue">
             {(profile?.full_name || 'there').split(' ')[0]}.
@@ -164,12 +164,12 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
         >
           <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-apple-blue/5 blur-3xl pointer-events-none" />
           
-          <div className="w-32 h-32 rounded-[40px] bg-white flex items-center justify-center border border-mc-ink-black/5 shadow-sm shrink-0">
-            <Sparkles size={64} className="text-apple-blue" />
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-[32px] md:rounded-[40px] bg-white flex items-center justify-center border border-mc-ink-black/5 shadow-sm shrink-0">
+            <Sparkles size={48} className="text-apple-blue md:w-16 md:h-16" />
           </div>
           <div className="text-center md:text-left flex-1">
-            <h3 className="text-[40px] font-medium tracking-mc-tight text-mc-ink-black mb-4">Ready for Launch.</h3>
-            <p className="text-[22px] text-mc-ink-black/60 mb-8 max-w-xl">
+            <h3 className="text-[32px] md:text-[40px] font-medium tracking-mc-tight text-mc-ink-black mb-4 leading-tight">Ready for Launch.</h3>
+            <p className="text-[18px] md:text-[22px] text-mc-ink-black/60 mb-8 max-w-xl">
               InternTrack is your command center for professional growth. Start by logging your first internship application.
             </p>
             <button 
@@ -244,9 +244,9 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
             <div className="w-1.5 h-1.5 rounded-full bg-apple-blue" />
             STRATEGIC GUIDANCE
           </div>
-          <h3 className="text-[48px] md:text-[64px] font-medium tracking-mc-tight leading-none mb-2">
+          <h2 className="text-white mb-2">
             {stats.offer_count > 0 ? 'Next: Negotiation' : stats.interview_count > 0 ? 'Prep: Interviewing' : 'Focus: Applications'}
-          </h3>
+          </h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative z-10">
