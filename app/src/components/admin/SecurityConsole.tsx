@@ -25,8 +25,10 @@ export function SecurityConsole() {
         animate={{ opacity: 1, y: 0 }}
         className="text-left"
       >
-        <h1 className="display-hero text-apple-near-black dark:text-white">Security.</h1>
-        <p className="text-[21px] text-apple-near-black/60 dark:text-white/60 tracking-apple-tight">
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          Security.
+        </h1>
+        <p className="text-[20px] text-zinc-500 dark:text-white/40 tracking-tight font-medium">
           System integrity monitoring and data safety audit.
         </p>
       </motion.div>

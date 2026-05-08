@@ -50,10 +50,10 @@ export function AdminSettings() {
           <div className="w-1 h-1 rounded-full bg-zinc-300" />
           <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Command Console</div>
         </div>
-        <h1 className="text-[56px] md:text-[72px] font-medium tracking-mc-tight leading-[0.95] text-mc-ink-black dark:text-white mb-6">
-          System.<br />Authority.
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          Console.
         </h1>
-        <p className="text-[22px] text-mc-ink-black/60 dark:text-white/60 tracking-mc-tight max-w-2xl font-medium">
+        <p className="text-[20px] text-zinc-500 dark:text-white/40 tracking-tight font-medium">
           Manage administrative delegation and monitor platform-wide operational health.
         </p>
       </motion.div>

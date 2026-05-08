@@ -110,8 +110,10 @@ export function ErrorLogsView({ adminId }: { adminId?: string }) {
     <div className="space-y-8 pb-20">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="display-hero text-apple-near-black dark:text-white">Error Logs.</h1>
-        <p className="text-[18px] text-apple-near-black/60 dark:text-white/60 mt-1">
+        <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
+          Error Logs.
+        </h1>
+        <p className="text-[20px] text-zinc-500 dark:text-white/40 tracking-tight font-medium">
           Monitor and resolve user errors in real-time.
         </p>
       </motion.div>
