@@ -16,7 +16,6 @@ import { StatusChart } from './StatusChart';
 import { MonthlyChart } from './MonthlyChart';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
-import { DashboardSkeleton } from '../shared/ViewSkeletons';
 import { DashboardSessionTimer } from './DashboardSessionTimer';
 import { PremiumLoader } from '../shared/PremiumLoader';
 import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
