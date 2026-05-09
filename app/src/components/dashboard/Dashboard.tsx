@@ -82,6 +82,14 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
     return { statusData: sData, monthlyData: mData, upcomingAlerts: alerts };
   }, [applications, reminders, dismissedAlerts]);
 
+  const sessionTimer = useMemo(() => (
+    <DashboardSessionTimer 
+      userId={profile?.id} 
+      initialToday={profile?.today_minutes_spent || 0}
+      initialTotal={profile?.total_minutes_spent || 0}
+    />
+  ), [profile?.id]);
+
   if (loading) return <DashboardSkeleton />;
 
   const getTimeGreeting = () => {
@@ -152,11 +160,7 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
                 : 'Your journey starts here. Add your first application to see insights.'}
             </p>
             
-            <DashboardSessionTimer 
-              userId={profile?.id} 
-              initialToday={profile?.today_minutes_spent || 0}
-              initialTotal={profile?.total_minutes_spent || 0}
-            />
+            {sessionTimer}
           </div>
         </div>
       </motion.div>
