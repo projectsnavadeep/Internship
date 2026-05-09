@@ -20,9 +20,9 @@ const bars = [
   { delay: "-0.1s", transform: "rotate(330deg) translate(146%)" }
 ];
 
-export const Spinner = ({ size = 20, color = "#8f8f8f" }: { size?: number; color?: string }) => {
+export const Spinner = ({ size = 20, color = "#8f8f8f", className = "" }: { size?: number; color?: string; className?: string }) => {
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
       <style>
         {`
           @keyframes spinner-spin {
