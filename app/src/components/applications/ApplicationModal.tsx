@@ -16,7 +16,7 @@ interface ApplicationModalProps {
 
 const statuses: ApplicationStatus[] = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
 
-export function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
+export default function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<Application>>({
     company_name: '',

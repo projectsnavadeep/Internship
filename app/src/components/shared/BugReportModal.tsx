@@ -12,7 +12,7 @@ interface BugReportModalProps {
   userName?: string;
 }
 
-export function BugReportModal({ isOpen, onClose, userId, userEmail, userName }: BugReportModalProps) {
+export default function BugReportModal({ isOpen, onClose, userId, userEmail, userName }: BugReportModalProps) {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

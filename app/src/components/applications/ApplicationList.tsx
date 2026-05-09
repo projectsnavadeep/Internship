@@ -37,7 +37,7 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
+export default function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
   if (loading) return <ApplicationListSkeleton />;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');

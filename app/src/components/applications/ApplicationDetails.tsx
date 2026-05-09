@@ -52,7 +52,7 @@ const outcomeIcons: Record<string, React.ReactNode> = {
 
 const statusOrder = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
 
-export function ApplicationDetails({ 
+export default function ApplicationDetails({ 
   application, 
   interviewNotes, 
   isOpen, 

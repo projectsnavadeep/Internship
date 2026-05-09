@@ -9,9 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load heavy components
 const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
-const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
-const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
-const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));
+const ApplicationList = lazy(() => import('@/components/applications/ApplicationList'));
+const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal'));
+const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails'));
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView'));
 const DocumentsView = lazy(() => import('@/components/documents/DocumentsView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
@@ -20,7 +20,7 @@ const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole'));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings'));
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView'));
-const BugReportModal = lazy(() => import('@/components/shared/BugReportModal').then(m => ({ default: m.BugReportModal })));
+const BugReportModal = lazy(() => import('@/components/shared/BugReportModal'));
 import { 
   supabase,
   getApplications, 
@@ -516,7 +516,7 @@ function App() {
         </div>
       </main>
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<FullScreenLoader />}>
         <ApplicationModal
           isOpen={showAppModal}
           onClose={() => { setShowAppModal(false); setEditingApp(null); }}
