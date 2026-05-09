@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Briefcase, 
   Send, 
   MessageSquare, 
   Award, 
-  Clock,
   AlertCircle,
   X,
   TrendingUp,
@@ -17,6 +16,7 @@ import { MonthlyChart } from './MonthlyChart';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
 import { DashboardSkeleton } from '../shared/ViewSkeletons';
+import { DashboardSessionTimer } from './DashboardSessionTimer';
 import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
 
 interface DashboardProps {
@@ -28,53 +28,11 @@ interface DashboardProps {
   loading?: boolean;
 }
 
-function DashboardSessionTimer({ userId, initialToday, initialTotal }: { userId?: string, initialToday: number, initialTotal: number }) {
-  const [todayMins, setTodayMins] = useState(initialToday);
-  const [totalMins, setTotalMins] = useState(initialTotal);
-  const [sessionMins, setSessionMins] = useState(0);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    // Background sync to DB every minute
-    const syncInterval = setInterval(async () => {
-      setSessionMins(prev => prev + 1);
-      setTodayMins(prev => prev + 1);
-      setTotalMins(prev => prev + 1);
-      
-      // Persist to Supabase
-      import('@/lib/supabase').then(m => m.updateSessionTime(userId, 1));
-    }, 60000);
-
-    return () => clearInterval(syncInterval);
-  }, [userId]);
-
-  return (
-    <div className="flex flex-col">
-       <div className="flex items-center gap-2">
-          <span className="text-[11px] font-black text-apple-blue uppercase tracking-widest leading-none">Today</span>
-          <span className="text-[15px] font-bold text-zinc-900 dark:text-white tabular-nums">
-            {todayMins}m Spent
-          </span>
-       </div>
-       <div className="flex items-center gap-2">
-          <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest leading-none">2026 Total</span>
-          <span className="text-[13px] font-medium text-zinc-500 tabular-nums">
-            {totalMins}m Tracked
-          </span>
-       </div>
-    </div>
-  );
-}
-
 export function Dashboard({ applications, reminders, stats, profile, onNavigate, loading }: DashboardProps) {
-  if (loading) return <DashboardSkeleton />;
-  const [statusData, setStatusData] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [upcomingAlerts, setUpcomingAlerts] = useState<Reminder[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
-  useEffect(() => {
+  // Memoized calculations to prevent lag
+  const { statusData, monthlyData, upcomingAlerts } = useMemo(() => {
     // 1. Calculate upcoming alerts (next 24 hours)
     const now = new Date();
     const next24 = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -83,7 +41,6 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
       const rDate = new Date(r.reminder_date);
       return !r.is_completed && rDate > now && rDate <= next24 && !dismissedAlerts.includes(r.id);
     });
-    setUpcomingAlerts(alerts);
 
     // 2. Calculate status distribution
     const statusCounts: Record<string, number> = {};
@@ -102,13 +59,11 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
       'Ghosted': '#F3F0EE',
     };
 
-    setStatusData(
-      Object.entries(statusCounts).map(([name, value]) => ({
-        name,
-        value,
-        color: colors[name] || '#86868b',
-      }))
-    );
+    const sData = Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name] || '#86868b',
+    }));
 
     // 3. Calculate monthly data
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -121,8 +76,12 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
       monthlyCounts[month] = (monthlyCounts[month] || 0) + 1;
     });
 
-    setMonthlyData(months.map(month => ({ month, count: monthlyCounts[month] })));
+    const mData = months.map(month => ({ month, count: monthlyCounts[month] }));
+
+    return { statusData: sData, monthlyData: mData, upcomingAlerts: alerts };
   }, [applications, reminders, dismissedAlerts]);
+
+  if (loading) return <DashboardSkeleton />;
 
   const getTimeGreeting = () => {
     const hour = new Date().getHours();
@@ -132,7 +91,7 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 will-change-transform">
       {/* 24h Notification Banner */}
       <AnimatePresence>
         {upcomingAlerts.length > 0 && (
@@ -142,7 +101,7 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
             exit={{ height: 0, opacity: 0, marginTop: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 md:p-4 flex items-center justify-between gap-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 md:p-4 flex items-center justify-between gap-4 shadow-sm backdrop-blur-sm">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
                   <AlertCircle size={20} />
@@ -175,8 +134,8 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        className="text-left py-8 md:pt-4 md:pb-12 max-w-4xl"
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="text-left py-8 md:pt-4 md:pb-12 max-w-4xl transform-gpu"
       >
         <div className="space-y-6">
           <h1 className="mb-6 leading-tight">
@@ -192,17 +151,11 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
                 : 'Your journey starts here. Add your first application to see insights.'}
             </p>
             
-            <div className="flex items-center gap-3 bg-apple-blue/[0.03] border border-apple-blue/10 px-5 py-2.5 rounded-2xl w-fit">
-              <Clock size={18} className="text-apple-blue animate-pulse" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-apple-blue uppercase tracking-widest leading-none mb-1">Session Duration</span>
-                <DashboardSessionTimer 
-                  userId={profile?.id} 
-                  initialToday={profile?.today_minutes_spent || 0}
-                  initialTotal={profile?.total_minutes_spent || 0}
-                />
-              </div>
-            </div>
+            <DashboardSessionTimer 
+              userId={profile?.id} 
+              initialToday={profile?.today_minutes_spent || 0}
+              initialTotal={profile?.total_minutes_spent || 0}
+            />
           </div>
         </div>
       </motion.div>
