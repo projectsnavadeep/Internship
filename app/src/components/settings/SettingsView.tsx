@@ -49,7 +49,7 @@ function SessionTimer() {
   );
 }
 
-export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onUpdate }: SettingsViewProps) {
+export default function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onUpdate }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
     email: userEmail,

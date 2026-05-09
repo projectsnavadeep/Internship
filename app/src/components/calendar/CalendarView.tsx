@@ -15,7 +15,7 @@ interface CalendarViewProps {
   loading?: boolean;
 }
 
-export function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
+export default function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
   if (loading) return <CalendarSkeleton />;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());

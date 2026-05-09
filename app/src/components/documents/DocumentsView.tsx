@@ -47,7 +47,7 @@ const documentIcons: Record<string, React.ReactNode> = {
 
 const documentTypes = ['Resume', 'Cover Letter', 'Transcript', 'Portfolio', 'Certificate', 'Other'];
 
-export function DocumentsView({ userId, loading }: DocumentsViewProps) {
+export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
   if (loading) return <DocumentsSkeleton />;
   const [docs, setDocs] = useState<DocumentInterface[]>([]);
   const [isDragging, setIsDragging] = useState(false);

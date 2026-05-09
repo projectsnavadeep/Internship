@@ -37,7 +37,10 @@ export function DocumentViewer({ url, name, isOpen, onClose }: DocumentViewerPro
         clearTimeout(loadTimeout);
       };
     }
-  }, [isOpen, onClose]);
+    // We intentionally exclude onClose from dependencies to prevent 
+    // the viewer from resetting every time the parent renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
