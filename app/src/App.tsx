@@ -15,11 +15,11 @@ const ApplicationDetails = lazy(() => import('@/components/applications/Applicat
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
 const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
-const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const AdminOverview = lazy(() => import('@/components/admin/AdminOverview'));
 const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
-const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
-const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
-const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
+const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole'));
+const AdminSettings = lazy(() => import('@/components/admin/AdminSettings'));
+const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView'));
 const BugReportModal = lazy(() => import('@/components/shared/BugReportModal').then(m => ({ default: m.BugReportModal })));
 import { 
   supabase,

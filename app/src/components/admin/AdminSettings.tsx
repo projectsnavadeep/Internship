@@ -15,7 +15,7 @@ import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { SecurityAuditVault } from './SecurityAuditVault';
 import { logActivity } from '@/lib/supabase';
 
-export function AdminSettings() {
+export default function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
   const [promoting, setPromoting] = useState(false);
 

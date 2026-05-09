@@ -74,7 +74,7 @@ interface AdminOverviewProps {
   onNavigate?: (tab: string) => void;
 }
 
-export function AdminOverview({ onNavigate }: AdminOverviewProps) {
+export default function AdminOverview({ onNavigate }: AdminOverviewProps) {
   const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);

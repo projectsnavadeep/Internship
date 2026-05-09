@@ -195,9 +195,13 @@ export function SecurityAuditVault() {
                   </div>
 
                   <div className="flex items-center gap-8">
-                     <div className="text-right hidden sm:block">
+                      <div className="text-right hidden sm:block">
                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Last Telemetry</p>
-                        <p className="text-xs font-mono text-zinc-500">{new Date(session.activity_stream[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs font-mono text-zinc-500">
+                          {session.activity_stream?.[0]?.time 
+                            ? new Date(session.activity_stream[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : 'N/A'}
+                        </p>
                      </div>
                      <motion.div 
                        animate={{ rotate: expandedId === session.session_id ? 90 : 0 }}

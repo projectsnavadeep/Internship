@@ -45,7 +45,7 @@ const ERROR_TYPE_LABELS: Record<string, { label: string; color: string; icon: an
   unknown: { label: 'Unknown', color: 'text-zinc-400 bg-zinc-400/10', icon: Bug },
 };
 
-export function ErrorLogsView({ adminId }: { adminId?: string }) {
+export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unresolved' | 'resolved' | 'appeals'>('unresolved');
