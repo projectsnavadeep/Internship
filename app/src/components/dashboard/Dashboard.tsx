@@ -18,6 +18,7 @@ import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
 import { DashboardSkeleton } from '../shared/ViewSkeletons';
 import { DashboardSessionTimer } from './DashboardSessionTimer';
+import { PremiumLoader } from '../shared/PremiumLoader';
 import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
 
 interface DashboardProps {
@@ -90,8 +91,6 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
     />
   ), [profile?.id]);
 
-  if (loading) return <DashboardSkeleton />;
-
   const getTimeGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -100,8 +99,31 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
   };
 
   return (
-    <div className="space-y-8 will-change-transform">
-      {/* 24h Notification Banner */}
+    <div className="space-y-8 will-change-transform relative">
+      {/* Skeleton overlay that fades out instead of full unmount */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          >
+            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md" />
+            <div className="relative z-[60] transform -translate-y-12">
+              <PremiumLoader message="Syncing workspace..." size="lg" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: loading ? 0.6 : 1 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className={loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}
+      >
+        {/* 24h Notification Banner */}
       <AnimatePresence>
         {upcomingAlerts.length > 0 && (
           <motion.div
@@ -296,6 +318,7 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
             </motion.div>
           ))}
         </div>
+        </motion.div>
       </motion.div>
     </div>
   );
