@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { safeLazy } from '@/lib/ModuleHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -8,11 +8,6 @@ import { LoadingView } from '@/components/shared/LoadingView';
 import { FullScreenLoader } from '@/components/shared/PremiumLoader';
 import { useAuth } from '@/hooks/useAuth';
 
-// Lazy load heavy components
-const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
-const ApplicationList = lazy(() => import('@/components/applications/ApplicationList'));
-const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal'));
-const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails'));
 // Lazy load heavy components with Elite Recovery Handler
 const Dashboard = safeLazy(() => import('@/components/dashboard/Dashboard'));
 const ApplicationList = safeLazy(() => import('@/components/applications/ApplicationList'));
