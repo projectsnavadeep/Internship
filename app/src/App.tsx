@@ -440,20 +440,11 @@ function App() {
   const [showAuthForm, setShowAuthForm] = useState(false);
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      const timer = setTimeout(() => setShowAuthForm(true), hasSessionHint ? 800 : 0);
-      return () => clearTimeout(timer);
+      setShowAuthForm(true);
     } else {
       setShowAuthForm(false);
     }
-  }, [authLoading, isAuthenticated, hasSessionHint]);
-
-  if (authLoading && !isAuthenticated && hasSessionHint) {
-    return (
-      <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <FullScreenLoader message="Restoring Session..." />
-      </div>
-    );
-  }
+  }, [authLoading, isAuthenticated]);
 
   if (authLoading && !isAuthenticated && !hasSessionHint) {
     return <FullScreenLoader message="Connecting..." />;

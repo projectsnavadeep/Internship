@@ -25,9 +25,20 @@ export function useAuth() {
 
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
     try {
+      // 1. Check Cache First for Speed
+      const cachedRole = localStorage.getItem(`user-role-${userId}`);
+      if (cachedRole) {
+        // Return cached role immediately but update in background
+        getProfile(userId).then(p => {
+          if (p?.role) localStorage.setItem(`user-role-${userId}`, p.role);
+        }).catch(() => {});
+        return cachedRole as UserRole;
+      }
+
       const profile = await getProfile(userId);
+      const role = (profile?.role as UserRole) || 'student';
+      localStorage.setItem(`user-role-${userId}`, role);
       
-      // Strong Enforcement: Block even if session exists
       if (profile?.additional_data) {
         try {
           const meta = JSON.parse(profile.additional_data);
@@ -39,7 +50,7 @@ export function useAuth() {
         }
       }
 
-      return (profile?.role as UserRole) || 'student';
+      return role;
     } catch (err: any) {
       if (err.message === "ACCOUNT_LOCKED") throw err;
       return 'student';
@@ -48,6 +59,29 @@ export function useAuth() {
 
   const hydrateUser = useCallback(async (userRecord: any) => {
     if (!userRecord) return null;
+    
+    // Check for cached role to avoid blocking the UI
+    const cachedRole = localStorage.getItem(`user-role-${userRecord.id}`);
+    if (cachedRole) {
+      const authUser: AuthUser = {
+        id: userRecord.id,
+        email: userRecord.email,
+        user_metadata: userRecord.user_metadata,
+        role: cachedRole as UserRole,
+      };
+      setUser(authUser);
+      setLoading(false);
+      
+      // Update role in background to ensure correctness
+      fetchUserRole(userRecord.id).then(role => {
+        if (role !== cachedRole) {
+          setUser(prev => prev ? { ...prev, role } : null);
+        }
+      }).catch(console.error);
+      
+      return authUser;
+    }
+
     setRoleLoading(true);
     try {
       const role = await fetchUserRole(userRecord.id);
@@ -68,6 +102,7 @@ export function useAuth() {
       return null;
     } finally {
       setRoleLoading(false);
+      setLoading(false);
     }
   }, [fetchUserRole]);
 
@@ -77,10 +112,9 @@ export function useAuth() {
     // Safety timeout: only trigger if we haven't resolved anything
     const safetyTimer = setTimeout(() => {
       if (mounted && loading && !user) {
-        console.warn('[Auth] Initialization safety timeout');
         setLoading(false);
       }
-    }, hasSessionHint ? 5000 : 2000);
+    }, hasSessionHint ? 1500 : 800);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log(`[Auth] Event: ${event}`, session?.user?.id);
