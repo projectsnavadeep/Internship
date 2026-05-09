@@ -41,6 +41,7 @@ const ERROR_TYPE_LABELS: Record<string, { label: string; color: string; icon: an
   password_change: { label: 'Password', color: 'text-red-600 bg-red-600/10', icon: Shield },
   avatar_upload: { label: 'Avatar', color: 'text-teal-500 bg-teal-500/10', icon: User },
   data_load: { label: 'Data Load', color: 'text-gray-500 bg-gray-500/10', icon: Bug },
+  rendering: { label: 'UI Crash', color: 'text-red-500 bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]', icon: FileWarning },
   user_report: { label: 'User Bug Report', color: 'text-red-600 bg-red-600/20 border border-red-600/20', icon: MessageSquare },
   unknown: { label: 'Unknown', color: 'text-zinc-400 bg-zinc-400/10', icon: Bug },
 };
@@ -122,7 +123,7 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
       </motion.div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="apple-card p-5 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 text-center">
           <p className="text-3xl font-bold text-apple-near-black dark:text-white">{logs.length}</p>
           <p className="text-xs font-bold uppercase tracking-widest text-apple-near-black/30 mt-1">Total</p>
@@ -130,6 +131,10 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
         <div className="apple-card p-5 bg-white dark:bg-zinc-900 border border-red-500/20 text-center">
           <p className="text-3xl font-bold text-red-500">{unresolvedCount}</p>
           <p className="text-xs font-bold uppercase tracking-widest text-red-500/60 mt-1">Unresolved</p>
+        </div>
+        <div className="apple-card p-5 bg-white dark:bg-zinc-900 border border-red-600/30 text-center">
+          <p className="text-3xl font-bold text-red-600">{logs.filter(l => l.error_type === 'rendering').length}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-red-600/60 mt-1">Crashes</p>
         </div>
         <div className="apple-card p-5 bg-white dark:bg-zinc-900 border border-emerald-500/20 text-center">
           <p className="text-3xl font-bold text-emerald-500">{logs.length - unresolvedCount}</p>

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
+import { safeLazy } from '@/lib/ModuleHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -12,15 +13,20 @@ const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
 const ApplicationList = lazy(() => import('@/components/applications/ApplicationList'));
 const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal'));
 const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails'));
-const CalendarView = lazy(() => import('@/components/calendar/CalendarView'));
-const DocumentsView = lazy(() => import('@/components/documents/DocumentsView'));
-const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
-const AdminOverview = lazy(() => import('@/components/admin/AdminOverview'));
-const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
-const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole'));
-const AdminSettings = lazy(() => import('@/components/admin/AdminSettings'));
-const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView'));
-const BugReportModal = lazy(() => import('@/components/shared/BugReportModal'));
+// Lazy load heavy components with Elite Recovery Handler
+const Dashboard = safeLazy(() => import('@/components/dashboard/Dashboard'));
+const ApplicationList = safeLazy(() => import('@/components/applications/ApplicationList'));
+const ApplicationModal = safeLazy(() => import('@/components/applications/ApplicationModal'));
+const ApplicationDetails = safeLazy(() => import('@/components/applications/ApplicationDetails'));
+const CalendarView = safeLazy(() => import('@/components/calendar/CalendarView'));
+const DocumentsView = safeLazy(() => import('@/components/documents/DocumentsView'));
+const SettingsView = safeLazy(() => import('@/components/settings/SettingsView'));
+const AdminOverview = safeLazy(() => import('@/components/admin/AdminOverview'));
+const UserRegistryView = safeLazy(() => import('@/components/admin/UserRegistryView'));
+const SecurityConsole = safeLazy(() => import('@/components/admin/SecurityConsole'));
+const AdminSettings = safeLazy(() => import('@/components/admin/AdminSettings'));
+const ErrorLogsView = safeLazy(() => import('@/components/admin/ErrorLogsView'));
+const BugReportModal = safeLazy(() => import('@/components/shared/BugReportModal'));
 import { 
   supabase,
   getApplications, 
@@ -126,6 +132,25 @@ function App() {
       }
     }
   }, [activeTab, isAdmin, isAuthenticated]);
+
+  // Elite Recovery System: Restore context after a chunk failure reload
+  useEffect(() => {
+    const recoveryData = sessionStorage.getItem('recovery_context');
+    if (recoveryData) {
+      try {
+        const { tab } = JSON.parse(recoveryData);
+        if (tab && tab !== activeTab) {
+          console.log(`[🚀 Recovery] Restoring session context: ${tab}`);
+          setActiveTab(tab);
+          toast.success('Session restored after minor glitch.');
+        }
+      } catch (e) {
+        console.error('Recovery parse fail:', e);
+      } finally {
+        sessionStorage.removeItem('recovery_context');
+      }
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!user) return;

@@ -24,15 +24,31 @@ export class ErrorTracker extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
-    // Auto-reload once for dynamic import failures or HMR/chunk export mismatches
+    // Auto-recovery for dynamic import failures (Elite Shield)
     if (error.message && (
       error.message.includes('Failed to fetch dynamically imported module') ||
       error.message.includes('Lazy element type must resolve to a class or function') ||
       error.message.includes('Element type is invalid')
     )) {
       const isReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
-      if (!isReloaded) {
+      const now = Date.now();
+      const lastReload = parseInt(sessionStorage.getItem('last_chunk_reload_time') || '0');
+      
+      // Allow one auto-reload every 30 seconds to prevent infinite loops
+      if (!isReloaded || (now - lastReload > 30000)) {
         sessionStorage.setItem('chunk_load_error_reloaded', 'true');
+        sessionStorage.setItem('last_chunk_reload_time', now.toString());
+        
+        // Preserve context if safeLazy hasn't already
+        if (!sessionStorage.getItem('recovery_context')) {
+          const currentTab = localStorage.getItem('activeTab') || 'dashboard';
+          sessionStorage.setItem('recovery_context', JSON.stringify({
+            tab: currentTab,
+            timestamp: new Date().toISOString(),
+            error: error.message
+          }));
+        }
+        
         window.location.reload();
         return;
       }
@@ -40,12 +56,12 @@ export class ErrorTracker extends Component<Props, State> {
 
     logError({
       errorType: 'rendering',
-      errorMessage: error.message || 'Rendering error',
-      errorStack: error.stack || JSON.stringify(errorInfo),
+      errorMessage: `CRITICAL UI CRASH: ${error.message}`,
+      errorStack: `${error.stack}\n\nCOMPONENT STACK:\n${errorInfo.componentStack}`,
       source: 'frontend',
       actionAttempted: 'component_render',
       endpointOrFile: window.location.pathname,
-      role: 'system' // Fallback role
+      role: 'system'
     });
   }
 
