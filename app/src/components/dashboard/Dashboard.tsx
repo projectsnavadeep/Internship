@@ -5,6 +5,7 @@ import {
   Send, 
   MessageSquare, 
   Award, 
+  Clock,
   AlertCircle,
   X,
   TrendingUp,
