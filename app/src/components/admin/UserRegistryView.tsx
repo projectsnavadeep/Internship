@@ -442,7 +442,9 @@ export default function UserRegistryView() {
                                     toast.success("Intelligence Profile Unlocked");
                                     loadUsers();
                                     setSelectedUserDetail(null);
-                                  } catch (e) { toast.error("Unlock failed"); }
+                                  } catch (e: any) { 
+                                    toast.error(e.message || "Unlock failed"); 
+                                  }
                                 }}
                                 className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
                               >
@@ -457,7 +459,9 @@ export default function UserRegistryView() {
                                     toast.error("Intelligence Profile Locked");
                                     loadUsers();
                                     setSelectedUserDetail(null);
-                                  } catch (e) { toast.error("Lock failed"); }
+                                  } catch (e: any) { 
+                                    toast.error(e.message || "Lock failed"); 
+                                  }
                                 }}
                                 className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-[15px] flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
                               >

@@ -171,37 +171,66 @@ export const signIn = async (email: string, password: string) => {
 // Elite Security Commands
 // ============================================
 export const adminLockUser = async (userId: string) => {
+  if (!userId) throw new Error("Security Violation: Target UID is missing.");
   const admin = getAdminClient();
-  const { data: profile } = await admin.from('profiles').select('additional_data').eq('id', userId).single();
   
-  let metadata = {};
-  try {
-    metadata = profile?.additional_data ? JSON.parse(profile.additional_data) : {};
-  } catch (e) { metadata = {}; }
-
-  const { error } = await admin
+  // Fetch current metadata safely
+  const { data: profile, error: fetchError } = await admin
     .from('profiles')
-    .update({ additional_data: JSON.stringify({ ...metadata, locked: true }) })
+    .select('additional_data')
+    .eq('id', userId)
+    .single();
+  
+  if (fetchError) throw new Error(`Profile Acquisition Failure: ${fetchError.message}`);
+
+  let metadata = {};
+  if (profile?.additional_data) {
+    try {
+      metadata = typeof profile.additional_data === 'string' 
+        ? JSON.parse(profile.additional_data) 
+        : profile.additional_data;
+    } catch (e) { metadata = {}; }
+  }
+
+  const { error: updateError } = await admin
+    .from('profiles')
+    .update({ 
+      additional_data: JSON.stringify({ ...metadata, locked: true }) 
+    })
     .eq('id', userId);
   
-  if (error) throw error;
+  if (updateError) throw new Error(`Security Lock Transmission Failed: ${updateError.message}`);
 };
 
 export const adminUnlockUser = async (userId: string) => {
+  if (!userId) throw new Error("Security Violation: Target UID is missing.");
   const admin = getAdminClient();
-  const { data: profile } = await admin.from('profiles').select('additional_data').eq('id', userId).single();
   
-  let metadata = {};
-  try {
-    metadata = profile?.additional_data ? JSON.parse(profile.additional_data) : {};
-  } catch (e) { metadata = {}; }
-
-  const { error } = await admin
+  const { data: profile, error: fetchError } = await admin
     .from('profiles')
-    .update({ additional_data: JSON.stringify({ ...metadata, locked: false }) })
+    .select('additional_data')
+    .eq('id', userId)
+    .single();
+  
+  if (fetchError) throw new Error(`Profile Acquisition Failure: ${fetchError.message}`);
+
+  let metadata = {};
+  if (profile?.additional_data) {
+    try {
+      metadata = typeof profile.additional_data === 'string' 
+        ? JSON.parse(profile.additional_data) 
+        : profile.additional_data;
+    } catch (e) { metadata = {}; }
+  }
+
+  const { error: updateError } = await admin
+    .from('profiles')
+    .update({ 
+      additional_data: JSON.stringify({ ...metadata, locked: false }) 
+    })
     .eq('id', userId);
   
-  if (error) throw error;
+  if (updateError) throw new Error(`Security Unlock Transmission Failed: ${updateError.message}`);
 };
 
 export const signOut = async () => {
