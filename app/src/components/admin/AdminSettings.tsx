@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { 
   UserPlus, 
@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
-import { lazy, Suspense } from 'react';
-const SecurityAuditVault = lazy(() => import('./SecurityAuditVault').then(m => ({ default: m.SecurityAuditVault })));
 import { logActivity } from '@/lib/supabase';
+
+const SecurityAuditVault = lazy(() => import('./SecurityAuditVault').then(m => ({ default: m.SecurityAuditVault })));
 
 export default function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
