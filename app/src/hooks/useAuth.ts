@@ -202,13 +202,23 @@ export function useAuth() {
   }, [hydrateUser]);
 
   const logout = useCallback(() => {
-    // Optimistic instant UI update
-    setUser(null);
+    const userId = user?.id;
     
-    // Background execution to avoid blocking the UI
-    logActivity('user_logout', 'User session terminated').catch(console.error);
-    signOut().catch(console.error);
-  }, []);
+    // 1. Optimistic instant UI update
+    setUser(null);
+    setLoading(false);
+    
+    // 2. Clear all local cache to prevent restoration loops
+    if (userId) localStorage.removeItem(`user-role-${userId}`);
+    localStorage.removeItem('internship-auth-token');
+    
+    // 3. Background execution for server-side cleanup
+    logActivity('user_logout', 'User session terminated').catch(() => {});
+    signOut().catch(() => {});
+    
+    // 4. Force hash to login
+    window.location.hash = '#login';
+  }, [user]);
 
   const isAdmin = user?.role === 'admin' || user?.email?.includes('admin@') || user?.email === 'navadeepsripathi2@gmail.com';
 

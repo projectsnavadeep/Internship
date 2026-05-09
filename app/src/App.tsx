@@ -480,7 +480,7 @@ function App() {
       <Sidebar 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        onLogout={() => { logout(); setActiveTab('dashboard'); window.location.hash = '#login'; }}
+        onLogout={logout}
         userName={user?.user_metadata?.full_name || 'My Profile'}
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
