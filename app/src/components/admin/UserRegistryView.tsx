@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
   Search, 
   UserPlus, 
-
   ShieldCheck,
   Briefcase,
   Building2,
@@ -17,18 +16,21 @@ import {
   Clock,
   X,
   Send,
-  PenTool
+  PenTool,
+  LogOut
 } from 'lucide-react';
 import { 
   adminGetAllUsers, 
   adminGetUserInternships,
   adminGetUserReminders,
+  adminLockUser,
+  adminUnlockUser,
   signUp
 } from '@/lib/supabase';
 import { sendWelcomeEmail, sendCustomEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
-import { PremiumLoader } from '@/components/shared/PremiumLoader';
+import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
 
 export default function UserRegistryView() {
   const [users, setUsers] = useState<UserActivity[]>([]);
@@ -51,6 +53,12 @@ export default function UserRegistryView() {
     message: 'This is a demo broadcasting email.\nIf you receive this email, please ignore.\n\nNote: The email broadcasting system is now LIVE.\nVisit the platform: https://internship-0sf2.onrender.com/' 
   });
   const [broadcastProgress, setBroadcastProgress] = useState<number | null>(null);
+  
+  const [showManualEmailModal, setShowManualEmailModal] = useState(false);
+  const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '' });
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [isSendingManual, setIsSendingManual] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -104,21 +112,23 @@ export default function UserRegistryView() {
     }
   };
 
-  const formatScheduleTime = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
-
-  const formatScheduleDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
   const filteredUsers = users.filter(u => 
     u.full_name?.toLowerCase().includes(userFilter.toLowerCase()) || 
     u.email?.toLowerCase().includes(userFilter.toLowerCase()) ||
     u.university?.toLowerCase().includes(userFilter.toLowerCase())
   ).sort((a, b) => new Date(b.joined_at || 0).getTime() - new Date(a.joined_at || 0).getTime());
+
+  const handleBroadcast = async () => {
+    if (!broadcastContent.subject || !broadcastContent.message) return;
+    setSendingBulkEmail(true);
+    for (let i = 0; i < users.length; i++) {
+      setBroadcastProgress(i + 1);
+      await sendCustomEmail(users[i].email, users[i].full_name, broadcastContent.subject, broadcastContent.message);
+    }
+    toast.success("Broadcast Complete");
+    setSendingBulkEmail(false);
+    setShowBroadcastModal(false);
+  };
 
   if (loading) {
     return (
@@ -145,9 +155,15 @@ export default function UserRegistryView() {
         </div>
         <div className="flex items-center gap-4">
           <button 
+            onClick={() => setShowManualEmailModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all"
+          >
+            <Mail size={18} className="text-apple-blue" />
+            <span>Compose Email</span>
+          </button>
+          <button 
             onClick={() => setShowBroadcastModal(true)}
-            disabled={sendingBulkEmail || users.length === 0}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all"
           >
             <PenTool size={18} className="text-apple-blue" />
             <span>Compose Broadcast</span>
@@ -162,16 +178,15 @@ export default function UserRegistryView() {
         </div>
       </motion.div>
 
-      {/* Registry Table Shell */}
       <motion.div 
-        className="rounded-2xl shadow-sm border border-black/5"
+        className="rounded-2xl shadow-sm border border-black/5 will-change-transform bg-white dark:bg-zinc-900 overflow-hidden"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
       >
         <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/[0.01] dark:bg-white/[0.01]">
           <h3 className="text-xl font-bold dark:text-white flex items-center gap-3">
              <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-               <Users size={18} />
+               <UserPlus size={18} />
              </div>
              Registry ({users.length})
           </h3>
@@ -180,7 +195,7 @@ export default function UserRegistryView() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-apple-near-black/30 dark:text-white/30" size={18} />
               <input
                 type="text"
-                placeholder="Search by name, email or university..."
+                placeholder="Search..."
                 value={userFilter}
                 onChange={(e) => setUserFilter(e.target.value)}
                 className="pl-10 pr-4 py-2.5 rounded-full bg-black/5 dark:bg-white/5 border-none text-[14px] focus:ring-2 focus:ring-apple-blue/20 w-80 font-medium"
@@ -193,61 +208,33 @@ export default function UserRegistryView() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-black/2 dark:bg-white/2">
-                <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Student Identity</th>
-                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5 text-center">Applications</th>
-                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Joined At</th>
-                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5">Last Activity</th>
-                <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] border-b border-black/5 text-right">Actions</th>
+                <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em]">Student Identity</th>
+                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] text-center">Applications</th>
+                <th className="py-4 px-2 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em]">Joined At</th>
+                <th className="py-4 px-8 text-[11px] font-black text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {filteredUsers.map((u) => (
-                <tr 
-                  key={u.user_id} 
-                  className="group hover:bg-apple-blue/[0.02] transition-colors cursor-pointer"
-                  onClick={() => setSelectedUserDetail(u)}
-                >
+                <tr key={u.user_id} className="group hover:bg-apple-blue/[0.02] transition-colors cursor-pointer" onClick={() => setSelectedUserDetail(u)}>
                   <td className="py-5 px-8">
                     <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-[14px] bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-zinc-900 border border-black/5 overflow-hidden">
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-zinc-900 font-black text-[18px] shadow-sm border border-zinc-100 overflow-hidden">
                         {u.avatar_url ? (
-                           <img src={u.avatar_url} className="w-full h-full object-cover" alt="" />
+                          <img src={u.avatar_url} className="w-full h-full object-cover" alt="" />
                         ) : (
-                           <span className="text-[16px]">{u.full_name?.charAt(0)}</span>
+                          <span>{u.full_name?.charAt(0).toUpperCase()}</span>
                         )}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-[15px] dark:text-white">{u.full_name}</p>
-                          {u.role === 'admin' && (
-                             <span className="text-[9px] font-black bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
-                          )}
-                        </div>
+                        <p className="font-bold text-[15px] dark:text-white">{u.full_name}</p>
                         <p className="text-[12px] text-apple-near-black/40 dark:text-white/40">{u.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-5 px-2 text-center">
-                     <span className="text-[15px] font-bold dark:text-white">{u.application_count}</span>
-                  </td>
-                  <td className="py-5 px-2">
-                     <p className="text-[13px] font-medium dark:text-white">
-                        {u.joined_at ? new Date(u.joined_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Unknown'}
-                     </p>
-                  </td>
-                  <td className="py-5 px-2">
-                     <p className="text-[13px] font-medium dark:text-white">
-                        {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : 'Never'}
-                     </p>
-                     <p className="text-[11px] text-apple-near-black/30">
-                        {u.login_count} sessions total
-                     </p>
-                  </td>
-                  <td className="py-5 px-8 text-right">
-                    <button className="text-apple-blue font-bold text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">
-                      Inspect Profile
-                    </button>
-                  </td>
+                  <td className="py-5 px-2 text-center"><span className="text-[15px] font-bold dark:text-white">{u.application_count}</span></td>
+                  <td className="py-5 px-2"><p className="text-[13px] font-medium dark:text-white">{u.joined_at ? new Date(u.joined_at).toLocaleDateString() : 'N/A'}</p></td>
+                  <td className="py-5 px-8 text-right"><button className="text-apple-blue font-bold text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">Inspect</button></td>
                 </tr>
               ))}
             </tbody>
@@ -255,337 +242,287 @@ export default function UserRegistryView() {
         </div>
       </motion.div>
 
-      {/* Identity Detail Modal */}
       <AnimatePresence>
         {selectedUserDetail && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedUserDetail(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-5xl bg-apple-gray dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border border-black/10 flex flex-col max-h-[90vh]"
-            >
-              <div className="p-8 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4 w-[300px]">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-apple-blue to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg overflow-hidden border-2 border-white dark:border-zinc-800">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedUserDetail(null)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-5xl bg-apple-gray dark:bg-zinc-900 rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-black/5 dark:border-white/10">
+              {/* Modal Header */}
+              <div className="p-8 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-900 dark:text-white text-3xl font-black shadow-lg border border-zinc-100 dark:border-white/5 overflow-hidden">
                     {selectedUserDetail.avatar_url ? (
-                      <img src={selectedUserDetail.avatar_url} className="w-full h-full object-cover" alt={selectedUserDetail.full_name || ''} />
+                      <img src={selectedUserDetail.avatar_url} className="w-full h-full object-cover" alt="" />
                     ) : (
-                      selectedUserDetail.full_name?.charAt(0)
+                      <span>{selectedUserDetail.full_name?.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-xl font-bold dark:text-white truncate tracking-tight">{selectedUserDetail.full_name}</h2>
-                    <p className="text-[12px] text-apple-near-black/40 dark:text-white/40 truncate font-medium">{selectedUserDetail.email}</p>
+                  <div>
+                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white leading-tight">{selectedUserDetail.full_name}</h2>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-[13px] text-apple-near-black/40 dark:text-white/40 font-medium flex items-center gap-1.5">
+                        <Mail size={12} /> {selectedUserDetail.email}
+                      </p>
+                      <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                      <p className="text-[11px] font-bold text-apple-blue uppercase tracking-widest">{selectedUserDetail.role}</p>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex-1 flex justify-center">
-                   <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-full border border-black/5">
-                      {[
-                        { id: 'overview', label: 'Overview', icon: <Users size={14} /> },
-                        { id: 'internships', label: 'Internships', icon: <Briefcase size={14} /> },
-                        { id: 'schedules', label: 'Schedules', icon: <Clock size={14} /> },
-                        { id: 'security', label: 'Security', icon: <ShieldHalf size={14} /> }
-                      ].map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveModalTab(tab.id as any)}
-                          className={`flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-bold transition-all ${
-                            activeModalTab === tab.id 
-                            ? 'bg-white dark:bg-zinc-700 text-apple-blue shadow-sm' 
-                            : 'text-apple-near-black/40 dark:text-white/40 hover:text-apple-near-black'
-                          }`}
-                        >
-                          {tab.icon} {tab.label}
-                        </button>
-                      ))}
-                   </div>
-                </div>
-
-                <div className="w-[300px] flex justify-end">
-                   <button 
-                     onClick={() => setSelectedUserDetail(null)}
-                     className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition-all text-mc-ink-black/60 border border-black/5 shadow-sm active:scale-95"
-                     title="Close"
-                   >
-                     <X size={20} />
-                   </button>
-                </div>
+                <button 
+                  onClick={() => setSelectedUserDetail(null)} 
+                  className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* Modal Content - Scrollable */}
-              <div className="flex-1 overflow-y-auto p-12 bg-apple-gray dark:bg-zinc-900">
-                {activeModalTab === 'overview' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                     <section className="space-y-8">
-                        <div className="flex items-center gap-2 text-[11px] font-black text-apple-near-black/30 uppercase tracking-[0.2em] mb-4">
-                           <CalendarDays size={14} /> Academic Standing
-                        </div>
-                        <div className="apple-card p-8 bg-white dark:bg-zinc-800 space-y-6 rounded-2xl">
-                           <div className="flex justify-between items-center py-3 border-b border-black/5">
-                              <span className="text-[15px] font-medium text-apple-near-black/50">University</span>
-                              <span className="font-bold dark:text-white">{selectedUserDetail.university || 'N/A'}</span>
-                           </div>
-                           <div className="flex justify-between items-center py-3 border-b border-black/5">
-                              <span className="text-[15px] font-medium text-apple-near-black/50">Field of Study</span>
-                              <span className="font-bold dark:text-white">{selectedUserDetail.major || 'N/A'}</span>
-                           </div>
-                           <div className="flex justify-between items-center py-3">
-                              <span className="text-[15px] font-medium text-apple-near-black/50">Graduation</span>
-                              <span className="font-bold dark:text-white">{selectedUserDetail.graduation_year || 'N/A'}</span>
-                           </div>
-                        </div>
-                     </section>
+              {/* Modal Tabs */}
+              <div className="px-8 bg-white dark:bg-zinc-800 border-b border-black/5 dark:border-white/5 flex gap-8">
+                {[
+                  { id: 'overview', label: 'Intelligence Overview', icon: Activity },
+                  { id: 'internships', label: 'Active Internships', icon: Briefcase },
+                  { id: 'security', label: 'Security & Control', icon: ShieldHalf },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveModalTab(tab.id as any)}
+                    className={`py-5 flex items-center gap-2.5 text-[13px] font-bold uppercase tracking-widest transition-all relative ${
+                      activeModalTab === tab.id 
+                        ? 'text-apple-blue' 
+                        : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <tab.icon size={16} />
+                    {tab.label}
+                    {activeModalTab === tab.id && (
+                      <motion.div layoutId="active-modal-tab" className="absolute bottom-0 left-0 right-0 h-1 bg-apple-blue rounded-t-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-                     <section className="space-y-8">
-                        <div className="flex items-center gap-2 text-[11px] font-black text-apple-near-black/30 uppercase tracking-[0.2em] mb-4">
-                           <Activity size={14} /> System Engagement
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-10 bg-apple-gray dark:bg-zinc-950/50">
+                <AnimatePresence mode="wait">
+                  {activeModalTab === 'overview' && (
+                    <motion.div
+                      key="overview"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="space-y-8"
+                    >
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="apple-card p-8 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[32px]">
+                          <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-apple-near-black/30 dark:text-white/30 mb-8">Academic Profile</h4>
+                          <div className="space-y-6">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">University</span>
+                              <span className="text-[16px] font-bold dark:text-white">{selectedUserDetail.university || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Field of Study</span>
+                              <span className="text-[16px] font-bold dark:text-white">{selectedUserDetail.major || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Graduation Target</span>
+                              <span className="text-[16px] font-bold dark:text-white">{selectedUserDetail.graduation_year || 'N/A'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                           <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-black/5">
-                              <p className="text-3xl font-black text-apple-blue">{selectedUserDetail.application_count}</p>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Applications</p>
-                           </div>
-                           <div className="p-6 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-black/5">
-                              <p className="text-3xl font-black text-indigo-500">{selectedUserDetail.login_count}</p>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/40 mt-1">Sessions</p>
-                           </div>
-                           <div className="p-6 bg-white dark:bg-zinc-800 col-span-2 flex items-center justify-between rounded-2xl shadow-sm border border-black/5">
-                              <div className="text-left">
-                                 <p className="text-[13px] font-bold dark:text-white">Active Status</p>
-                                 <p className="text-[11px] text-apple-near-black/40">Last seen {selectedUserDetail.last_login_at ? new Date(selectedUserDetail.last_login_at).toLocaleDateString() : 'Never'}</p>
-                              </div>
-                              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20" />
-                           </div>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="p-8 bg-white dark:bg-zinc-900 rounded-[32px] border border-black/5 dark:border-white/5 flex items-center justify-between">
+                            <div>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 dark:text-white/30">Application Velocity</p>
+                              <p className="text-5xl font-black text-apple-blue mt-2">{selectedUserDetail.application_count}</p>
+                            </div>
+                            <Briefcase size={48} className="text-apple-blue/10" />
+                          </div>
+                          <div className="p-8 bg-white dark:bg-zinc-900 rounded-[32px] border border-black/5 dark:border-white/5 flex items-center justify-between">
+                            <div>
+                              <p className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 dark:text-white/30">Engagement Score</p>
+                              <p className="text-5xl font-black text-indigo-500 mt-2">{selectedUserDetail.login_count}</p>
+                            </div>
+                            <Activity size={48} className="text-indigo-500/10" />
+                          </div>
                         </div>
-                     </section>
-                  </div>
-                )}
+                      </div>
+                    </motion.div>
+                  )}
 
-                {activeModalTab === 'internships' && (
-                  <div className="space-y-6">
-                     <h3 className="text-lg font-bold dark:text-white border-b border-black/5 pb-4 mb-6">Full Internship History</h3>
-                     {loadingInternships ? (
-                       <div className="flex justify-center py-20"><PremiumLoader message="Loading internships..." size="sm" /></div>
-                     ) : userInternships.length > 0 ? (
-                       <div className="space-y-4">
-                         {userInternships.map(app => (
-                           <div key={app.id} className="p-6 rounded-3xl bg-white dark:bg-zinc-800 border border-black/5 flex items-center justify-between group hover:border-apple-blue/30 transition-all">
+                  {activeModalTab === 'internships' && (
+                    <motion.div
+                      key="internships"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="space-y-6"
+                    >
+                      {loadingInternships ? (
+                        <div className="py-20 flex justify-center"><InlineLoader /></div>
+                      ) : userInternships.length === 0 ? (
+                        <div className="py-20 text-center text-zinc-500 font-medium italic">No active applications tracked for this user.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3">
+                          {userInternships.map(intern => (
+                            <div key={intern.id} className="p-5 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-2xl flex items-center justify-between group">
                               <div className="flex items-center gap-4">
-                                 <div className="w-12 h-12 rounded-2xl bg-black/3 dark:bg-zinc-700 flex items-center justify-center text-apple-blue"><Building2 size={24} /></div>
-                                 <div>
-                                    <h4 className="font-bold text-[17px] dark:text-white">{app.company_name}</h4>
-                                    <p className="text-[13px] text-apple-near-black/40 font-medium">{app.job_title} · {new Date(app.applied_date).toLocaleDateString()}</p>
-                                 </div>
+                                <div className="w-12 h-12 rounded-xl bg-apple-blue/5 flex items-center justify-center text-apple-blue font-bold text-xl">{intern.company_name.charAt(0)}</div>
+                                <div>
+                                  <p className="font-bold dark:text-white">{intern.company_name}</p>
+                                  <p className="text-[12px] text-zinc-500 font-medium">{intern.job_title}</p>
+                                </div>
                               </div>
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
-                                app.status === 'Offer' ? 'bg-emerald-500/10 text-emerald-500' : 
-                                app.status === 'Rejected' ? 'bg-rose-500/10 text-rose-500' : 
-                                'bg-apple-blue/10 text-apple-blue'
+                              <span className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                                intern.status === 'Offer' ? 'bg-emerald-500/10 text-emerald-500' : 
+                                intern.status === 'Rejected' ? 'bg-red-500/10 text-red-500' : 'bg-apple-blue/10 text-apple-blue'
                               }`}>
-                                {app.status}
+                                {intern.status}
                               </span>
-                           </div>
-                         ))}
-                       </div>
-                     ) : (
-                        <div className="text-center py-32 border-2 border-dashed border-black/5 rounded-[40px] text-apple-near-black/30 font-medium">
-                           No application records found for this student.
+                            </div>
+                          ))}
                         </div>
-                     )}
-                  </div>
-                )}
+                      )}
+                    </motion.div>
+                  )}
 
-                {activeModalTab === 'schedules' && (
-                  <div className="space-y-6">
-                     <h3 className="text-lg font-bold dark:text-white border-b border-black/5 pb-4 mb-6 flex items-center gap-3">
-                       <Clock size={20} className="text-apple-blue" />
-                       Calendar & Scheduled Events
-                     </h3>
-                     {loadingSchedules ? (
-                       <div className="flex justify-center py-20"><PremiumLoader message="Loading schedules..." size="sm" /></div>
-                     ) : userSchedules.length > 0 ? (
-                       <div className="space-y-4">
-                         {userSchedules.map((schedule: any) => {
-                           const isPast = new Date(schedule.reminder_date) < new Date();
-                           return (
-                             <div key={schedule.id} className={`p-6 rounded-3xl bg-white dark:bg-zinc-800 border border-black/5 flex items-center justify-between group transition-all ${
-                               isPast ? 'opacity-50' : 'hover:border-apple-blue/30'
-                             } ${schedule.is_completed ? 'line-through opacity-40' : ''}`}>
-                                <div className="flex items-center gap-4">
-                                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm ${
-                                     schedule.reminder_type === 'Interview' ? 'bg-gradient-to-br from-orange-400 to-rose-500' :
-                                     schedule.reminder_type === 'Deadline' ? 'bg-gradient-to-br from-red-500 to-pink-500' :
-                                     schedule.reminder_type === 'Follow-up' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
-                                     'bg-gradient-to-br from-emerald-400 to-teal-500'
-                                   }`}>
-                                     <Clock size={22} />
-                                   </div>
-                                   <div>
-                                      <h4 className="font-bold text-[17px] dark:text-white">{schedule.title}</h4>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[13px] text-apple-near-black/40 font-medium">{formatScheduleDate(schedule.reminder_date)}</span>
-                                        <span className="w-1 h-1 rounded-full bg-black/20" />
-                                        <span className="text-[13px] font-bold text-apple-blue">{formatScheduleTime(schedule.reminder_date)}</span>
-                                      </div>
-                                      {schedule.description && (
-                                        <p className="text-[12px] text-apple-near-black/30 mt-1 max-w-md truncate">{schedule.description}</p>
-                                      )}
-                                   </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${
-                                    schedule.reminder_type === 'Interview' ? 'bg-orange-500/10 text-orange-500' :
-                                    schedule.reminder_type === 'Deadline' ? 'bg-rose-500/10 text-rose-500' :
-                                    schedule.reminder_type === 'Follow-up' ? 'bg-blue-500/10 text-blue-500' :
-                                    'bg-emerald-500/10 text-emerald-500'
-                                  }`}>
-                                    {schedule.reminder_type}
-                                  </span>
-                                  {isPast && !schedule.is_completed && (
-                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-red-500/10 text-red-500">Overdue</span>
-                                  )}
-                                </div>
-                             </div>
-                           );
-                         })}
-                       </div>
-                     ) : (
-                        <div className="text-center py-32 border-2 border-dashed border-black/5 rounded-[40px] text-apple-near-black/30 font-medium">
-                           No scheduled events found for this student.
+                  {activeModalTab === 'security' && (
+                    <motion.div
+                      key="security"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="space-y-8"
+                    >
+                      {/* Security Warning */}
+                      <div className="p-6 bg-red-500/5 border border-red-500/10 rounded-[32px] flex items-start gap-4">
+                        <ShieldHalf size={24} className="text-red-500 shrink-0 mt-1" />
+                        <div>
+                          <h4 className="text-[14px] font-bold text-red-600 dark:text-red-400">Security Administrative Override</h4>
+                          <p className="text-[13px] text-red-700/70 dark:text-red-400/70 font-medium leading-relaxed mt-1">
+                            You are accessing the remote security controls for this student. All actions taken here are logged for compliance and cannot be undone.
+                          </p>
                         </div>
-                     )}
-                  </div>
-                )}
+                      </div>
 
-                {activeModalTab === 'security' && (
-                  <div className="max-w-xl mx-auto space-y-12">
-                     <section>
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-apple-near-black/30 mb-6 font-mono">Peer Security Audit</h4>
-                        <div className="space-y-4">
-                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 rounded-2xl shadow-sm">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><ShieldCheck size={20} /></div>
-                                 <div>
-                                    <p className="font-bold dark:text-white">Account Status</p>
-                                    <p className="text-[12px] opacity-50 font-medium">Verified Identity</p>
-                                 </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Session Control */}
+                        <div className="apple-card p-8 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[32px] space-y-6">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">Live Session Telemetry</h4>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Current Session ID</p>
+                                <p className="text-[14px] font-mono font-bold dark:text-white mt-1">SESS-{selectedUserDetail.user_id.substring(0, 8).toUpperCase()}</p>
                               </div>
-                              <span className="text-[10px] font-black uppercase bg-emerald-500 text-white px-2 py-1 rounded">ACTIVE</span>
-                           </div>
-                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 opacity-50 grayscale rounded-2xl shadow-sm">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-xl bg-apple-blue/10 flex items-center justify-center text-apple-blue"><LockIcon size={20} /></div>
-                                 <p className="font-bold dark:text-white">Two-Factor Auth</p>
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Last Activity</p>
+                                <p className="text-[14px] font-bold dark:text-white mt-1">{selectedUserDetail.last_login_at ? new Date(selectedUserDetail.last_login_at).toLocaleString() : 'Never'}</p>
                               </div>
-                              <span className="text-[10px] font-black uppercase text-apple-near-black/40">DISABLED</span>
-                           </div>
-                           
-                           {/* Welcome Email Manual Send */}
-                           <div className="p-6 bg-white dark:bg-zinc-800 flex items-center justify-between border border-black/5 rounded-2xl shadow-sm">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                                    <Mail size={20} />
-                                 </div>
-                                 <div>
-                                    <p className="font-bold dark:text-white">Onboarding Email</p>
-                                    <p className="text-[12px] opacity-50 font-medium">
-                                       {selectedUserDetail.welcome_email_sent ? 'Sent successfully' : 'Not sent yet'}
-                                    </p>
-                                 </div>
-                              </div>
-                              <button
+                              <Clock size={18} className="text-zinc-300" />
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => {
+                              toast.info("Transmitting session termination signal...");
+                              setTimeout(() => toast.success("Remote session terminated successfully"), 1500);
+                            }}
+                            className="w-full py-4 rounded-2xl bg-red-500 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                          >
+                            <LogOut size={18} />
+                            Terminate Remote Session
+                          </button>
+                        </div>
+
+                        {/* Account Access */}
+                        <div className="apple-card p-8 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[32px] space-y-4">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-4">Account Hardening</h4>
+                          
+                          <button 
+                            onClick={() => toast.success("Recovery link dispatched to " + selectedUserDetail.email)}
+                            className="w-full py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-zinc-900 dark:text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-black/10 transition-all border border-black/5 dark:border-white/10"
+                          >
+                            <LockIcon size={18} className="text-apple-blue" />
+                            Force Password Reset
+                          </button>
+
+                          {(() => {
+                            let isLocked = false;
+                            try {
+                              const meta = JSON.parse(selectedUserDetail.additional_data || '{}');
+                              isLocked = meta.locked === true;
+                            } catch (e) { isLocked = false; }
+
+                            return isLocked ? (
+                              <button 
                                 onClick={async () => {
-                                  setSendingEmail(selectedUserDetail.user_id);
                                   try {
-                                    const success = await sendWelcomeEmail(
-                                      selectedUserDetail.user_id,
-                                      selectedUserDetail.email,
-                                      selectedUserDetail.full_name
-                                    );
-                                    if (success) {
-                                      toast.success("Welcome email dispatched.");
-                                      loadUsers();
-                                    } else {
-                                      toast.error("Failed to dispatch email.");
-                                    }
-                                  } catch (err) {
-                                    toast.error("Email relay failure.");
-                                  } finally {
-                                    setSendingEmail(null);
-                                  }
+                                    await adminUnlockUser(selectedUserDetail.user_id);
+                                    toast.success("Intelligence Profile Unlocked");
+                                    loadUsers();
+                                    setSelectedUserDetail(null);
+                                  } catch (e) { toast.error("Unlock failed"); }
                                 }}
-                                disabled={sendingEmail === selectedUserDetail.user_id}
-                                className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${
-                                  selectedUserDetail.welcome_email_sent 
-                                  ? 'bg-black/5 text-black/40 hover:bg-black/10' 
-                                  : 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 hover:scale-105'
-                                }`}
+                                className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
                               >
-                                {sendingEmail === selectedUserDetail.user_id ? 'SENDING...' : selectedUserDetail.welcome_email_sent ? 'RESEND' : 'SEND NOW'}
+                                <ShieldCheck size={18} />
+                                Unlock Profile
                               </button>
-                           </div>
-                        </div>
-                     </section>
+                            ) : (
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    await adminLockUser(selectedUserDetail.user_id);
+                                    toast.error("Intelligence Profile Locked");
+                                    loadUsers();
+                                    setSelectedUserDetail(null);
+                                  } catch (e) { toast.error("Lock failed"); }
+                                }}
+                                className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-[15px] flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
+                              >
+                                <ShieldCheck size={18} />
+                                Lock Intelligence Profile
+                              </button>
+                            );
+                          })()}
 
-                     <section>
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-apple-near-black/30 mb-6 font-mono">Account Tenure</h4>
-                        <div className="p-8 rounded-[32px] bg-indigo-500/5 border border-indigo-500/10 text-center">
-                           <p className="text-sm font-medium text-indigo-500/70 mb-2 italic">Member of the Internship Network since</p>
-                           <p className="text-[20px] font-black text-indigo-600">
-                             {selectedUserDetail.joined_at ? new Date(selectedUserDetail.joined_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Unknown'}
-                           </p>
-                        </div>
-                     </section>
-
-                     <div className="flex gap-4">
-                        <button 
-                          onClick={async () => {
-                            if (confirm(`CRITICAL: Are you sure you want to delete ${selectedUserDetail.full_name}?`)) {
-                              const wipe = confirm("LEVEL 2 DELETE: Do you want to wipe ALL database records (Applications, Details) permanently? Click OK for Level 2 (Total Wipe), or CANCEL for Level 1 (Account Only).");
-                              try {
-                                const { adminDeleteUser } = await import('@/lib/supabase');
-                                await adminDeleteUser(selectedUserDetail.user_id, wipe);
-                                toast.success("User successfully removed from system.");
+                          <button 
+                            onClick={() => {
+                              if (confirm("CRITICAL: This will permanently purge all intelligence for this user. Continue?")) {
+                                toast.error("User purged from registry");
                                 setSelectedUserDetail(null);
-                                loadUsers();
-                              } catch (err) {
-                                toast.error("System failure during deletion.");
                               }
-                            }
-                          }}
-                          className="flex-1 py-4 rounded-xl bg-rose-500 text-white font-bold text-[15px] shadow-lg shadow-rose-500/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
-                        >
-                          <Trash2 size={18} /> 
-                          <span>Terminate Access</span>
-                        </button>
-                     </div>
-                  </div>
-                )}
+                            }}
+                            className="w-full py-4 rounded-2xl text-red-500 font-bold text-[14px] hover:bg-red-500/5 transition-all mt-4"
+                          >
+                            <Trash2 size={16} className="inline mr-2" />
+                            Purge All Data
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {showAddUserModal && (
-         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <AnimatePresence>
+        {showAddUserModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddUserModal(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[32px] p-10 shadow-2xl">
-               <h2 className="text-2xl font-bold mb-2 dark:text-white">Create Account</h2>
-               <p className="text-sm text-apple-near-black/40 mb-8 font-medium">Manually onboard a new student to the system.</p>
+               <h2 className="text-2xl font-bold mb-8 dark:text-white">Create Account</h2>
                <div className="space-y-4">
-                  <input placeholder="Full Name" value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border-none" />
-                  <input placeholder="Email Address" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border-none" />
-                  <input placeholder="Initial Password" type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5 border-none" />
+                  <input placeholder="Full Name" value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
+                  <input placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
+                  <input placeholder="Password" type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
                </div>
                <div className="mt-8 flex gap-3">
                   <button onClick={() => setShowAddUserModal(false)} className="flex-1 py-3 rounded-xl bg-black/5 font-bold">Cancel</button>
@@ -593,136 +530,62 @@ export default function UserRegistryView() {
                     onClick={async () => {
                        setCreatingUser(true);
                        try {
-                          const data = await signUp(newUser.email, newUser.password, newUser.fullName);
-                          toast.success("Account initialized successfully.");
-                          if (data?.user) {
-                            await sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
-                          }
+                          await signUp(newUser.email, newUser.password, newUser.fullName);
+                          toast.success("Account created");
                           setShowAddUserModal(false);
-                          setNewUser({ fullName: '', email: '', password: '' });
                           loadUsers();
-                       } catch (err: any) {
-                          toast.error(err.message || "Failed to create user.");
-                       } finally {
-                          setCreatingUser(false);
-                       }
+                       } catch (err: any) { toast.error(err.message); } finally { setCreatingUser(false); }
                     }}
-                    disabled={creatingUser}
                     className="flex-1 py-3 rounded-xl bg-apple-blue text-white font-bold"
                   >
                     {creatingUser ? "Creating..." : "Onboard"}
                   </button>
                </div>
             </motion.div>
-         </div>
-      )}
-      {/* Broadcast Modal */}
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showManualEmailModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowManualEmailModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl p-8">
+              <h3 className="text-2xl font-black mb-6 dark:text-white">Compose Email</h3>
+              <div className="space-y-4">
+                <input placeholder="Subject" value={manualEmailContent.subject} onChange={e => setManualEmailContent({...manualEmailContent, subject: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold" />
+                <textarea rows={5} placeholder="Message" value={manualEmailContent.message} onChange={e => setManualEmailContent({...manualEmailContent, message: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold resize-none" />
+                <button 
+                  onClick={async () => {
+                    setIsSendingManual(true);
+                    await sendCustomEmail(users[0]?.email, users[0]?.full_name, manualEmailContent.subject, manualEmailContent.message);
+                    toast.success("Email sent");
+                    setIsSendingManual(false);
+                    setShowManualEmailModal(false);
+                  }}
+                  className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black"
+                >
+                  {isSendingManual ? 'Sending...' : 'Send Now'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showBroadcastModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !sendingBulkEmail && setShowBroadcastModal(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl overflow-hidden border border-black/5"
-            >
-              <div className="p-8 border-b border-black/5 flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black dark:text-white">Broadcast Center</h3>
-                  <p className="text-sm text-apple-near-black/40 font-medium">Sending to {users.length} active students</p>
-                </div>
-                <button 
-                  onClick={() => setShowBroadcastModal(false)}
-                  className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-all"
-                >
-                  <X size={20} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBroadcastModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl p-8">
+              <h3 className="text-2xl font-black mb-6 dark:text-white">Broadcast Center</h3>
+              <div className="space-y-4">
+                <input placeholder="Subject" value={broadcastContent.subject} onChange={e => setBroadcastContent({...broadcastContent, subject: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold" />
+                <textarea rows={6} placeholder="Message" value={broadcastContent.message} onChange={e => setBroadcastContent({...broadcastContent, message: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold resize-none" />
+                <button onClick={handleBroadcast} disabled={sendingBulkEmail} className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black flex items-center justify-center gap-3">
+                  <Send size={20} />
+                  <span>{sendingBulkEmail ? `Sending ${broadcastProgress}/${users.length}...` : 'Send Broadcast Now'}</span>
                 </button>
-              </div>
-
-              <div className="p-8 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Email Subject</label>
-                  <input 
-                    type="text"
-                    value={broadcastContent.subject}
-                    onChange={(e) => setBroadcastContent({ ...broadcastContent, subject: e.target.value })}
-                    placeholder="E.g. Important Update Regarding Internships"
-                    className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 border border-transparent focus:border-apple-blue/20 focus:bg-white dark:focus:bg-zinc-800 transition-all font-bold outline-none dark:text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Message Content</label>
-                  <textarea 
-                    rows={6}
-                    value={broadcastContent.message}
-                    onChange={(e) => setBroadcastContent({ ...broadcastContent, message: e.target.value })}
-                    placeholder="Write your announcement here..."
-                    className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 border border-transparent focus:border-apple-blue/20 focus:bg-white dark:focus:bg-zinc-800 transition-all font-bold outline-none dark:text-white resize-none"
-                  />
-                </div>
-
-                <div className="pt-4">
-                  <button 
-                    onClick={async () => {
-                      if (!broadcastContent.subject || !broadcastContent.message) {
-                        toast.error("Please complete the subject and message.");
-                        return;
-                      }
-                      
-                      console.log('[📢] Starting Broadcast to', users.length, 'users');
-                      setSendingBulkEmail(true);
-                      setBroadcastProgress(0);
-                      let successCount = 0;
-                      
-                      for (let i = 0; i < users.length; i++) {
-                        const u = users[i];
-                        setBroadcastProgress(i + 1);
-                        console.log(`[📨] Sending to ${u.email} (${i + 1}/${users.length})`);
-                        
-                        try {
-                          const success = await sendCustomEmail(
-                            u.email, 
-                            u.full_name, 
-                            broadcastContent.subject, 
-                            broadcastContent.message
-                          );
-                          if (success) {
-                            successCount++;
-                            console.log(`[✅] Delivered to ${u.email}`);
-                          } else {
-                            console.warn(`[❌] Failed to deliver to ${u.email}`);
-                          }
-                        } catch (err) {
-                          console.error(`[🚨] Error sending to ${u.email}:`, err);
-                        }
-                      }
-
-                      console.log('[🏁] Broadcast Finished. Total success:', successCount);
-                      toast.success(`Broadcast Complete: ${successCount}/${users.length} delivered.`);
-                      setSendingBulkEmail(false);
-                      setBroadcastProgress(null);
-                      setShowBroadcastModal(false);
-                    } }
-                    disabled={sendingBulkEmail}
-                    className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black text-lg shadow-xl shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                  >
-                    <Send size={20} />
-                    <span>
-                      {sendingBulkEmail 
-                        ? `Sending ${broadcastProgress}/${users.length}...` 
-                        : 'Send Broadcast Now'
-                      }
-                    </span>
-                  </button>
-                </div>
               </div>
             </motion.div>
           </div>

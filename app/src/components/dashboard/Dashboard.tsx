@@ -29,6 +29,30 @@ interface DashboardProps {
   loading?: boolean;
 }
 
+function DashboardSessionTimer() {
+  const [minutes, setMinutes] = useState(0);
+
+  useEffect(() => {
+    const startTime = window.sessionStorage.getItem('session_start_time');
+    if (!startTime) return;
+
+    const calculate = () => {
+      const diff = Date.now() - new Date(startTime).getTime();
+      setMinutes(Math.floor(diff / 60000));
+    };
+
+    calculate();
+    const interval = setInterval(calculate, 10000); 
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-[15px] font-bold text-zinc-900 dark:text-white tabular-nums">
+      {minutes}m Spent
+    </span>
+  );
+}
+
 export function Dashboard({ applications, reminders, stats, profile, onNavigate, loading }: DashboardProps) {
   if (loading) return <DashboardSkeleton />;
   const [statusData, setStatusData] = useState<any[]>([]);
@@ -94,65 +118,75 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       {/* 24h Notification Banner */}
       <AnimatePresence>
         {upcomingAlerts.length > 0 && (
           <motion.div
             initial={{ height: 0, opacity: 0, marginTop: 0 }}
-            animate={{ height: 'auto', opacity: 1, marginTop: 24 }}
+            animate={{ height: 'auto', opacity: 1, marginTop: 12 }}
             exit={{ height: 0, opacity: 0, marginTop: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-[32px] p-6 md:p-8 flex items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
-                  <AlertCircle size={32} />
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 md:p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 shrink-0">
+                  <AlertCircle size={20} />
                 </div>
                 <div>
-                  <h4 className="text-[20px] font-bold text-amber-700 leading-tight">Incoming Schedule</h4>
-                  <p className="text-[15px] text-amber-700/60 font-medium">
-                    You have <span className="text-amber-700 font-bold">{upcomingAlerts[0].title}</span> in {Math.round((new Date(upcomingAlerts[0].reminder_date).getTime() - new Date().getTime()) / (1000 * 60))} minutes.
+                  <h4 className="text-[16px] font-bold text-amber-700 leading-tight">Incoming Schedule</h4>
+                  <p className="text-[13px] text-amber-700/60 font-medium">
+                    <span className="text-amber-700 font-bold">{upcomingAlerts[0].title}</span> in {' '}
+                    {(() => {
+                      const mins = Math.round((new Date(upcomingAlerts[0].reminder_date).getTime() - new Date().getTime()) / (1000 * 60));
+                      if (mins < 60) return `${mins} mins`;
+                      const h = Math.floor(mins / 60);
+                      const m = mins % 60;
+                      return `${h}h ${m}m`;
+                    })()}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => {/* Trigger scroll to reminders or tab change */}}
-                  className="px-6 py-3 rounded-full bg-amber-500 text-white font-bold text-[14px] shadow-lg shadow-amber-500/20 flex items-center gap-2 hover:scale-[1.02] transition-transform"
-                >
-                  View Prep
-                  <ChevronRight size={16} />
-                </button>
-                <button 
-                  onClick={() => setDismissedAlerts(prev => [...prev, upcomingAlerts[0].id])}
-                  className="w-12 h-12 rounded-full border border-amber-500/20 flex items-center justify-center text-amber-500/40 hover:text-amber-500 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <button 
+                onClick={() => setDismissedAlerts(prev => [...prev, upcomingAlerts[0].id])}
+                className="w-8 h-8 rounded-full border border-amber-500/20 flex items-center justify-center text-amber-500/40 hover:text-amber-500 transition-colors shrink-0"
+              >
+                <X size={14} />
+              </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        className="text-left py-8 md:py-20 max-w-4xl"
+        className="text-left py-8 md:pt-4 md:pb-12 max-w-4xl"
       >
-        <h1 className="mb-6 leading-tight">
-          {getTimeGreeting()},<br />
-          <span className="text-apple-blue">
-            {(profile?.full_name || 'there').split(' ')[0]}.
-          </span>
-        </h1>
-        <p className="text-[24px] text-apple-near-black/50 dark:text-white/40 tracking-tight max-w-2xl font-medium">
-          {stats.total_applications > 0 
-            ? `${stats.total_applications} opportunities tracked. ${stats.interview_count} interviews pending.`
-            : 'Your journey starts here. Add your first application to see insights.'}
-        </p>
+        <div className="space-y-6">
+          <h1 className="mb-6 leading-tight">
+            {getTimeGreeting()},<br />
+            <span className="text-apple-blue">
+              {(profile?.full_name || 'there').split(' ')[0]}.
+            </span>
+          </h1>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+            <p className="text-[24px] text-apple-near-black/50 dark:text-white/40 tracking-tight font-medium">
+              {stats.total_applications > 0 
+                ? `${stats.total_applications} opportunities tracked. ${stats.interview_count} interviews pending.`
+                : 'Your journey starts here. Add your first application to see insights.'}
+            </p>
+            
+            <div className="flex items-center gap-3 bg-apple-blue/[0.03] border border-apple-blue/10 px-5 py-2.5 rounded-2xl w-fit">
+              <Clock size={18} className="text-apple-blue animate-pulse" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-apple-blue uppercase tracking-widest leading-none mb-1">Session Duration</span>
+                <DashboardSessionTimer />
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Empty State / Engagement Screen */}
@@ -162,7 +196,7 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
         >
-          <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-apple-blue/5 blur-3xl pointer-events-none" />
+          <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-apple-blue/5 blur-2xl pointer-events-none will-change-[filter]" />
           
           <div className="w-24 h-24 md:w-32 md:h-32 rounded-[32px] md:rounded-[40px] bg-white flex items-center justify-center border border-mc-ink-black/5 shadow-sm shrink-0">
             <Sparkles size={48} className="text-apple-blue md:w-16 md:h-16" />
@@ -237,7 +271,7 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
       >
-        <div className="absolute top-[-50%] right-[-10%] w-[800px] h-[800px] rounded-full bg-white/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-[-50%] right-[-10%] w-[800px] h-[800px] rounded-full bg-white/5 blur-2xl pointer-events-none will-change-[filter]" />
 
         <div className="flex flex-col items-center text-center mb-16 relative z-10">
           <div className="mc-eyebrow flex items-center gap-2 mb-6">

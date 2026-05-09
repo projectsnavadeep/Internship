@@ -26,8 +26,22 @@ export function useAuth() {
   const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
     try {
       const profile = await getProfile(userId);
+      
+      // Strong Enforcement: Block even if session exists
+      if (profile?.additional_data) {
+        try {
+          const meta = JSON.parse(profile.additional_data);
+          if (meta.locked === true) {
+            throw new Error("ACCOUNT_LOCKED");
+          }
+        } catch (e: any) {
+          if (e.message === "ACCOUNT_LOCKED") throw e;
+        }
+      }
+
       return (profile?.role as UserRole) || 'student';
-    } catch {
+    } catch (err: any) {
+      if (err.message === "ACCOUNT_LOCKED") throw err;
       return 'student';
     }
   }, []);
@@ -45,6 +59,13 @@ export function useAuth() {
       };
       setUser(authUser);
       return authUser;
+    } catch (err: any) {
+      if (err.message === "ACCOUNT_LOCKED") {
+        await signOut();
+        setUser(null);
+        throw err;
+      }
+      return null;
     } finally {
       setRoleLoading(false);
     }
@@ -68,18 +89,34 @@ export function useAuth() {
 
       if (session?.user) {
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          await hydrateUser(session.user);
+          if (!window.sessionStorage.getItem('session_start_time')) {
+            window.sessionStorage.setItem('session_start_time', new Date().toISOString());
+          }
+          try {
+            await hydrateUser(session.user);
+          } catch (err: any) {
+            if (err.message === "ACCOUNT_LOCKED") {
+              setUser(null);
+            }
+          }
           setLoading(false);
           clearTimeout(safetyTimer);
         } else {
           // Token refresh or other updates
-          const role = user?.role || await fetchUserRole(session.user.id);
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-            role,
-          });
+          try {
+            const role = user?.role || await fetchUserRole(session.user.id);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              user_metadata: session.user.user_metadata,
+              role,
+            });
+          } catch (err: any) {
+             if (err.message === "ACCOUNT_LOCKED") {
+               await signOut();
+               setUser(null);
+             }
+          }
           setLoading(false);
         }
       } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
@@ -130,10 +167,13 @@ export function useAuth() {
     return null;
   }, [hydrateUser]);
 
-  const logout = useCallback(async () => {
-    await logActivity('user_logout', 'User session terminated');
+  const logout = useCallback(() => {
+    // Optimistic instant UI update
     setUser(null);
-    await signOut();
+    
+    // Background execution to avoid blocking the UI
+    logActivity('user_logout', 'User session terminated').catch(console.error);
+    signOut().catch(console.error);
   }, []);
 
   const isAdmin = user?.role === 'admin' || user?.email?.includes('admin@') || user?.email === 'navadeepsripathi2@gmail.com';

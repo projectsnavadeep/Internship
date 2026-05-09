@@ -20,7 +20,9 @@ const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'
 const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
 const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
+const BugReportModal = lazy(() => import('@/components/shared/BugReportModal').then(m => ({ default: m.BugReportModal })));
 import { 
+  supabase,
   getApplications, 
   updateApplication, 
   deleteApplication,
@@ -31,7 +33,8 @@ import {
   deleteInterviewNote,
   getProfile,
   logError,
-  logActivity
+  logActivity,
+  triggerGlobalEmailAlerts
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } from '@/types';
@@ -54,9 +57,15 @@ function App() {
 
   // History and Persistence Sync
   useEffect(() => {
-    // Only update hash if we are authenticated to avoid leaking state to login page
-    // and to prevent wiping the hash during the initial loading "hang"
     if (isAuthenticated) {
+      // Auto-redirect if we are on an auth hash or invalid tab
+      const authTabs = ['login', 'signup'];
+      if (authTabs.includes(activeTab)) {
+        const defaultTab = isAdmin ? 'admin' : 'dashboard';
+        setActiveTab(defaultTab);
+        return;
+      }
+
       window.location.hash = activeTab;
       localStorage.setItem('activeTab', activeTab);
       if (isAdmin) {
@@ -76,30 +85,20 @@ function App() {
       }
     };
 
-    // Exit Guard / Accidental Closure Prevention
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (activeTab !== 'dashboard') {
-        e.preventDefault();
-        e.returnValue = 'Professional progress detected. Are you sure you wish to disconnect?';
-        return e.returnValue;
-      }
-    };
-
-    // Push initial history state to prevent immediate tab closing on first "Back" gesture
     if (window.history.length <= 1) {
       window.history.pushState({ initialized: true }, '');
     }
 
     window.addEventListener('popstate', handlePopState);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeTab]);
+
   const [applications, setApplications] = useState<Application[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [hasSecurityAlert, setHasSecurityAlert] = useState(false);
   const [stats, setStats] = useState<ApplicationStats>({
     total_applications: 0,
     applied_count: 0,
@@ -115,15 +114,18 @@ function App() {
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
   const [isSyncing, setIsSyncing] = useState(true);
+  const [showBugReport, setShowBugReport] = useState(false);
 
-
-  // Guard: non-admin users cannot access admin tab
+  // Guard: non-admin users cannot access admin tabs
   useEffect(() => {
-    if (activeTab === 'admin' && !isAdmin) {
+    const adminTabs = ['admin', 'users', 'security', 'admin-settings', 'error-logs'];
+    if (adminTabs.includes(activeTab) && !isAdmin && isAuthenticated) {
       setActiveTab('dashboard');
-      toast.error('Access denied. Admin privileges required.');
+      if (activeTab === 'admin') {
+        toast.error('Access denied. Admin privileges required.');
+      }
     }
-  }, [activeTab, isAdmin]);
+  }, [activeTab, isAdmin, isAuthenticated]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -131,7 +133,6 @@ function App() {
     try {
       const userId = user.id;
       
-      // Fetch everything, but don't let one failure block the others
       const fetchJobs = [
         getApplications(userId).catch(e => { console.error('Apps load fail:', e); return []; }),
         getReminders(userId).catch(e => { console.error('Reminders load fail:', e); return []; }),
@@ -149,6 +150,8 @@ function App() {
       setStats(appStats);
       setProfile(userProfile);
       setIsSyncing(false);
+
+      triggerGlobalEmailAlerts().catch(console.error);
     } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');
@@ -172,14 +175,63 @@ function App() {
   }, [isAuthenticated, loadData]);
 
   useEffect(() => {
-    // Redirect admins from dashboard to admin page
     if (isAuthenticated && isAdmin && activeTab === 'dashboard') {
       setActiveTab('admin');
       window.location.hash = 'admin';
     }
   }, [isAuthenticated, isAdmin, activeTab]);
 
-  // Handle login
+  // Security Alert Sentinel (Realtime)
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) return;
+
+    // 1. Initial Check for Unresolved Reports
+    const checkUnresolved = async () => {
+      const { count, error } = await supabase
+        .from('error_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('error_type', 'user_report')
+        .eq('resolved', false);
+      
+      if (!error && count && count > 0) {
+        setHasSecurityAlert(true);
+      }
+    };
+    checkUnresolved();
+
+    // 2. Realtime Listener for New Critical Reports
+    const channel = supabase
+      .channel('security-alerts')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'error_logs',
+          filter: "error_type=eq.user_report"
+        },
+        () => {
+          setHasSecurityAlert(true);
+          toast('CRITICAL: New Bug Report Received', {
+            description: 'A student has reported a potentially serious anomaly.',
+            icon: '🚨',
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, isAdmin]);
+
+  // Clear Alert when visiting the Logs
+  useEffect(() => {
+    if (activeTab === 'error-logs') {
+      setHasSecurityAlert(false);
+    }
+  }, [activeTab]);
+
   const handleLogin = useCallback(async (email: string, password: string) => {
     try {
       const u = await login(email, password);
@@ -200,8 +252,6 @@ function App() {
     }
   }, [login]);
 
-
-  // Handle register
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       const data = await register(email, password, fullName);
@@ -236,10 +286,8 @@ function App() {
     }
   }, [register]);
 
-  // Application CRUD
   const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
     try {
-      console.log(`[🚀] UPDATING STATUS to ${newStatus} for ${id}`);
       await updateApplication(id, { status: newStatus as any, updated_at: new Date().toISOString() });
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
       if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
@@ -247,9 +295,7 @@ function App() {
       await logActivity('application_status_update', `Application status changed to ${newStatus}`, { applicationId: id, status: newStatus });
       loadData();
     } catch (error: any) {
-      console.error('[❌] Status Update Failed:', error);
       toast.error(error.message || 'Failed to update status');
-      
       logError({
         errorType: 'application_update',
         errorMessage: error.message || 'Status change failed',
@@ -263,8 +309,6 @@ function App() {
   }, [user, isAdmin, viewingApp, loadData]);
 
   const handleSaveApplication = useCallback(async (_appData: Partial<Application>) => {
-    // Modal now handles DB insert/update directly.
-    // This callback just refreshes the local state.
     setShowAppModal(false);
     setEditingApp(null);
     await loadData();
@@ -280,7 +324,6 @@ function App() {
       loadData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete application');
-      
       logError({
         errorType: 'application_delete',
         errorMessage: error.message || 'App deletion failed',
@@ -316,17 +359,8 @@ function App() {
       await logActivity('interview_note_add', 'New interview note recorded', { applicationId: viewingApp.id });
     } catch (error: any) {
       toast.error(error.message || 'Failed to add note');
-      logError({
-        errorType: 'application_update',
-        errorMessage: error.message || 'Interview note addition failed',
-        errorStack: error.stack,
-        actionAttempted: 'handleAddInterviewNote',
-        userId: user.id,
-        userEmail: user.email,
-        role: isAdmin ? 'admin' : 'student'
-      });
     }
-  }, [user, isAdmin, viewingApp]);
+  }, [user, viewingApp]);
 
   const handleDeleteInterviewNote = useCallback(async (id: string) => {
     try {
@@ -335,19 +369,9 @@ function App() {
       toast.success('Note deleted!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete note');
-      logError({
-        errorType: 'application_update',
-        errorMessage: error.message || 'Interview note deletion failed',
-        errorStack: error.stack,
-        actionAttempted: 'handleDeleteInterviewNote',
-        userId: user?.id,
-        userEmail: user?.email,
-        role: isAdmin ? 'admin' : 'student'
-      });
     }
-  }, [user, isAdmin]);
+  }, []);
 
-  // Render content based on active tab
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -414,7 +438,6 @@ function App() {
     }
   };
 
-  // Grace period to prevent login flicker on refresh
   const [showAuthForm, setShowAuthForm] = useState(false);
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -425,8 +448,6 @@ function App() {
     }
   }, [authLoading, isAuthenticated, hasSessionHint]);
 
-  // Master Guard: Only block the entire UI if we are loading AND we don't have a cached user AND no local session hint.
-  // Using hasSessionHint ensures that on refresh, the user sees the App Layout/Skeletons immediately.
   if (authLoading && !isAuthenticated && hasSessionHint) {
     return (
       <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -442,9 +463,7 @@ function App() {
   if (!isAuthenticated && showAuthForm) {
     return (
       <div className="h-screen bg-white dark:bg-zinc-950 bg-grid-pattern flex items-center justify-center p-4 overflow-hidden relative">
-        {/* Subtle top light effect */}
         <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#0071E3]/[0.02] to-transparent pointer-events-none" />
-        
         <div className="w-full max-w-[440px] relative z-10">
           <AuthForm onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />
         </div>
@@ -476,9 +495,11 @@ function App() {
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
         isAdmin={isAdmin}
+        avatarUrl={profile?.avatar_url}
+        onReportBug={() => setShowBugReport(true)}
+        hasSecurityAlert={hasSecurityAlert}
       />
 
-      {/* Main Content */}
       <main 
         className="flex-1 min-h-screen p-4 md:px-8 mt-[100px] transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
@@ -486,10 +507,16 @@ function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.99 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 400,
+                damping: 30,
+                opacity: { duration: 0.2 }
+              }}
+              className="w-full"
             >
               <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>
                 {renderContent()}
@@ -499,7 +526,6 @@ function App() {
         </div>
       </main>
 
-      {/* Modals */}
       <Suspense fallback={null}>
         <ApplicationModal
           isOpen={showAppModal}
@@ -519,6 +545,14 @@ function App() {
           onAddNote={handleAddInterviewNote}
           onDeleteNote={handleDeleteInterviewNote}
           onStatusChange={handleStatusChange}
+        />
+
+        <BugReportModal 
+          isOpen={showBugReport}
+          onClose={() => setShowBugReport(false)}
+          userId={user?.id}
+          userEmail={user?.email}
+          userName={profile?.full_name || user?.user_metadata?.full_name}
         />
       </Suspense>
     </div>

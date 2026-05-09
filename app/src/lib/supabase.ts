@@ -141,7 +141,67 @@ export const signIn = async (email: string, password: string) => {
   });
   
   if (error) throw error;
+
+  // Cyber Security Enforcement: Check if account is locked
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('additional_data')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profile?.additional_data) {
+      try {
+        const metadata = JSON.parse(profile.additional_data);
+        if (metadata.locked === true) {
+          await signOut();
+          throw new Error("ACCOUNT LOCKED: Access denied by administrative order. Please contact security@interntrack.com");
+        }
+      } catch (e: any) {
+        if (e.message.includes("ACCOUNT LOCKED")) throw e;
+        // Ignore JSON parse errors for legacy data
+      }
+    }
+  }
+
   return data;
+};
+
+// ============================================
+// Elite Security Commands
+// ============================================
+export const adminLockUser = async (userId: string) => {
+  const admin = getAdminClient();
+  const { data: profile } = await admin.from('profiles').select('additional_data').eq('id', userId).single();
+  
+  let metadata = {};
+  try {
+    metadata = profile?.additional_data ? JSON.parse(profile.additional_data) : {};
+  } catch (e) { metadata = {}; }
+
+  const { error } = await admin
+    .from('profiles')
+    .update({ additional_data: JSON.stringify({ ...metadata, locked: true }) })
+    .eq('id', userId);
+  
+  if (error) throw error;
+};
+
+export const adminUnlockUser = async (userId: string) => {
+  const admin = getAdminClient();
+  const { data: profile } = await admin.from('profiles').select('additional_data').eq('id', userId).single();
+  
+  let metadata = {};
+  try {
+    metadata = profile?.additional_data ? JSON.parse(profile.additional_data) : {};
+  } catch (e) { metadata = {}; }
+
+  const { error } = await admin
+    .from('profiles')
+    .update({ additional_data: JSON.stringify({ ...metadata, locked: false }) })
+    .eq('id', userId);
+  
+  if (error) throw error;
 };
 
 export const signOut = async () => {
@@ -198,6 +258,25 @@ export const getProfile = async (userId: string) => {
     
   if (error && error.code !== 'PGRST116') throw error; // Handle "No Rows" gracefully if needed
   return data;
+};
+
+export const submitAppeal = async (userId: string, email: string, name: string, message: string) => {
+  try {
+    await logError({
+      errorType: 'user_report',
+      errorMessage: `SECURITY APPEAL: ${message}`,
+      actionAttempted: 'account_appeal',
+      userId,
+      userEmail: email,
+      userName: name,
+      source: 'security_lock',
+      role: 'student'
+    });
+    return true;
+  } catch (e) {
+    console.error('Appeal submission failed:', e);
+    return false;
+  }
 };
 
 export const updateProfile = async (userId: string, profileData: Partial<any>) => {
@@ -448,7 +527,7 @@ export const createReminder = async (reminder: Partial<Reminder>) => {
 export const completeReminder = async (id: string) => {
   const { data, error } = await supabase
     .from('reminders')
-    .update({ is_completed: true })
+    .update({ is_completed: true, is_notified: true }) // Mark notified so agent ignores it
     .eq('id', id)
     .select()
     .single();
@@ -457,6 +536,24 @@ export const completeReminder = async (id: string) => {
 
   await logActivity('reminder_complete', `Calendar milestone achieved: ${data.title}`, { 
     reminderId: id 
+  });
+
+  // Trigger completion email asynchronously
+  import('./email').then(async ({ sendCustomEmail }) => {
+    try {
+      const user = await getCurrentUser();
+      const profile = await getProfile(user.id);
+      if (user?.email && profile?.full_name) {
+        await sendCustomEmail(
+          user.email,
+          profile.full_name,
+          'Successfully Completed: ' + data.title,
+          `Congratulations!\n\nYou have successfully completed the schedule/event: "${data.title}".\n\nYour progress has been recorded. Keep up the great work in your internship journey!`
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to send completion email:', e);
+    }
   });
 
   return data as Reminder;
@@ -959,7 +1056,7 @@ export const adminGetUserReminders = async (userId: string) => {
 // ============================================
 export type ErrorType = 'auth' | 'application_save' | 'application_update' | 'application_delete' |
   'resume_upload' | 'cover_letter_upload' | 'document_upload' | 'document_delete' |
-  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'rendering' | 'network' | 'unknown';
+  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'rendering' | 'network' | 'user_report' | 'unknown';
 
 export interface ErrorLogData {
   errorType: ErrorType;
@@ -1089,10 +1186,33 @@ export const adminGetErrorStats = async () => {
 // ============================================
 // Activity & Session Tracking
 // ============================================
+export const generateSessionId = (userId: string) => {
+  const date = new Date();
+  const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const month = monthNames[date.getUTCMonth()];
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  
+  // Create a simple deterministic hash for the day + user
+  const str = userId + date.toISOString().split('T')[0];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const hex = Math.abs(hash).toString(16).toUpperCase().substring(0, 4).padStart(4, '0');
+  return `${month}${day}(${hex})`;
+};
+
 export const logActivity = async (actionType: string, description: string, metadata: any = {}) => {
   try {
     const user = await getCurrentUser();
     if (!user) return;
+
+    // Generate accurate session id for the current day
+    const currentSessionId = generateSessionId(user.id);
+    
+    // Save to session storage for persistence across tabs
+    window.sessionStorage.setItem('current_session_id', currentSessionId);
 
     await supabase
       .from('activity_logs')
@@ -1102,7 +1222,7 @@ export const logActivity = async (actionType: string, description: string, metad
         description,
         metadata: {
           ...metadata,
-          session_id: window.sessionStorage.getItem('current_session_id') || 'UNKNOWN'
+          session_id: currentSessionId
         }
       });
   } catch (err) {
@@ -1118,7 +1238,15 @@ export const adminGetDailySessions = async () => {
     .order('session_date', { ascending: false });
 
   if (error) throw error;
-  return data;
+  
+  // Frontend fix: Force the session_id to match the telemetry metadata if available
+  return (data || []).map((session: any) => {
+    const metaId = session.activity_stream?.[0]?.metadata?.session_id;
+    if (metaId && metaId !== 'UNKNOWN') {
+      session.session_id = metaId;
+    }
+    return session;
+  });
 };
 
 export const adminGetSessionDetails = async (userId: string, date: string) => {
@@ -1133,4 +1261,100 @@ export const adminGetSessionDetails = async (userId: string, date: string) => {
 
   if (error) throw error;
   return data;
+};
+
+// ============================================
+// GLOBAL EMAIL ALERT AGENT
+// ============================================
+// This runs transparently when any user logs in, processing alerts for ALL users
+export const triggerGlobalEmailAlerts = async () => {
+  try {
+    if (!supabaseAdmin) return;
+    
+    // OPTIMIZATION: Throttle the agent to run at most once per hour per client
+    if (typeof window !== 'undefined') {
+      const lastRunStr = window.localStorage.getItem('last_global_email_run');
+      const nowMs = Date.now();
+      if (lastRunStr && nowMs - parseInt(lastRunStr, 10) < 60 * 60 * 1000) {
+        return; // Skip if it ran within the last hour
+      }
+      window.localStorage.setItem('last_global_email_run', nowMs.toString());
+    }
+
+    // OPTIMIZATION: Defer execution by 5 seconds to ensure it doesn't compete with page load/rendering
+    setTimeout(async () => {
+      try {
+        // 1. Fetch all uncompleted, un-notified reminders
+        const { data: reminders, error: remError } = await supabaseAdmin
+          .from('reminders')
+          .select('id, user_id, title, reminder_date')
+          .eq('is_completed', false)
+          .eq('is_notified', false);
+          
+        if (remError || !reminders || reminders.length === 0) return;
+
+        // 2. Filter reminders that are happening within the next 48 hours
+        const now = new Date();
+        const fortyEightHoursFromNow = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+        
+        const upcomingReminders = reminders.filter((r: any) => {
+          const remDate = new Date(r.reminder_date);
+          return remDate > now && remDate <= fortyEightHoursFromNow;
+        });
+
+        if (upcomingReminders.length === 0) return;
+
+        // 3. Fetch profiles to check preferences
+        const userIds = [...new Set(upcomingReminders.map((r: any) => r.user_id))];
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, preferences')
+          .in('id', userIds);
+          
+        // 4. Fetch auth emails
+        const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+        const users = authData?.users || [];
+
+        const { sendCustomEmail } = await import('./email');
+
+        // 5. Dispatch emails
+        for (const reminder of upcomingReminders) {
+          const profile = (profiles || []).find((p: any) => p.id === reminder.user_id);
+          const authUser = users.find((u: any) => u.id === reminder.user_id);
+          
+          // Check user preferences
+          const prefs = profile?.preferences || {};
+          const canEmail = prefs.emailNotifications !== false && prefs.deadlineReminders !== false;
+
+          if (profile && authUser?.email && canEmail) {
+             const dateStr = new Date(reminder.reminder_date).toLocaleString();
+             const success = await sendCustomEmail(
+               authUser.email,
+               profile.full_name || 'User',
+               'Action Required: Upcoming Deadline',
+               `Your scheduled event or deadline "${reminder.title}" is approaching on ${dateStr}.\n\nHurry up and ensure everything is prepared for this milestone!`
+             );
+
+             if (success) {
+               // Mark as notified so we don't spam
+               await supabaseAdmin
+                 .from('reminders')
+                 .update({ is_notified: true })
+                 .eq('id', reminder.id);
+             }
+          } else {
+             // Even if they opted out, mark notified so we don't keep evaluating it
+             await supabaseAdmin
+                 .from('reminders')
+                 .update({ is_notified: true })
+                 .eq('id', reminder.id);
+          }
+        }
+      } catch (innerErr) {
+        console.error('Global Email Agent inner error:', innerErr);
+      }
+    }, 5000);
+  } catch (err) {
+    console.error('Global Email Agent error:', err);
+  }
 };

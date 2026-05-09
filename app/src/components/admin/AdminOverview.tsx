@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { 
   adminGetStats, 
-  adminGetRecentApplications 
+  adminGetRecentApplications,
+  generateSessionId
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
 import { PremiumLoader } from '@/components/shared/PremiumLoader';
+import { useAuth } from '@/hooks/useAuth';
 
 
 
@@ -73,20 +75,18 @@ interface AdminOverviewProps {
 }
 
 export function AdminOverview({ onNavigate }: AdminOverviewProps) {
+  const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sessionId, setSessionId] = useState('PRDX-...');
+  const [sessionId, setSessionId] = useState('SYNCING...');
 
   useEffect(() => {
-    let storedId = sessionStorage.getItem('admin_trace_session_id');
-    if (!storedId) {
-      storedId = `PRDX-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-      sessionStorage.setItem('admin_trace_session_id', storedId);
+    if (user?.id) {
+      setSessionId(generateSessionId(user.id));
     }
-    setSessionId(storedId);
     loadData();
-  }, []);
+  }, [user?.id]);
 
   const loadData = async () => {
     setLoading(true);

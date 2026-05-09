@@ -450,17 +450,50 @@ export function CalendarView({ applications, reminders, userId, onRefresh, loadi
                       />
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-6 flex-1">
                       <div>
                         <label className="block text-[13px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Time</label>
-                        <input
-                          type="time"
-                          required
-                          value={eventForm.time}
-                          onChange={e => setEventForm({...eventForm, time: e.target.value})}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent text-[16px]"
-                        />
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="time"
+                            required
+                            value={eventForm.time}
+                            onChange={e => setEventForm({...eventForm, time: e.target.value})}
+                            className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent text-[16px]"
+                          />
+                          <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0 h-[48px]">
+                            {['AM', 'PM'].map((period) => {
+                              const [h] = eventForm.time.split(':').map(Number);
+                              const isPM = h >= 12;
+                              const currentPeriod = isPM ? 'PM' : 'AM';
+                              const isActive = currentPeriod === period;
+                              
+                              return (
+                                <button
+                                  key={period}
+                                  type="button"
+                                  onClick={() => {
+                                    const [hours, mins] = eventForm.time.split(':').map(Number);
+                                    let newHours = hours;
+                                    if (period === 'PM' && hours < 12) newHours = hours + 12;
+                                    if (period === 'AM' && hours >= 12) newHours = hours - 12;
+                                    const formattedTime = `${newHours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                                    setEventForm({...eventForm, time: formattedTime});
+                                  }}
+                                  className={`px-4 flex items-center justify-center rounded-lg text-[12px] font-bold transition-all ${
+                                    isActive 
+                                      ? 'bg-white text-zinc-900 shadow-sm' 
+                                      : 'text-zinc-400 hover:text-zinc-600'
+                                  }`}
+                                >
+                                  {period}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
+
                       <div>
                         <label className="block text-[13px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Type</label>
                         <select

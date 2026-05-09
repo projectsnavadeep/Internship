@@ -196,14 +196,12 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
           {filteredApplications.map((app, index) => (
             <motion.div
               key={app.id}
-              layout
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.05, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              className="mc-stadium-card p-6 md:p-10 flex flex-col h-full bg-white relative group"
+              transition={{ delay: index * 0.05 }}
+              className="mc-stadium-card p-10 flex flex-col justify-between group h-full relative overflow-hidden"
             >
-              {/* Optional: Thin orbital connection arc decorative element if desired. Could be absolute pos */}
               <div className="flex items-start justify-between mb-8 z-10 relative">
                 <div className="mc-circle-portrait w-20 h-20 bg-mc-canvas-cream flex items-center justify-center text-mc-ink-black shadow-sm">
                   <Building2 size={32} strokeWidth={1.5} />

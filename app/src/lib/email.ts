@@ -18,12 +18,27 @@ export const sendWelcomeEmail = async (
     const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
-        reply_to: 'support@gmail.com',
-        subject: 'Welcome to the Internship Network',
+        reply_to: 'supportinternship@gmail.com',
+        subject: 'Welcome to the InternTrack Platform',
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background-color: #ffffff;">
-            <div style="margin-bottom: 30px; text-align: center;">
-              <h1 style="color: #007AFF; font-size: 28px; font-weight: 900; margin: 0; letter-spacing: -1px;">InternTrack</h1>
+            <div style="margin-bottom: 40px;">
+              <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="padding-right: 20px; border-right: 2px solid #e5e5e7; vertical-align: middle;">
+                    <div style="text-align: left; line-height: 1.1;">
+                      <span style="color: #141413; font-size: 24px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; text-transform: uppercase;">INTERN</span>
+                      <span style="color: #0071E3; font-size: 24px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; text-transform: uppercase;">TRACK</span>
+                    </div>
+                  </td>
+                  <td style="padding-left: 20px; vertical-align: middle;">
+                    <div style="text-align: left; line-height: 1.1;">
+                      <span style="color: #86868b; font-size: 10px; font-weight: 800; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 2px;">The Professional</span>
+                      <span style="color: #141413; font-size: 32px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; letter-spacing: -1px;">Platform</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </div>
             
             <h2 style="color: #1a1a1a; font-size: 24px; font-weight: 700; margin-bottom: 20px;">Welcome to the Network, ${userName}!</h2>
@@ -48,7 +63,7 @@ export const sendWelcomeEmail = async (
             <hr style="border: none; border-top: 1px solid #f2f2f2; margin-bottom: 30px;" />
             
             <p style="color: #86868b; font-size: 12px; text-align: center; line-height: 1.5;">
-              This is an official communication from InternTrack.<br />
+              This is an official communication from the InternTrack Platform.<br />
               (this is a test email, dont worry)
             </p>
           </div>
@@ -79,12 +94,27 @@ export const sendCustomEmail = async (
     const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
-        reply_to: 'support@gmail.com',
+        reply_to: 'supportinternship@gmail.com',
         subject: subject,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background-color: #ffffff;">
-            <div style="margin-bottom: 30px; text-align: center;">
-              <h1 style="color: #007AFF; font-size: 28px; font-weight: 900; margin: 0; letter-spacing: -1px;">InternTrack</h1>
+            <div style="margin-bottom: 40px;">
+              <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="padding-right: 20px; border-right: 2px solid #e5e5e7; vertical-align: middle;">
+                    <div style="text-align: left; line-height: 1.1;">
+                      <span style="color: #141413; font-size: 24px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; text-transform: uppercase;">INTERN</span>
+                      <span style="color: #0071E3; font-size: 24px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; text-transform: uppercase;">TRACK</span>
+                    </div>
+                  </td>
+                  <td style="padding-left: 20px; vertical-align: middle;">
+                    <div style="text-align: left; line-height: 1.1;">
+                      <span style="color: #86868b; font-size: 10px; font-weight: 800; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 2px;">The Professional</span>
+                      <span style="color: #141413; font-size: 32px; font-weight: 900; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: block; letter-spacing: -1px;">Platform</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </div>
             
             <h2 style="color: #1a1a1a; font-size: 22px; font-weight: 700; margin-bottom: 20px;">Hello ${userName},</h2>
@@ -102,7 +132,7 @@ export const sendCustomEmail = async (
             <hr style="border: none; border-top: 1px solid #f2f2f2; margin-bottom: 30px;" />
             
             <p style="color: #86868b; font-size: 12px; text-align: center;">
-              This is a custom broadcast from the InternTrack Administrative Team.<br />
+              This is a custom broadcast from the InternTrack Platform Administrative Team.<br />
               (this is a test email, dont worry)
             </p>
           </div>

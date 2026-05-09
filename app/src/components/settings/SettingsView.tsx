@@ -27,6 +27,30 @@ interface SettingsViewProps {
   onUpdate?: () => void;
 }
 
+function SessionTimer() {
+  const [minutes, setMinutes] = useState(0);
+
+  useEffect(() => {
+    const startTime = window.sessionStorage.getItem('session_start_time');
+    if (!startTime) return;
+
+    const calculate = () => {
+      const diff = Date.now() - new Date(startTime).getTime();
+      setMinutes(Math.floor(diff / 60000));
+    };
+
+    calculate();
+    const interval = setInterval(calculate, 10000); // Update every 10s for responsiveness
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-[13px] font-bold text-apple-blue bg-apple-blue/10 px-2 py-0.5 rounded">
+      {minutes} MINS
+    </span>
+  );
+}
+
 export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout, onUpdate }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
@@ -58,8 +82,26 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     weeklyDigest: false,
   });
 
+  const handleTogglePreference = async (key: keyof UserPreferences) => {
+    if (!userId) return;
+    
+    const newPrefs = { ...notifications, [key]: !notifications[key] };
+    setNotifications(newPrefs);
+    
+    try {
+      await updateProfile(userId, { preferences: newPrefs });
+      toast.success('Alert preferences updated.');
+    } catch (error: any) {
+      toast.error('Failed to save preferences.');
+      // Revert on failure
+      setNotifications(notifications);
+    }
+  };
+
   useEffect(() => {
-    if (profileData && !isEditingProfile && !isSavingProfile) {
+    if (isEditingProfile || isSavingProfile) return;
+
+    if (profileData) {
       setProfile(prev => ({
         ...prev,
         fullName: profileData.full_name || profileData.fullName || prev.fullName,
@@ -111,6 +153,18 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
       setProfile(prev => ({ ...prev, email: userEmail }));
     }
   }, [userEmail]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isEditingProfile) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved profile changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isEditingProfile]);
 
   const handlePasswordChange = async () => {
     if (!newPassword || newPassword.length < 6) return toast.error('Password must be at least 6 characters.');
@@ -419,33 +473,35 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
                     <p className="text-[15px] font-medium text-white">{item.label}</p>
                     <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">{item.desc}</p>
                   </div>
-                  <button onClick={() => setNotifications(prev => ({ ...prev, [item.key]: !prev[item.key as keyof UserPreferences] }))} className={`w-11 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ${notifications[item.key as keyof UserPreferences] ? 'bg-zinc-100' : 'bg-zinc-800 border border-zinc-700'}`}>
+                  <button onClick={() => handleTogglePreference(item.key as keyof UserPreferences)} className={`w-11 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ${notifications[item.key as keyof UserPreferences] ? 'bg-zinc-100' : 'bg-zinc-800 border border-zinc-700'}`}>
                     <motion.div className={`w-4 h-4 rounded-full absolute top-1 ${notifications[item.key as keyof UserPreferences] ? 'bg-zinc-900' : 'bg-zinc-500'}`} animate={{ left: notifications[item.key as keyof UserPreferences] ? '24px' : '4px' }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
                   </button>
                 </div>
               ))}
             </div>
+
+            <div className="mt-10 pt-8 border-t border-zinc-800 space-y-4">
+               <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">Active Session ID</span>
+                  <span className="text-[13px] font-mono text-white/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                    {window.sessionStorage.getItem('current_session_id') || 'GENERATING...'}
+                  </span>
+               </div>
+               <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">Login Start</span>
+                  <span className="text-[13px] text-white/70">
+                    {window.sessionStorage.getItem('session_start_time') 
+                      ? new Date(window.sessionStorage.getItem('session_start_time')!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                      : 'NOW'}
+                  </span>
+               </div>
+               <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">Time Spent</span>
+                  <SessionTimer />
+               </div>
+            </div>
           </motion.div>
 
-          {/* Sign Out Card */}
-          <motion.div 
-            className="mc-stadium-card p-6 bg-white border border-red-500/10 flex items-center justify-between group cursor-pointer hover:bg-red-50 transition-colors"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.5 }}
-            onClick={onLogout}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-500 shadow-sm border border-red-100">
-                <LogOut size={20} />
-              </div>
-              <div>
-                <p className="text-[15px] font-bold text-red-600">Sign Out</p>
-                <p className="text-[11px] text-red-400 font-medium uppercase tracking-widest">Terminate current session</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-red-300 group-hover:translate-x-1 transition-transform" />
-          </motion.div>
         </div>
       </div>
     </div>
