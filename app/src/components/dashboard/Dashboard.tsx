@@ -28,27 +28,42 @@ interface DashboardProps {
   loading?: boolean;
 }
 
-function DashboardSessionTimer() {
-  const [minutes, setMinutes] = useState(0);
+function DashboardSessionTimer({ userId, initialToday, initialTotal }: { userId?: string, initialToday: number, initialTotal: number }) {
+  const [todayMins, setTodayMins] = useState(initialToday);
+  const [totalMins, setTotalMins] = useState(initialTotal);
+  const [sessionMins, setSessionMins] = useState(0);
 
   useEffect(() => {
-    const startTime = window.sessionStorage.getItem('session_start_time');
-    if (!startTime) return;
+    if (!userId) return;
 
-    const calculate = () => {
-      const diff = Date.now() - new Date(startTime).getTime();
-      setMinutes(Math.floor(diff / 60000));
-    };
+    // Background sync to DB every minute
+    const syncInterval = setInterval(async () => {
+      setSessionMins(prev => prev + 1);
+      setTodayMins(prev => prev + 1);
+      setTotalMins(prev => prev + 1);
+      
+      // Persist to Supabase
+      import('@/lib/supabase').then(m => m.updateSessionTime(userId, 1));
+    }, 60000);
 
-    calculate();
-    const interval = setInterval(calculate, 10000); 
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearInterval(syncInterval);
+  }, [userId]);
 
   return (
-    <span className="text-[15px] font-bold text-zinc-900 dark:text-white tabular-nums">
-      {minutes}m Spent
-    </span>
+    <div className="flex flex-col">
+       <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black text-apple-blue uppercase tracking-widest leading-none">Today</span>
+          <span className="text-[15px] font-bold text-zinc-900 dark:text-white tabular-nums">
+            {todayMins}m Spent
+          </span>
+       </div>
+       <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest leading-none">2026 Total</span>
+          <span className="text-[13px] font-medium text-zinc-500 tabular-nums">
+            {totalMins}m Tracked
+          </span>
+       </div>
+    </div>
   );
 }
 
@@ -181,7 +196,11 @@ export function Dashboard({ applications, reminders, stats, profile, onNavigate,
               <Clock size={18} className="text-apple-blue animate-pulse" />
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-apple-blue uppercase tracking-widest leading-none mb-1">Session Duration</span>
-                <DashboardSessionTimer />
+                <DashboardSessionTimer 
+                  userId={profile?.id} 
+                  initialToday={profile?.today_minutes_spent || 0}
+                  initialTotal={profile?.total_minutes_spent || 0}
+                />
               </div>
             </div>
           </div>

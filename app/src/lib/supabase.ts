@@ -246,6 +246,38 @@ export const updateLoginActivity = async (userId: string) => {
   }
 };
 
+/**
+ * PERSISTENT SESSION TELEMETRY
+ * Synchronizes local session duration with the central database.
+ */
+export const updateSessionTime = async (userId: string, minutesToIncrement: number = 1) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('total_minutes_spent, today_minutes_spent, last_active_date')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const isNewDay = profile.last_active_date !== today;
+
+    const updates = {
+      total_minutes_spent: (profile.total_minutes_spent || 0) + minutesToIncrement,
+      today_minutes_spent: isNewDay ? minutesToIncrement : (profile.today_minutes_spent || 0) + minutesToIncrement,
+      last_active_date: today,
+    };
+
+    await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId);
+  } catch (e) {
+    console.warn('Session time sync failed:', e);
+  }
+};
+
 // ============================================
 // Profile & Avatars
 // ============================================
