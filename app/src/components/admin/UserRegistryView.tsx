@@ -48,7 +48,7 @@ export default function UserRegistryView() {
   const [broadcastProgress, setBroadcastProgress] = useState<number | null>(null);
   
   const [showManualEmailModal, setShowManualEmailModal] = useState(false);
-  const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '' });
+  const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '', recipientId: '' });
   const [isSendingManual, setIsSendingManual] = useState(false);
 
   useEffect(() => {
@@ -132,7 +132,10 @@ export default function UserRegistryView() {
         </div>
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => setShowManualEmailModal(true)}
+            onClick={() => {
+              setManualEmailContent({ subject: '', message: '', recipientId: '' });
+              setShowManualEmailModal(true);
+            }}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all"
           >
             <Mail size={18} className="text-apple-blue" />
@@ -244,6 +247,20 @@ export default function UserRegistryView() {
                       <p className="text-[11px] font-bold text-apple-blue uppercase tracking-widest">{selectedUserDetail.role}</p>
                     </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      setManualEmailContent({ 
+                        subject: '', 
+                        message: `Hello ${selectedUserDetail.full_name},\n\n`, 
+                        recipientId: selectedUserDetail.user_id 
+                      });
+                      setShowManualEmailModal(true);
+                    }}
+                    className="ml-4 p-2 rounded-xl bg-apple-blue/10 text-apple-blue hover:bg-apple-blue hover:text-white transition-all flex items-center gap-2 text-[12px] font-bold"
+                  >
+                    <Mail size={16} />
+                    Message
+                  </button>
                 </div>
                 <button 
                   onClick={() => setSelectedUserDetail(null)} 
@@ -531,22 +548,78 @@ export default function UserRegistryView() {
         {showManualEmailModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowManualEmailModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl p-8">
-              <h3 className="text-2xl font-black mb-6 dark:text-white">Compose Email</h3>
-              <div className="space-y-4">
-                <input placeholder="Subject" value={manualEmailContent.subject} onChange={e => setManualEmailContent({...manualEmailContent, subject: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold" />
-                <textarea rows={5} placeholder="Message" value={manualEmailContent.message} onChange={e => setManualEmailContent({...manualEmailContent, message: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold resize-none" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl p-10 border border-black/5 dark:border-white/10">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-3xl font-black dark:text-white">Compose Email</h3>
+                <button 
+                  onClick={() => setShowManualEmailModal(false)}
+                  className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Recipient</label>
+                  <select 
+                    value={manualEmailContent.recipientId} 
+                    onChange={e => setManualEmailContent({...manualEmailContent, recipientId: e.target.value})}
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all appearance-none"
+                  >
+                    <option value="">Select Student...</option>
+                    {users.map(u => (
+                      <option key={u.user_id} value={u.user_id}>{u.full_name} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Subject Line</label>
+                  <input 
+                    placeholder="Enter email subject" 
+                    value={manualEmailContent.subject} 
+                    onChange={e => setManualEmailContent({...manualEmailContent, subject: e.target.value})} 
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Message Body</label>
+                  <textarea 
+                    rows={6} 
+                    placeholder="Write your message here..." 
+                    value={manualEmailContent.message} 
+                    onChange={e => setManualEmailContent({...manualEmailContent, message: e.target.value})} 
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none" 
+                  />
+                </div>
+
                 <button 
                   onClick={async () => {
+                    if (!manualEmailContent.recipientId) return toast.error("Please select a recipient");
+                    if (!manualEmailContent.subject) return toast.error("Subject is required");
+                    
                     setIsSendingManual(true);
-                    await sendCustomEmail(users[0]?.email, users[0]?.full_name, manualEmailContent.subject, manualEmailContent.message);
-                    toast.success("Email sent");
+                    const target = users.find(u => u.user_id === manualEmailContent.recipientId);
+                    if (target) {
+                      await sendCustomEmail(target.email, target.full_name, manualEmailContent.subject, manualEmailContent.message);
+                      toast.success(`Email sent to ${target.full_name}`);
+                    }
                     setIsSendingManual(false);
                     setShowManualEmailModal(false);
                   }}
-                  className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black"
+                  disabled={isSendingManual}
+                  className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black text-lg shadow-xl shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
                 >
-                  {isSendingManual ? 'Sending...' : 'Send Now'}
+                  {isSendingManual ? (
+                    <InlineLoader />
+                  ) : (
+                    <>
+                      <Send size={20} />
+                      <span>Dispatch Email</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -558,14 +631,58 @@ export default function UserRegistryView() {
         {showBroadcastModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowBroadcastModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl p-8">
-              <h3 className="text-2xl font-black mb-6 dark:text-white">Broadcast Center</h3>
-              <div className="space-y-4">
-                <input placeholder="Subject" value={broadcastContent.subject} onChange={e => setBroadcastContent({...broadcastContent, subject: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold" />
-                <textarea rows={6} placeholder="Message" value={broadcastContent.message} onChange={e => setBroadcastContent({...broadcastContent, message: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-black/3 dark:bg-white/5 font-bold resize-none" />
-                <button onClick={handleBroadcast} disabled={sendingBulkEmail} className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black flex items-center justify-center gap-3">
-                  <Send size={20} />
-                  <span>{sendingBulkEmail ? `Sending ${broadcastProgress}/${users.length}...` : 'Send Broadcast Now'}</span>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl p-10 border border-black/5 dark:border-white/10">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-3xl font-black dark:text-white">Broadcast Center</h3>
+                <button 
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-6 bg-apple-blue/5 border border-apple-blue/10 rounded-3xl mb-4">
+                  <p className="text-[13px] font-medium text-apple-blue/70 leading-relaxed">
+                    <span className="font-bold">Notice:</span> This will transmit the following email to <span className="font-bold">{users.length} registered students</span> in the registry.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Broadcast Subject</label>
+                  <input 
+                    placeholder="Announcement Title" 
+                    value={broadcastContent.subject} 
+                    onChange={e => setBroadcastContent({...broadcastContent, subject: e.target.value})} 
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Announcement Content</label>
+                  <textarea 
+                    rows={8} 
+                    placeholder="Detailed message..." 
+                    value={broadcastContent.message} 
+                    onChange={e => setBroadcastContent({...broadcastContent, message: e.target.value})} 
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none" 
+                  />
+                </div>
+
+                <button 
+                  onClick={handleBroadcast} 
+                  disabled={sendingBulkEmail} 
+                  className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black text-lg shadow-xl shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+                >
+                  {sendingBulkEmail ? (
+                    <InlineLoader />
+                  ) : (
+                    <>
+                      <Send size={20} />
+                      <span>{sendingBulkEmail ? `Transmitting ${broadcastProgress}/${users.length}...` : 'Launch Broadcast'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>

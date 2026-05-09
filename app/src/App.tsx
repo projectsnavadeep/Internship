@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { safeLazy } from '@/lib/ModuleHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -22,10 +22,10 @@ const SecurityConsole = safeLazy(() => import('@/components/admin/SecurityConsol
 const AdminSettings = safeLazy(() => import('@/components/admin/AdminSettings'));
 const ErrorLogsView = safeLazy(() => import('@/components/admin/ErrorLogsView'));
 const BugReportModal = safeLazy(() => import('@/components/shared/BugReportModal'));
-import { 
+import {
   supabase,
-  getApplications, 
-  updateApplication, 
+  getApplications,
+  updateApplication,
   deleteApplication,
   getApplicationStats,
   getReminders,
@@ -43,18 +43,21 @@ import './App.css';
 
 function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin, hasSessionHint } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
-    
+
     // Check if we were an admin last time to avoid flicker
     const wasAdmin = sessionStorage.getItem('was_admin') === 'true';
     const lastTab = localStorage.getItem('activeTab');
-    
+
     if (wasAdmin && (!lastTab || lastTab === 'dashboard')) return 'admin';
     return lastTab || 'dashboard';
   });
+
+  // 🔥 FIX: Track if we've already loaded data to prevent infinite loops
+  const hasLoadedRef = useRef(false);
 
   // History and Persistence Sync
   useEffect(() => {
@@ -108,12 +111,12 @@ function App() {
     rejected_count: 0,
     pending_count: 0,
   });
-  
+
   const [showAppModal, setShowAppModal] = useState(false);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(true);
   const [showBugReport, setShowBugReport] = useState(false);
 
@@ -149,33 +152,33 @@ function App() {
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    
+
     try {
+      setIsSyncing(true);
       const userId = user.id;
-      
+
       const fetchJobs = [
         getApplications(userId).catch(e => { console.error('Apps load fail:', e); return []; }),
         getReminders(userId).catch(e => { console.error('Reminders load fail:', e); return []; }),
-        getApplicationStats(userId).catch(e => { 
-          console.error('Stats load fail:', e); 
-          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 }; 
+        getApplicationStats(userId).catch(e => {
+          console.error('Stats load fail:', e);
+          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 };
         }),
         getProfile(userId).catch(e => { console.error('Profile load fail:', e); return null; })
       ];
-      
+
       const [apps, rems, appStats, userProfile] = await Promise.all(fetchJobs);
-      
+
       setApplications(apps);
       setReminders(rems);
       setStats(appStats);
       setProfile(userProfile);
-      setIsSyncing(false);
 
       triggerGlobalEmailAlerts().catch(console.error);
     } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');
-      
+
       logError({
         errorType: 'data_load',
         errorMessage: error.message || 'Bulk data load failed',
@@ -185,14 +188,19 @@ function App() {
         userEmail: user.email,
         role: isAdmin ? 'admin' : 'student'
       });
+    } finally {
+      // 🔥 FIX: ALWAYS set syncing to false when done
+      setIsSyncing(false);
     }
   }, [user, isAdmin]);
 
+  // 🔥 FIX: Load data only ONCE when authenticated, prevent infinite loops
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       loadData();
     }
-  }, [isAuthenticated, loadData]);
+  }, [isAuthenticated]); // Removed loadData from deps!
 
   useEffect(() => {
     if (isAuthenticated && isAdmin && activeTab === 'dashboard') {
@@ -212,7 +220,7 @@ function App() {
         .select('*', { count: 'exact', head: true })
         .eq('error_type', 'user_report')
         .eq('resolved', false);
-      
+
       if (!error && count && count > 0) {
         setHasSecurityAlert(true);
       }
@@ -256,9 +264,9 @@ function App() {
     try {
       const u = await login(email, password);
       toast.success('Welcome back!');
-      
+
       const isAdminEmail = email === 'admin@gmail.com' || email === 'navadeepsripathi2@gmail.com';
-      
+
       if (u?.role === 'admin' || isAdminEmail) {
         setActiveTab('admin');
         await logActivity('admin_login', 'Admin session initialized', { email });
@@ -284,7 +292,7 @@ function App() {
         toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
         await logActivity('user_registration', 'New user account created', { email });
       }
-      
+
       if (data) {
         const userId = data.id;
         try {
@@ -397,8 +405,8 @@ function App() {
       case 'dashboard':
         if (isAdmin) return null;
         return (
-          <Dashboard 
-            applications={applications} 
+          <Dashboard
+            applications={applications}
             reminders={reminders}
             stats={stats}
             profile={profile}
@@ -420,7 +428,7 @@ function App() {
         );
       case 'calendar':
         return (
-          <CalendarView 
+          <CalendarView
             applications={applications}
             reminders={reminders}
             userId={user?.id}
@@ -431,14 +439,14 @@ function App() {
       case 'documents':
         return <DocumentsView userId={user?.id} loading={isSyncing} />;
       case 'settings':
-        return <SettingsView 
-            userId={user?.id} 
-            userName={profile?.full_name || user?.user_metadata?.full_name || 'User'} 
-            userEmail={user?.email || ''}
-            userRole={user?.role || 'student'}
-            profileData={profile}
-            onUpdate={loadData}
-          />;
+        return <SettingsView
+          userId={user?.id}
+          userName={profile?.full_name || user?.user_metadata?.full_name || 'User'}
+          userEmail={user?.email || ''}
+          userRole={user?.role || 'student'}
+          profileData={profile}
+          onUpdate={loadData}
+        />;
       case 'admin':
         if (!isAdmin) return null;
         return <AdminOverview onNavigate={setActiveTab} />;
@@ -483,8 +491,8 @@ function App() {
 
   return (
     <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
-      <Toaster 
-        position="top-right" 
+      <Toaster
+        position="top-right"
         toastOptions={{
           style: {
             background: '#141413',
@@ -496,9 +504,9 @@ function App() {
           },
         }}
       />
-      
-      <Sidebar 
-        activeTab={activeTab} 
+
+      <Sidebar
+        activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={logout}
         userName={user?.user_metadata?.full_name || 'My Profile'}
@@ -510,7 +518,7 @@ function App() {
         hasSecurityAlert={hasSecurityAlert}
       />
 
-      <main 
+      <main
         className="flex-1 min-h-screen p-4 md:px-8 mt-[100px] transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
         <div className="max-w-[1200px] mx-auto">
@@ -520,7 +528,7 @@ function App() {
               initial={{ opacity: 0, y: 10, scale: 0.99 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.99 }}
-              transition={{ 
+              transition={{
                 type: "spring",
                 stiffness: 400,
                 damping: 30,
@@ -557,7 +565,7 @@ function App() {
           onStatusChange={handleStatusChange}
         />
 
-        <BugReportModal 
+        <BugReportModal
           isOpen={showBugReport}
           onClose={() => setShowBugReport(false)}
           userId={user?.id}
