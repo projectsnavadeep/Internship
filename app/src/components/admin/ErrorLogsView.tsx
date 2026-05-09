@@ -54,7 +54,6 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolveNotes, setResolveNotes] = useState('');
 
-  // 🔥 FIX: Memoize filtered results to prevent unnecessary re-renders
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
       if (filter === 'unresolved') return !log.resolved;
@@ -64,14 +63,13 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
     });
   }, [logs, filter]);
 
-  // 🔥 FIX: Memoize counts to prevent recalculation
   const { unresolvedCount, appealsCount } = useMemo(() => ({
     unresolvedCount: logs.filter(l => !l.resolved).length,
     appealsCount: logs.filter(l => l.error_message?.includes('SECURITY APPEAL:')).length,
   }), [logs]);
 
-  useEffect(() => { 
-    loadLogs(); 
+  useEffect(() => {
+    loadLogs();
   }, []);
 
   const loadLogs = useCallback(async () => {
@@ -88,16 +86,18 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
     }
   }, []);
 
-  // 🔥 FIX: Use useCallback to prevent function recreation
+  // ✅ FIX 1: adminId IS used here — TypeScript was confused because it's only
+  // referenced inside the callback. The real fix is the eslint-disable comment
+  // is NOT needed; instead we just ensure it's properly in the dependency array.
   const handleResolve = useCallback(async (logId: string) => {
     if (!adminId) return;
     try {
       await adminResolveError(logId, adminId, resolveNotes || 'Resolved by admin');
-      setLogs(prev => prev.map(l => l.id === logId ? { 
-        ...l, 
-        resolved: true, 
-        resolved_at: new Date().toISOString(), 
-        resolution_notes: resolveNotes 
+      setLogs(prev => prev.map(l => l.id === logId ? {
+        ...l,
+        resolved: true,
+        resolved_at: new Date().toISOString(),
+        resolution_notes: resolveNotes
       } : l));
       setResolvingId(null);
       setResolveNotes('');
@@ -108,7 +108,6 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
     }
   }, [adminId, resolveNotes]);
 
-  // 🔥 FIX: Use useCallback to prevent function recreation
   const handleDelete = useCallback(async (logId: string) => {
     try {
       await adminDeleteErrorLog(logId);
@@ -131,8 +130,8 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   return (
     <div className="space-y-8 pb-20 will-change-transform">
       {/* Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
@@ -145,7 +144,7 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
       </motion.div>
 
       {/* Stats Bar */}
-      <motion.div 
+      <motion.div
         className="grid grid-cols-2 md:grid-cols-5 gap-4"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -174,7 +173,7 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
       </motion.div>
 
       {/* Filter + Refresh */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -185,18 +184,17 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all ${
-                filter === f
-                  ? 'bg-apple-blue text-white shadow-lg shadow-apple-blue/20'
-                  : 'bg-black/5 dark:bg-white/5 text-apple-near-black/50 dark:text-white/50 hover:bg-black/10'
-              }`}
+              className={`px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all ${filter === f
+                ? 'bg-apple-blue text-white shadow-lg shadow-apple-blue/20'
+                : 'bg-black/5 dark:bg-white/5 text-apple-near-black/50 dark:text-white/50 hover:bg-black/10'
+                }`}
             >
               {f === 'unresolved' ? `${f} (${unresolvedCount})` : f}
             </button>
           ))}
         </div>
-        <button 
-          onClick={loadLogs} 
+        <button
+          onClick={loadLogs}
           className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-apple-blue/10 transition-all"
           disabled={loading}
         >
@@ -206,7 +204,7 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
 
       {/* Error List */}
       {filteredLogs.length === 0 ? (
-        <motion.div 
+        <motion.div
           className="text-center py-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -232,7 +230,6 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
                 onResolveNotesChange={setResolveNotes}
                 onResolve={() => handleResolve(log.id)}
                 onDelete={() => handleDelete(log.id)}
-                adminId={adminId}
               />
             ))}
           </AnimatePresence>
@@ -242,7 +239,9 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   );
 }
 
-// 🔥 FIX: Extract ErrorLogRow to prevent re-renders of sibling rows
+// ✅ FIX 1: Removed `adminId` from ErrorLogRow props entirely —
+// it was passed down but never actually used inside the row component.
+// The parent already guards with `if (!adminId) return` in handleResolve.
 interface ErrorLogRowProps {
   log: ErrorLog;
   index: number;
@@ -254,7 +253,6 @@ interface ErrorLogRowProps {
   onResolveNotesChange: (notes: string) => void;
   onResolve: () => void;
   onDelete: () => void;
-  adminId?: string;
 }
 
 function ErrorLogRow({
@@ -268,7 +266,6 @@ function ErrorLogRow({
   onResolveNotesChange,
   onResolve,
   onDelete,
-  adminId,
 }: ErrorLogRowProps) {
   const typeInfo = ERROR_TYPE_LABELS[log.error_type] || ERROR_TYPE_LABELS.unknown;
   const TypeIcon = typeInfo.icon;
@@ -293,9 +290,8 @@ function ErrorLogRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
       transition={{ delay: index * 0.03 }}
-      className={`apple-card bg-white dark:bg-zinc-900 border overflow-hidden ${
-        log.resolved ? 'border-emerald-500/10' : 'border-red-500/10'
-      }`}
+      className={`apple-card bg-white dark:bg-zinc-900 border overflow-hidden ${log.resolved ? 'border-emerald-500/10' : 'border-red-500/10'
+        }`}
       layout
     >
       {/* Main Row */}
