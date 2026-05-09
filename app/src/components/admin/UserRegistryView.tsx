@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, 
   Search, 
   UserPlus, 
   ShieldCheck,
   Briefcase,
-  Building2,
-  CalendarDays,
   Activity,
   Trash2,
   ShieldHalf,
@@ -27,7 +24,7 @@ import {
   adminUnlockUser,
   signUp
 } from '@/lib/supabase';
-import { sendWelcomeEmail, sendCustomEmail } from '@/lib/email';
+import { sendCustomEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
 import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
@@ -38,14 +35,11 @@ export default function UserRegistryView() {
   const [userFilter, setUserFilter] = useState('');
   const [selectedUserDetail, setSelectedUserDetail] = useState<UserActivity | null>(null);
   const [userInternships, setUserInternships] = useState<any[]>([]);
-  const [userSchedules, setUserSchedules] = useState<any[]>([]);
   const [loadingInternships, setLoadingInternships] = useState(false);
-  const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState<'overview' | 'internships' | 'schedules' | 'security'>('overview');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '' });
   const [creatingUser, setCreatingUser] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [sendingBulkEmail, setSendingBulkEmail] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastContent, setBroadcastContent] = useState({ 
@@ -56,8 +50,6 @@ export default function UserRegistryView() {
   
   const [showManualEmailModal, setShowManualEmailModal] = useState(false);
   const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '' });
-  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
-  const [recipientSearch, setRecipientSearch] = useState('');
   const [isSendingManual, setIsSendingManual] = useState(false);
 
   useEffect(() => {
@@ -67,10 +59,8 @@ export default function UserRegistryView() {
   useEffect(() => {
     if (selectedUserDetail) {
       fetchUserInternships(selectedUserDetail.user_id);
-      fetchUserSchedules(selectedUserDetail.user_id);
     } else {
       setUserInternships([]);
-      setUserSchedules([]);
       setActiveModalTab('overview');
     }
   }, [selectedUserDetail]);
@@ -97,18 +87,6 @@ export default function UserRegistryView() {
       console.error('Failed to load internships:', err);
     } finally {
       setLoadingInternships(false);
-    }
-  };
-
-  const fetchUserSchedules = async (userId: string) => {
-    setLoadingSchedules(true);
-    try {
-      const schedules = await adminGetUserReminders(userId);
-      setUserSchedules(schedules);
-    } catch (err) {
-      console.error('Failed to load schedules:', err);
-    } finally {
-      setLoadingSchedules(false);
     }
   };
 

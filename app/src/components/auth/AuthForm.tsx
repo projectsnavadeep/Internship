@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ShieldHalf, Send, X } from 'lucide-react';
+import { ArrowRight, ShieldHalf, Send } from 'lucide-react';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { Logo } from '@/components/shared/Logo';
 import { submitAppeal } from '@/lib/supabase';

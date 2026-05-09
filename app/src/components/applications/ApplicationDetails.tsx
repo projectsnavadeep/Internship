@@ -78,23 +78,6 @@ export function ApplicationDetails({
     interviewer_email: '',
   });
 
-  const handleAddNote = () => {
-    onAddNote(newNote);
-    setShowAddNote(false);
-    setNewNote({
-      round_number: interviewNotes.length + 1,
-      round_name: '',
-      interview_type: 'Video',
-      questions_asked: '',
-      answers_given: '',
-      key_takeaways: '',
-      follow_up_items: '',
-      outcome: 'Pending',
-      interviewer_name: '',
-      interviewer_role: '',
-      interviewer_email: '',
-    });
-  };
 
   return (
     <AnimatePresence>

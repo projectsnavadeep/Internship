@@ -15,7 +15,6 @@ interface ApplicationModalProps {
 }
 
 const statuses: ApplicationStatus[] = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
-const employmentTypes: EmploymentType[] = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
 
 export function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
   const [isSaving, setIsSaving] = useState(false);

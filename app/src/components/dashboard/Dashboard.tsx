@@ -8,7 +8,6 @@ import {
   Clock,
   AlertCircle,
   X,
-  ChevronRight,
   TrendingUp,
   Sparkles
 } from 'lucide-react';

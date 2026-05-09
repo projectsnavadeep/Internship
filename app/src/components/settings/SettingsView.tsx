@@ -9,8 +9,7 @@ import {
 
   Lock,
   Calendar,
-  BadgeCheck,
-  LogOut
+  BadgeCheck
 } from 'lucide-react';
 import { getProfile, uploadAvatarImage, updatePassword, updateProfile, logError } from '@/lib/supabase';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
@@ -23,7 +22,6 @@ interface SettingsViewProps {
   userEmail?: string;
   userRole?: string;
   profileData?: any;
-  onLogout?: () => void;
   onUpdate?: () => void;
 }
 
@@ -51,7 +49,7 @@ function SessionTimer() {
   );
 }
 
-export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout, onUpdate }: SettingsViewProps) {
+export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onUpdate }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
     email: userEmail,
