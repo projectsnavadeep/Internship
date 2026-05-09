@@ -52,7 +52,7 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
       <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white dark:bg-apple-black border-b border-black/5 dark:border-white/5 h-[100px] shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         <div className="h-full max-w-[1400px] mx-auto px-8 flex items-center justify-between">
           {/* Logo Section */}
-          <div className="flex items-center gap-12 shrink-0">
+          <div className="flex items-center gap-12 shrink-0 relative z-10">
             <button
               onClick={() => onTabChange(homeTab)}
               className="flex items-center hover:opacity-80 transition-opacity"
@@ -62,7 +62,7 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
           </div>
 
           {/* Centered Navigation */}
-          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6">
+          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6 z-0">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               const isErrorLogs = item.id === 'error-logs';
@@ -130,7 +130,7 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
           </nav>
 
           {/* Right Utilities */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 relative z-10">
             <button
               onClick={() => {
                 if (!document.fullscreenElement) {
@@ -226,6 +226,17 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
           <Logo size="sm" showPlatform={false} />
         </button>
         <div className="flex items-center gap-3">
+          {!isAdmin && (
+            <button
+              onClick={onReportBug}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
+            >
+              <Bug size={18} />
+            </button>
+          )}
+          {avatarUrl && (
+            <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-black/5 dark:border-white/10" alt="Profile" />
+          )}
           <button onClick={() => setMobileMenuOpen(true)}>
             <Menu size={24} className="text-zinc-900 dark:text-white" />
           </button>

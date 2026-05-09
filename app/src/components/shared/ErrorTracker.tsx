@@ -24,8 +24,12 @@ export class ErrorTracker extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
-    // Auto-reload once for dynamic import failures (often chunk hash mismatch)
-    if (error.message && error.message.includes('Failed to fetch dynamically imported module')) {
+    // Auto-reload once for dynamic import failures or HMR/chunk export mismatches
+    if (error.message && (
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('Lazy element type must resolve to a class or function') ||
+      error.message.includes('Element type is invalid')
+    )) {
       const isReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
       if (!isReloaded) {
         sessionStorage.setItem('chunk_load_error_reloaded', 'true');
