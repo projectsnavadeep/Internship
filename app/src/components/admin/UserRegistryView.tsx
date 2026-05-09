@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  UserPlus, 
+import {
+  Search,
+  UserPlus,
   ShieldCheck,
   Briefcase,
   Activity,
@@ -16,8 +16,8 @@ import {
   PenTool,
   LogOut
 } from 'lucide-react';
-import { 
-  adminGetAllUsers, 
+import {
+  adminGetAllUsers,
   adminGetUserInternships,
   adminLockUser,
   adminUnlockUser,
@@ -41,12 +41,13 @@ export default function UserRegistryView() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [sendingBulkEmail, setSendingBulkEmail] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-  const [broadcastContent, setBroadcastContent] = useState({ 
-    subject: 'Test InternTrack Broadcast', 
-    message: 'This is a demo broadcasting email.\nIf you receive this email, please ignore.\n\nNote: The email broadcasting system is now LIVE.\nVisit the platform: https://internship-0sf2.onrender.com/' 
+  const [broadcastContent, setBroadcastContent] = useState({
+    subject: 'Test InternTrack Broadcast',
+    message: 'This is a demo broadcasting email.\nIf you receive this email, please ignore.\n\nNote: The email broadcasting system is now LIVE.\nVisit the platform: https://internship-0sf2.onrender.com/'
   });
-  const [broadcastProgress, setBroadcastProgress] = useState<number | null>(null);
-  
+  // ✅ FIX: Track progress as a number, used in the broadcast button label
+  const [broadcastProgress, setBroadcastProgress] = useState(0);
+
   const [showManualEmailModal, setShowManualEmailModal] = useState(false);
   const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '', recipientId: '' });
   const [isSendingManual, setIsSendingManual] = useState(false);
@@ -89,8 +90,8 @@ export default function UserRegistryView() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.full_name?.toLowerCase().includes(userFilter.toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    u.full_name?.toLowerCase().includes(userFilter.toLowerCase()) ||
     u.email?.toLowerCase().includes(userFilter.toLowerCase()) ||
     u.university?.toLowerCase().includes(userFilter.toLowerCase())
   ).sort((a, b) => new Date(b.joined_at || 0).getTime() - new Date(a.joined_at || 0).getTime());
@@ -98,12 +99,14 @@ export default function UserRegistryView() {
   const handleBroadcast = async () => {
     if (!broadcastContent.subject || !broadcastContent.message) return;
     setSendingBulkEmail(true);
+    setBroadcastProgress(0);
     for (let i = 0; i < users.length; i++) {
       setBroadcastProgress(i + 1);
       await sendCustomEmail(users[i].email, users[i].full_name, broadcastContent.subject, broadcastContent.message);
     }
     toast.success("Broadcast Complete");
     setSendingBulkEmail(false);
+    setBroadcastProgress(0);
     setShowBroadcastModal(false);
   };
 
@@ -131,7 +134,7 @@ export default function UserRegistryView() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => {
               setManualEmailContent({ subject: '', message: '', recipientId: '' });
               setShowManualEmailModal(true);
@@ -141,14 +144,14 @@ export default function UserRegistryView() {
             <Mail size={18} className="text-apple-blue" />
             <span>Compose Email</span>
           </button>
-          <button 
+          <button
             onClick={() => setShowBroadcastModal(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all"
           >
             <PenTool size={18} className="text-apple-blue" />
             <span>Compose Broadcast</span>
           </button>
-          <button 
+          <button
             onClick={() => setShowAddUserModal(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-apple-blue text-white font-bold text-[15px] shadow-lg shadow-apple-blue/20 hover:scale-105 transition-all"
           >
@@ -158,17 +161,17 @@ export default function UserRegistryView() {
         </div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         className="rounded-2xl shadow-sm border border-black/5 will-change-transform bg-white dark:bg-zinc-900 overflow-hidden"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
       >
         <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/[0.01] dark:bg-white/[0.01]">
           <h3 className="text-xl font-bold dark:text-white flex items-center gap-3">
-             <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-               <UserPlus size={18} />
-             </div>
-             Registry ({users.length})
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+              <UserPlus size={18} />
+            </div>
+            Registry ({users.length})
           </h3>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -249,10 +252,10 @@ export default function UserRegistryView() {
                   </div>
                   <button
                     onClick={() => {
-                      setManualEmailContent({ 
-                        subject: '', 
-                        message: `Hello ${selectedUserDetail.full_name},\n\n`, 
-                        recipientId: selectedUserDetail.user_id 
+                      setManualEmailContent({
+                        subject: '',
+                        message: `Hello ${selectedUserDetail.full_name},\n\n`,
+                        recipientId: selectedUserDetail.user_id
                       });
                       setShowManualEmailModal(true);
                     }}
@@ -262,8 +265,8 @@ export default function UserRegistryView() {
                     Message
                   </button>
                 </div>
-                <button 
-                  onClick={() => setSelectedUserDetail(null)} 
+                <button
+                  onClick={() => setSelectedUserDetail(null)}
                   className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all"
                 >
                   <X size={20} />
@@ -280,11 +283,10 @@ export default function UserRegistryView() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveModalTab(tab.id as any)}
-                    className={`py-5 flex items-center gap-2.5 text-[13px] font-bold uppercase tracking-widest transition-all relative ${
-                      activeModalTab === tab.id 
-                        ? 'text-apple-blue' 
+                    className={`py-5 flex items-center gap-2.5 text-[13px] font-bold uppercase tracking-widest transition-all relative ${activeModalTab === tab.id
+                        ? 'text-apple-blue'
                         : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
-                    }`}
+                      }`}
                   >
                     <tab.icon size={16} />
                     {tab.label}
@@ -367,10 +369,9 @@ export default function UserRegistryView() {
                                   <p className="text-[12px] text-zinc-500 font-medium">{intern.job_title}</p>
                                 </div>
                               </div>
-                              <span className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                                intern.status === 'Offer' ? 'bg-emerald-500/10 text-emerald-500' : 
-                                intern.status === 'Rejected' ? 'bg-red-500/10 text-red-500' : 'bg-apple-blue/10 text-apple-blue'
-                              }`}>
+                              <span className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${intern.status === 'Offer' ? 'bg-emerald-500/10 text-emerald-500' :
+                                  intern.status === 'Rejected' ? 'bg-red-500/10 text-red-500' : 'bg-apple-blue/10 text-apple-blue'
+                                }`}>
                                 {intern.status}
                               </span>
                             </div>
@@ -419,8 +420,8 @@ export default function UserRegistryView() {
                               <Clock size={18} className="text-zinc-300" />
                             </div>
                           </div>
-                          
-                          <button 
+
+                          <button
                             onClick={() => {
                               toast.info("Transmitting session termination signal...");
                               setTimeout(() => toast.success("Remote session terminated successfully"), 1500);
@@ -435,8 +436,8 @@ export default function UserRegistryView() {
                         {/* Account Access */}
                         <div className="apple-card p-8 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[32px] space-y-4">
                           <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-4">Account Hardening</h4>
-                          
-                          <button 
+
+                          <button
                             onClick={() => toast.success("Recovery link dispatched to " + selectedUserDetail.email)}
                             className="w-full py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-zinc-900 dark:text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-black/10 transition-all border border-black/5 dark:border-white/10"
                           >
@@ -449,18 +450,18 @@ export default function UserRegistryView() {
                             try {
                               const meta = JSON.parse(selectedUserDetail.additional_data || '{}');
                               isLocked = meta.locked === true;
-                            } catch (e) { isLocked = false; }
+                            } catch (_e) { isLocked = false; }
 
                             return isLocked ? (
-                              <button 
+                              <button
                                 onClick={async () => {
                                   try {
                                     await adminUnlockUser(selectedUserDetail.user_id);
                                     toast.success("Intelligence Profile Unlocked");
                                     loadUsers();
                                     setSelectedUserDetail(null);
-                                  } catch (e: any) { 
-                                    toast.error(e.message || "Unlock failed"); 
+                                  } catch (e: any) {
+                                    toast.error(e.message || "Unlock failed");
                                   }
                                 }}
                                 className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
@@ -469,15 +470,15 @@ export default function UserRegistryView() {
                                 Unlock Profile
                               </button>
                             ) : (
-                              <button 
+                              <button
                                 onClick={async () => {
                                   try {
                                     await adminLockUser(selectedUserDetail.user_id);
                                     toast.error("Intelligence Profile Locked");
                                     loadUsers();
                                     setSelectedUserDetail(null);
-                                  } catch (e: any) { 
-                                    toast.error(e.message || "Lock failed"); 
+                                  } catch (e: any) {
+                                    toast.error(e.message || "Lock failed");
                                   }
                                 }}
                                 className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-[15px] flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
@@ -488,7 +489,7 @@ export default function UserRegistryView() {
                             );
                           })()}
 
-                          <button 
+                          <button
                             onClick={() => {
                               if (confirm("CRITICAL: This will permanently purge all intelligence for this user. Continue?")) {
                                 toast.error("User purged from registry");
@@ -516,29 +517,29 @@ export default function UserRegistryView() {
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddUserModal(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[32px] p-10 shadow-2xl">
-               <h2 className="text-2xl font-bold mb-8 dark:text-white">Create Account</h2>
-               <div className="space-y-4">
-                  <input placeholder="Full Name" value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
-                  <input placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
-                  <input placeholder="Password" type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
-               </div>
-               <div className="mt-8 flex gap-3">
-                  <button onClick={() => setShowAddUserModal(false)} className="flex-1 py-3 rounded-xl bg-black/5 font-bold">Cancel</button>
-                  <button 
-                    onClick={async () => {
-                       setCreatingUser(true);
-                       try {
-                          await signUp(newUser.email, newUser.password, newUser.fullName);
-                          toast.success("Account created");
-                          setShowAddUserModal(false);
-                          loadUsers();
-                       } catch (err: any) { toast.error(err.message); } finally { setCreatingUser(false); }
-                    }}
-                    className="flex-1 py-3 rounded-xl bg-apple-blue text-white font-bold"
-                  >
-                    {creatingUser ? "Creating..." : "Onboard"}
-                  </button>
-               </div>
+              <h2 className="text-2xl font-bold mb-8 dark:text-white">Create Account</h2>
+              <div className="space-y-4">
+                <input placeholder="Full Name" value={newUser.fullName} onChange={e => setNewUser({ ...newUser, fullName: e.target.value })} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
+                <input placeholder="Email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
+                <input placeholder="Password" type="password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} className="w-full px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5" />
+              </div>
+              <div className="mt-8 flex gap-3">
+                <button onClick={() => setShowAddUserModal(false)} className="flex-1 py-3 rounded-xl bg-black/5 font-bold">Cancel</button>
+                <button
+                  onClick={async () => {
+                    setCreatingUser(true);
+                    try {
+                      await signUp(newUser.email, newUser.password, newUser.fullName);
+                      toast.success("Account created");
+                      setShowAddUserModal(false);
+                      loadUsers();
+                    } catch (err: any) { toast.error(err.message); } finally { setCreatingUser(false); }
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-apple-blue text-white font-bold"
+                >
+                  {creatingUser ? "Creating..." : "Onboard"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -551,20 +552,20 @@ export default function UserRegistryView() {
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl p-10 border border-black/5 dark:border-white/10">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-3xl font-black dark:text-white">Compose Email</h3>
-                <button 
+                <button
                   onClick={() => setShowManualEmailModal(false)}
                   className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Recipient</label>
-                  <select 
-                    value={manualEmailContent.recipientId} 
-                    onChange={e => setManualEmailContent({...manualEmailContent, recipientId: e.target.value})}
+                  <select
+                    value={manualEmailContent.recipientId}
+                    onChange={e => setManualEmailContent({ ...manualEmailContent, recipientId: e.target.value })}
                     className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all appearance-none"
                   >
                     <option value="">Select Student...</option>
@@ -576,30 +577,30 @@ export default function UserRegistryView() {
 
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Subject Line</label>
-                  <input 
-                    placeholder="Enter email subject" 
-                    value={manualEmailContent.subject} 
-                    onChange={e => setManualEmailContent({...manualEmailContent, subject: e.target.value})} 
-                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all" 
+                  <input
+                    placeholder="Enter email subject"
+                    value={manualEmailContent.subject}
+                    onChange={e => setManualEmailContent({ ...manualEmailContent, subject: e.target.value })}
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Message Body</label>
-                  <textarea 
-                    rows={6} 
-                    placeholder="Write your message here..." 
-                    value={manualEmailContent.message} 
-                    onChange={e => setManualEmailContent({...manualEmailContent, message: e.target.value})} 
-                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none" 
+                  <textarea
+                    rows={6}
+                    placeholder="Write your message here..."
+                    value={manualEmailContent.message}
+                    onChange={e => setManualEmailContent({ ...manualEmailContent, message: e.target.value })}
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none"
                   />
                 </div>
 
-                <button 
+                <button
                   onClick={async () => {
                     if (!manualEmailContent.recipientId) return toast.error("Please select a recipient");
                     if (!manualEmailContent.subject) return toast.error("Subject is required");
-                    
+
                     setIsSendingManual(true);
                     const target = users.find(u => u.user_id === manualEmailContent.recipientId);
                     if (target) {
@@ -634,7 +635,7 @@ export default function UserRegistryView() {
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl p-10 border border-black/5 dark:border-white/10">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-3xl font-black dark:text-white">Broadcast Center</h3>
-                <button 
+                <button
                   onClick={() => setShowBroadcastModal(false)}
                   className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
                 >
@@ -651,36 +652,40 @@ export default function UserRegistryView() {
 
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Broadcast Subject</label>
-                  <input 
-                    placeholder="Announcement Title" 
-                    value={broadcastContent.subject} 
-                    onChange={e => setBroadcastContent({...broadcastContent, subject: e.target.value})} 
-                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all" 
+                  <input
+                    placeholder="Announcement Title"
+                    value={broadcastContent.subject}
+                    onChange={e => setBroadcastContent({ ...broadcastContent, subject: e.target.value })}
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-4">Announcement Content</label>
-                  <textarea 
-                    rows={8} 
-                    placeholder="Detailed message..." 
-                    value={broadcastContent.message} 
-                    onChange={e => setBroadcastContent({...broadcastContent, message: e.target.value})} 
-                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none" 
+                  <textarea
+                    rows={8}
+                    placeholder="Detailed message..."
+                    value={broadcastContent.message}
+                    onChange={e => setBroadcastContent({ ...broadcastContent, message: e.target.value })}
+                    className="w-full px-6 py-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-black/5 dark:border-white/5 focus:ring-2 focus:ring-apple-blue/20 outline-none font-bold text-zinc-900 dark:text-white transition-all resize-none"
                   />
                 </div>
 
-                <button 
-                  onClick={handleBroadcast} 
-                  disabled={sendingBulkEmail} 
+                {/* ✅ FIX: broadcastProgress now correctly shown during active broadcast */}
+                <button
+                  onClick={handleBroadcast}
+                  disabled={sendingBulkEmail}
                   className="w-full py-5 rounded-2xl bg-apple-blue text-white font-black text-lg shadow-xl shadow-apple-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
                 >
                   {sendingBulkEmail ? (
-                    <InlineLoader />
+                    <>
+                      <InlineLoader />
+                      <span>Transmitting {broadcastProgress}/{users.length}...</span>
+                    </>
                   ) : (
                     <>
                       <Send size={20} />
-                      <span>{sendingBulkEmail ? `Transmitting ${broadcastProgress}/${users.length}...` : 'Launch Broadcast'}</span>
+                      <span>Launch Broadcast</span>
                     </>
                   )}
                 </button>
