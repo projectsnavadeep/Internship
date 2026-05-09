@@ -417,7 +417,6 @@ function App() {
             userEmail={user?.email || ''}
             userRole={user?.role || 'student'}
             profileData={profile}
-            onLogout={() => { logout(); setActiveTab('dashboard'); }}
             onUpdate={loadData}
           />;
       case 'admin':

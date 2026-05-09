@@ -19,7 +19,6 @@ import {
 import { 
   adminGetAllUsers, 
   adminGetUserInternships,
-  adminGetUserReminders,
   adminLockUser,
   adminUnlockUser,
   signUp

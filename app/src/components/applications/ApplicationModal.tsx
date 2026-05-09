@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { logError, createApplication, updateApplication } from '@/lib/supabase';
 import { toast } from 'sonner';
-import type { Application, ApplicationStatus, EmploymentType } from '@/types';
+import type { Application, ApplicationStatus } from '@/types';
 
 interface ApplicationModalProps {
   isOpen: boolean;
