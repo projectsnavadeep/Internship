@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, CheckCircle2, Calendar } from 'lucide-react';
 import type { Reminder } from '@/types';
@@ -15,7 +15,7 @@ const getReminderTypeStyles = (type: string) => {
   }
 };
 
-export function UpcomingReminders({ reminders }: UpcomingRemindersProps) {
+export const UpcomingReminders = memo(function UpcomingReminders({ reminders }: UpcomingRemindersProps) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -151,4 +151,4 @@ export function UpcomingReminders({ reminders }: UpcomingRemindersProps) {
       </div>
     </motion.div>
   );
-}
+});

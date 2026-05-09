@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Clock } from 'lucide-react';
 import { updateSessionTime } from '@/lib/supabase';
 
@@ -8,7 +8,7 @@ interface DashboardSessionTimerProps {
   initialTotal: number;
 }
 
-export function DashboardSessionTimer({ userId, initialToday, initialTotal }: DashboardSessionTimerProps) {
+export const DashboardSessionTimer = memo(function DashboardSessionTimer({ userId, initialToday, initialTotal }: DashboardSessionTimerProps) {
   const [todayMins, setTodayMins] = useState(initialToday);
   const [totalMins, setTotalMins] = useState(initialTotal);
 
@@ -55,4 +55,4 @@ export function DashboardSessionTimer({ userId, initialToday, initialTotal }: Da
       </div>
     </div>
   );
-}
+});

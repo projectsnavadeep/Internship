@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Application, ApplicationStats, InterviewNote, Reminder, UserActivity, CompanyStats, StatusDistribution, PipelineStage, AdminRecentApplication } from '@/types';
+export { sendWelcomeEmail } from './email';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -1135,7 +1136,10 @@ export interface ErrorLogData {
 
 export const logError = async (data: ErrorLogData) => {
   try {
-    await supabase.from('error_logs').insert({
+    // Attempt to use admin client to bypass RLS for logging, fallback to standard client
+    const client = supabaseAdmin || supabase;
+    
+    const { error } = await client.from('error_logs').insert({
       user_id: data.userId || null,
       user_email: data.userEmail || null,
       user_name: data.userName || null,
@@ -1148,8 +1152,12 @@ export const logError = async (data: ErrorLogData) => {
       status_code: data.statusCode || null,
       action_attempted: data.actionAttempted,
     });
+    
+    if (error) {
+      console.error('Supabase error inserting into error_logs:', error);
+    }
   } catch (e) {
-    console.warn('Failed to log error to DB (non-blocking):', e);
+    console.warn('Exception while logging error to DB:', e);
   }
 };
 

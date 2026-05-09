@@ -159,57 +159,59 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
               </button>
             )}
 
-            {/* Avatar Section with Fixed Anchor to prevent flickering */}
-            <div className="relative flex items-center justify-center w-12 h-10 mx-2 shrink-0">
-              {avatarUrl ? (
-                <div className="relative flex items-center justify-center">
-                  <motion.div 
-                    className="w-9 h-9 rounded-full border border-black/5 dark:border-white/10 p-0.5 overflow-hidden cursor-pointer"
-                    onClick={() => setIsAvatarExpanded(true)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <img 
-                      src={avatarUrl} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </motion.div>
+            {/* Avatar Section - Only show for students */}
+            {!isAdmin && (
+              <div className="relative flex items-center justify-center w-12 h-10 mx-2 shrink-0">
+                {avatarUrl ? (
+                  <div className="relative flex items-center justify-center">
+                    <motion.div 
+                      className="w-9 h-9 rounded-full border border-black/5 dark:border-white/10 p-0.5 overflow-hidden cursor-pointer"
+                      onClick={() => setIsAvatarExpanded(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    </motion.div>
 
-                  <AnimatePresence>
-                    {isAvatarExpanded && (
-                      <>
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setIsAvatarExpanded(false)}
-                          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md cursor-zoom-out"
-                        />
-                        
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
-                          animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-                          exit={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
-                          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] pointer-events-none"
-                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        >
-                          <div className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] rounded-[40px] p-4 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden pointer-events-auto border border-white/10">
-                            <img 
-                              src={avatarUrl} 
-                              alt="Profile Expanded" 
-                              className="w-full h-full object-cover rounded-[32px]"
-                            />
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 animate-pulse" />
-              )}
-            </div>
+                    <AnimatePresence>
+                      {isAvatarExpanded && (
+                        <>
+                          <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAvatarExpanded(false)}
+                            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md cursor-zoom-out"
+                          />
+                          
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+                            animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                            exit={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+                            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] pointer-events-none"
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          >
+                            <div className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] rounded-[40px] p-4 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden pointer-events-auto border border-white/10">
+                              <img 
+                                src={avatarUrl} 
+                                alt="Profile Expanded" 
+                                className="w-full h-full object-cover rounded-[32px]"
+                              />
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 animate-pulse" />
+                )}
+              </div>
+            )}
 
             <button
               onClick={onLogout}
@@ -239,7 +241,7 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, avatarUrl, 
               <Bug size={18} />
             </button>
           )}
-          {avatarUrl && (
+          {!isAdmin && avatarUrl && (
             <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-black/5 dark:border-white/10" alt="Profile" />
           )}
           <button onClick={() => setMobileMenuOpen(true)}>

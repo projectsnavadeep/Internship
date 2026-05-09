@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
-import { SecurityAuditVault } from './SecurityAuditVault';
+import { lazy, Suspense } from 'react';
+const SecurityAuditVault = lazy(() => import('./SecurityAuditVault').then(m => ({ default: m.SecurityAuditVault })));
 import { logActivity } from '@/lib/supabase';
 
 export default function AdminSettings() {
@@ -172,7 +173,9 @@ export default function AdminSettings() {
           </div>
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full">Secure Telemetry</span>
         </div>
-        <SecurityAuditVault />
+        <Suspense fallback={<div className="py-12 text-center text-zinc-400">Loading audit vault...</div>}>
+          <SecurityAuditVault />
+        </Suspense>
       </motion.div>
     </div>
   );
