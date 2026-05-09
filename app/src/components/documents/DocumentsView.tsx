@@ -48,7 +48,6 @@ const documentIcons: Record<string, React.ReactNode> = {
 const documentTypes = ['Resume', 'Cover Letter', 'Transcript', 'Portfolio', 'Certificate', 'Other'];
 
 export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
-  if (loading) return <DocumentsSkeleton />;
   const [docs, setDocs] = useState<DocumentInterface[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -57,6 +56,8 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [viewerDoc, setViewerDoc] = useState<{url: string, name: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (loading) return <DocumentsSkeleton />;
 
   useEffect(() => {
     if (userId) {

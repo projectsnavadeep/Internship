@@ -89,6 +89,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isOpen]);
 
+  if (!isOpen) return null;
+
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -171,8 +173,6 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
       setIsSaving(false);
     }
   };
-
-  if (!isOpen) return null;
 
   return (
     <AnimatePresence>

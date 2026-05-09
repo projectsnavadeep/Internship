@@ -16,7 +16,6 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
-  if (loading) return <CalendarSkeleton />;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
@@ -104,6 +103,8 @@ export default function CalendarView({ applications, reminders, userId, onRefres
 
     return days;
   }, [year, month, firstDayOfMonth, daysInMonth, daysInPrevMonth]);
+
+  if (loading) return <CalendarSkeleton />;
 
   const isToday = (date: Date) => {
     const today = new Date();

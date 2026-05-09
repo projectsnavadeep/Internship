@@ -4445,7 +4445,7 @@ button,
 
 // --- FILE: src\App.tsx ---
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { safeLazy } from '@/lib/ModuleHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -4469,10 +4469,10 @@ const SecurityConsole = safeLazy(() => import('@/components/admin/SecurityConsol
 const AdminSettings = safeLazy(() => import('@/components/admin/AdminSettings'));
 const ErrorLogsView = safeLazy(() => import('@/components/admin/ErrorLogsView'));
 const BugReportModal = safeLazy(() => import('@/components/shared/BugReportModal'));
-import { 
+import {
   supabase,
-  getApplications, 
-  updateApplication, 
+  getApplications,
+  updateApplication,
   deleteApplication,
   getApplicationStats,
   getReminders,
@@ -4490,18 +4490,21 @@ import './App.css';
 
 function App() {
   const { user, loading: authLoading, login, register, logout, isAuthenticated, isAdmin, hasSessionHint } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
-    
+
     // Check if we were an admin last time to avoid flicker
     const wasAdmin = sessionStorage.getItem('was_admin') === 'true';
     const lastTab = localStorage.getItem('activeTab');
-    
+
     if (wasAdmin && (!lastTab || lastTab === 'dashboard')) return 'admin';
     return lastTab || 'dashboard';
   });
+
+  // 🔥 FIX: Track if we've already loaded data to prevent infinite loops
+  const hasLoadedRef = useRef(false);
 
   // History and Persistence Sync
   useEffect(() => {
@@ -4555,12 +4558,12 @@ function App() {
     rejected_count: 0,
     pending_count: 0,
   });
-  
+
   const [showAppModal, setShowAppModal] = useState(false);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
   const [selectedAppNotes, setSelectedAppNotes] = useState<InterviewNote[]>([]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(true);
   const [showBugReport, setShowBugReport] = useState(false);
 
@@ -4596,33 +4599,33 @@ function App() {
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    
+
     try {
+      setIsSyncing(true);
       const userId = user.id;
-      
+
       const fetchJobs = [
         getApplications(userId).catch(e => { console.error('Apps load fail:', e); return []; }),
         getReminders(userId).catch(e => { console.error('Reminders load fail:', e); return []; }),
-        getApplicationStats(userId).catch(e => { 
-          console.error('Stats load fail:', e); 
-          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 }; 
+        getApplicationStats(userId).catch(e => {
+          console.error('Stats load fail:', e);
+          return { total_applications: 0, applied_count: 0, interview_count: 0, offer_count: 0, rejected_count: 0, pending_count: 0 };
         }),
         getProfile(userId).catch(e => { console.error('Profile load fail:', e); return null; })
       ];
-      
+
       const [apps, rems, appStats, userProfile] = await Promise.all(fetchJobs);
-      
+
       setApplications(apps);
       setReminders(rems);
       setStats(appStats);
       setProfile(userProfile);
-      setIsSyncing(false);
 
       triggerGlobalEmailAlerts().catch(console.error);
     } catch (error: any) {
       console.error('Critical data error:', error);
       toast.error('Sync failure. Some data may be missing.');
-      
+
       logError({
         errorType: 'data_load',
         errorMessage: error.message || 'Bulk data load failed',
@@ -4632,14 +4635,19 @@ function App() {
         userEmail: user.email,
         role: isAdmin ? 'admin' : 'student'
       });
+    } finally {
+      // 🔥 FIX: ALWAYS set syncing to false when done
+      setIsSyncing(false);
     }
   }, [user, isAdmin]);
 
+  // 🔥 FIX: Load data only ONCE when authenticated, prevent infinite loops
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       loadData();
     }
-  }, [isAuthenticated, loadData]);
+  }, [isAuthenticated]); // Removed loadData from deps!
 
   useEffect(() => {
     if (isAuthenticated && isAdmin && activeTab === 'dashboard') {
@@ -4659,7 +4667,7 @@ function App() {
         .select('*', { count: 'exact', head: true })
         .eq('error_type', 'user_report')
         .eq('resolved', false);
-      
+
       if (!error && count && count > 0) {
         setHasSecurityAlert(true);
       }
@@ -4703,9 +4711,9 @@ function App() {
     try {
       const u = await login(email, password);
       toast.success('Welcome back!');
-      
+
       const isAdminEmail = email === 'admin@gmail.com' || email === 'navadeepsripathi2@gmail.com';
-      
+
       if (u?.role === 'admin' || isAdminEmail) {
         setActiveTab('admin');
         await logActivity('admin_login', 'Admin session initialized', { email });
@@ -4731,7 +4739,7 @@ function App() {
         toast.success('Welcome! Please complete your profile to get started.', { duration: 6000 });
         await logActivity('user_registration', 'New user account created', { email });
       }
-      
+
       if (data) {
         const userId = data.id;
         try {
@@ -4844,8 +4852,8 @@ function App() {
       case 'dashboard':
         if (isAdmin) return null;
         return (
-          <Dashboard 
-            applications={applications} 
+          <Dashboard
+            applications={applications}
             reminders={reminders}
             stats={stats}
             profile={profile}
@@ -4867,7 +4875,7 @@ function App() {
         );
       case 'calendar':
         return (
-          <CalendarView 
+          <CalendarView
             applications={applications}
             reminders={reminders}
             userId={user?.id}
@@ -4878,14 +4886,14 @@ function App() {
       case 'documents':
         return <DocumentsView userId={user?.id} loading={isSyncing} />;
       case 'settings':
-        return <SettingsView 
-            userId={user?.id} 
-            userName={profile?.full_name || user?.user_metadata?.full_name || 'User'} 
-            userEmail={user?.email || ''}
-            userRole={user?.role || 'student'}
-            profileData={profile}
-            onUpdate={loadData}
-          />;
+        return <SettingsView
+          userId={user?.id}
+          userName={profile?.full_name || user?.user_metadata?.full_name || 'User'}
+          userEmail={user?.email || ''}
+          userRole={user?.role || 'student'}
+          profileData={profile}
+          onUpdate={loadData}
+        />;
       case 'admin':
         if (!isAdmin) return null;
         return <AdminOverview onNavigate={setActiveTab} />;
@@ -4930,8 +4938,8 @@ function App() {
 
   return (
     <div className="min-h-screen relative bg-zinc-50 dark:bg-zinc-950 text-zinc-900 flex">
-      <Toaster 
-        position="top-right" 
+      <Toaster
+        position="top-right"
         toastOptions={{
           style: {
             background: '#141413',
@@ -4943,9 +4951,9 @@ function App() {
           },
         }}
       />
-      
-      <Sidebar 
-        activeTab={activeTab} 
+
+      <Sidebar
+        activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={logout}
         userName={user?.user_metadata?.full_name || 'My Profile'}
@@ -4957,7 +4965,7 @@ function App() {
         hasSecurityAlert={hasSecurityAlert}
       />
 
-      <main 
+      <main
         className="flex-1 min-h-screen p-4 md:px-8 mt-[100px] transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
         <div className="max-w-[1200px] mx-auto">
@@ -4967,7 +4975,7 @@ function App() {
               initial={{ opacity: 0, y: 10, scale: 0.99 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.99 }}
-              transition={{ 
+              transition={{
                 type: "spring",
                 stiffness: 400,
                 damping: 30,
@@ -5004,7 +5012,7 @@ function App() {
           onStatusChange={handleStatusChange}
         />
 
-        <BugReportModal 
+        <BugReportModal
           isOpen={showBugReport}
           onClose={() => setShowBugReport(false)}
           userId={user?.id}
@@ -5892,7 +5900,7 @@ export function DailySessions() {
 
 // --- FILE: src\components\admin\ErrorLogsView.tsx ---
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Trash2, RefreshCw,
@@ -5948,53 +5956,71 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolveNotes, setResolveNotes] = useState('');
 
-  const filteredLogs = logs.filter(log => {
-    if (filter === 'unresolved') return !log.resolved;
-    if (filter === 'resolved') return log.resolved;
-    if (filter === 'appeals') return log.error_message?.includes('SECURITY APPEAL:');
-    return true;
-  });
+  // 🔥 FIX: Memoize filtered results to prevent unnecessary re-renders
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      if (filter === 'unresolved') return !log.resolved;
+      if (filter === 'resolved') return log.resolved;
+      if (filter === 'appeals') return log.error_message?.includes('SECURITY APPEAL:');
+      return true;
+    });
+  }, [logs, filter]);
 
-  useEffect(() => { loadLogs(); }, []);
+  // 🔥 FIX: Memoize counts to prevent recalculation
+  const { unresolvedCount, appealsCount } = useMemo(() => ({
+    unresolvedCount: logs.filter(l => !l.resolved).length,
+    appealsCount: logs.filter(l => l.error_message?.includes('SECURITY APPEAL:')).length,
+  }), [logs]);
 
-  const loadLogs = async () => {
+  useEffect(() => {
+    loadLogs();
+  }, []);
+
+  const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminGetErrorLogs();
-      setLogs(data);
+      setLogs(data || []);
     } catch (err) {
       console.error('Failed to load error logs:', err);
       toast.error('Failed to load error logs');
+      setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleResolve = async (logId: string) => {
+  // 🔥 FIX: Use useCallback to prevent function recreation
+  const handleResolve = useCallback(async (logId: string) => {
     if (!adminId) return;
     try {
       await adminResolveError(logId, adminId, resolveNotes || 'Resolved by admin');
-      setLogs(prev => prev.map(l => l.id === logId ? { ...l, resolved: true, resolved_at: new Date().toISOString(), resolution_notes: resolveNotes } : l));
+      setLogs(prev => prev.map(l => l.id === logId ? {
+        ...l,
+        resolved: true,
+        resolved_at: new Date().toISOString(),
+        resolution_notes: resolveNotes
+      } : l));
       setResolvingId(null);
       setResolveNotes('');
       toast.success('Error resolved successfully');
     } catch (err) {
+      console.error('Resolve error:', err);
       toast.error('Failed to resolve error');
     }
-  };
+  }, [adminId, resolveNotes]);
 
-  const handleDelete = async (logId: string) => {
+  // 🔥 FIX: Use useCallback to prevent function recreation
+  const handleDelete = useCallback(async (logId: string) => {
     try {
       await adminDeleteErrorLog(logId);
       setLogs(prev => prev.filter(l => l.id !== logId));
       toast.success('Error log deleted');
     } catch (err) {
+      console.error('Delete error:', err);
       toast.error('Failed to delete');
     }
-  };
-
-  const unresolvedCount = logs.filter(l => !l.resolved).length;
-  const appealsCount = logs.filter(l => l.error_message?.includes('SECURITY APPEAL:')).length;
+  }, []);
 
   if (loading) {
     return (
@@ -6005,9 +6031,13 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
   }
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 will-change-transform">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <h1 className="text-[64px] md:text-[80px] font-semibold tracking-tighter leading-none text-zinc-900 dark:text-white mb-4">
           Error Logs.
         </h1>
@@ -6017,7 +6047,12 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
       </motion.div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
         <div className="apple-card p-5 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 text-center">
           <p className="text-3xl font-bold text-apple-near-black dark:text-white">{logs.length}</p>
           <p className="text-xs font-bold uppercase tracking-widest text-apple-near-black/30 mt-1">Total</p>
@@ -6038,195 +6073,268 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
           <p className="text-3xl font-bold text-purple-500">{appealsCount}</p>
           <p className="text-xs font-bold uppercase tracking-widest text-purple-500/60 mt-1">Appeals</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Filter + Refresh */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
         <div className="flex gap-2">
           {(['all', 'unresolved', 'resolved', 'appeals'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all ${
-                filter === f
+              className={`px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all ${filter === f
                   ? 'bg-apple-blue text-white shadow-lg shadow-apple-blue/20'
                   : 'bg-black/5 dark:bg-white/5 text-apple-near-black/50 dark:text-white/50 hover:bg-black/10'
-              }`}
+                }`}
             >
               {f === 'unresolved' ? `${f} (${unresolvedCount})` : f}
             </button>
           ))}
         </div>
-        <button onClick={loadLogs} className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-apple-blue/10 transition-all">
+        <button
+          onClick={loadLogs}
+          className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-apple-blue/10 transition-all"
+          disabled={loading}
+        >
           <RefreshCw size={18} className="text-apple-blue" />
         </button>
-      </div>
+      </motion.div>
 
       {/* Error List */}
       {filteredLogs.length === 0 ? (
-        <div className="text-center py-20">
+        <motion.div
+          className="text-center py-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           <CheckCircle2 size={48} className="mx-auto text-emerald-400 mb-4" />
           <p className="text-lg font-bold text-apple-near-black/40 dark:text-white/40">
             {filter === 'unresolved' ? 'No unresolved errors!' : 'No error logs found.'}
           </p>
-        </div>
+        </motion.div>
       ) : (
         <div className="space-y-3">
-          <AnimatePresence>
-            {filteredLogs.map((log, i) => {
-              const typeInfo = ERROR_TYPE_LABELS[log.error_type] || ERROR_TYPE_LABELS.unknown;
-              const TypeIcon = typeInfo.icon;
-              const isExpanded = expandedId === log.id;
-              const isResolving = resolvingId === log.id;
-
-              return (
-                <motion.div
-                  key={log.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`apple-card bg-white dark:bg-zinc-900 border overflow-hidden ${
-                    log.resolved ? 'border-emerald-500/10' : 'border-red-500/10'
-                  }`}
-                >
-                  {/* Main Row */}
-                  <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/2 dark:hover:bg-white/2 transition-colors"
-                    onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${typeInfo.color}`}>
-                        <TypeIcon size={18} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-[14px] dark:text-white truncate">{log.error_message}</h4>
-                          {log.resolved && <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-[12px] text-apple-near-black/40 dark:text-white/40">
-                          <span className="flex items-center gap-1">
-                            <User size={11} />
-                            {log.user_name || log.user_email || 'Unknown User'}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${typeInfo.color}`}>
-                            {typeInfo.label}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={11} />
-                            {new Date(log.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {!log.resolved && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setResolvingId(isResolving ? null : log.id); }}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[12px] font-bold hover:bg-emerald-500/20 transition-all"
-                        >
-                          Resolve
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(log.id); }}
-                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-500 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      {isExpanded ? <ChevronUp size={16} className="text-apple-near-black/30" /> : <ChevronDown size={16} className="text-apple-near-black/30" />}
-                    </div>
-                  </div>
-
-                  {/* Expanded Details */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-black/5 dark:border-white/5"
-                      >
-                        <div className="p-5 space-y-4 text-[13px]">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Action</p>
-                              <p className="mt-1 dark:text-white font-medium">{log.action_attempted}</p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Source</p>
-                              <p className="mt-1 dark:text-white capitalize">{log.source} ({log.role})</p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">File/URL</p>
-                              <p className="mt-1 dark:text-white truncate" title={log.endpoint_or_file || ''}>{log.endpoint_or_file || 'N/A'}</p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Status</p>
-                              <p className="mt-1 dark:text-white">{log.status_code || 'N/A'}</p>
-                            </div>
-                          </div>
-
-                          <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                            <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">User Metadata</p>
-                            <p className="mt-1 dark:text-white font-mono text-[11px]">{log.user_id || 'Guest Session'}</p>
-                          </div>
-
-                          {log.error_stack && (
-                            <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Error Stack Trace</p>
-                              <pre className="mt-2 p-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[11px] font-mono overflow-auto max-h-60 dark:text-white/70 leading-relaxed">
-                                {log.error_stack}
-                              </pre>
-                            </div>
-                          )}
-                          {log.resolved && log.resolution_notes && (
-                            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                              <p className="font-bold text-emerald-600 text-[11px] uppercase tracking-wider">Resolution</p>
-                              <p className="mt-1 text-emerald-700 dark:text-emerald-400">{log.resolution_notes}</p>
-                              <p className="mt-1 text-[11px] text-emerald-500/60">{log.resolved_at ? new Date(log.resolved_at).toLocaleString() : ''}</p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Resolve Input */}
-                  <AnimatePresence>
-                    {isResolving && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-emerald-500/10 bg-emerald-500/5 p-4"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MessageSquare size={16} className="text-emerald-500 shrink-0" />
-                          <input
-                            type="text"
-                            value={resolveNotes}
-                            onChange={(e) => setResolveNotes(e.target.value)}
-                            placeholder="Add resolution notes (optional)..."
-                            className="flex-1 px-4 py-2 rounded-xl bg-white dark:bg-zinc-800 text-[13px] border-none focus:ring-2 focus:ring-emerald-500/20"
-                          />
-                          <button
-                            onClick={() => handleResolve(log.id)}
-                            className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[13px] font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
-                          >
-                            Confirm
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
+          <AnimatePresence mode="popLayout">
+            {filteredLogs.map((log, i) => (
+              <ErrorLogRow
+                key={log.id}
+                log={log}
+                index={i}
+                isExpanded={expandedId === log.id}
+                onToggleExpand={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                isResolving={resolvingId === log.id}
+                onToggleResolving={() => setResolvingId(resolvingId === log.id ? null : log.id)}
+                resolveNotes={resolveNotes}
+                onResolveNotesChange={setResolveNotes}
+                onResolve={() => handleResolve(log.id)}
+                onDelete={() => handleDelete(log.id)}
+                adminId={adminId}
+              />
+            ))}
           </AnimatePresence>
         </div>
       )}
     </div>
+  );
+}
+
+// 🔥 FIX: Extract ErrorLogRow to prevent re-renders of sibling rows
+interface ErrorLogRowProps {
+  log: ErrorLog;
+  index: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  isResolving: boolean;
+  onToggleResolving: () => void;
+  resolveNotes: string;
+  onResolveNotesChange: (notes: string) => void;
+  onResolve: () => void;
+  onDelete: () => void;
+  adminId?: string;
+}
+
+function ErrorLogRow({
+  log,
+  index,
+  isExpanded,
+  onToggleExpand,
+  isResolving,
+  onToggleResolving,
+  resolveNotes,
+  onResolveNotesChange,
+  onResolve,
+  onDelete,
+  adminId,
+}: ErrorLogRowProps) {
+  const typeInfo = ERROR_TYPE_LABELS[log.error_type] || ERROR_TYPE_LABELS.unknown;
+  const TypeIcon = typeInfo.icon;
+
+  const handleResolveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleResolving();
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+  };
+
+  const handleMainClick = () => {
+    onToggleExpand();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -100 }}
+      transition={{ delay: index * 0.03 }}
+      className={`apple-card bg-white dark:bg-zinc-900 border overflow-hidden ${log.resolved ? 'border-emerald-500/10' : 'border-red-500/10'
+        }`}
+      layout
+    >
+      {/* Main Row */}
+      <div
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-black/2 dark:hover:bg-white/2 transition-colors"
+        onClick={handleMainClick}
+      >
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${typeInfo.color}`}>
+            <TypeIcon size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-[14px] dark:text-white truncate">{log.error_message}</h4>
+              {log.resolved && <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />}
+            </div>
+            <div className="flex items-center gap-3 mt-1 text-[12px] text-apple-near-black/40 dark:text-white/40 flex-wrap">
+              <span className="flex items-center gap-1">
+                <User size={11} />
+                {log.user_name || log.user_email || 'Unknown User'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${typeInfo.color}`}>
+                {typeInfo.label}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={11} />
+                {new Date(log.created_at).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-4">
+          {!log.resolved && (
+            <button
+              onClick={handleResolveClick}
+              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[12px] font-bold hover:bg-emerald-500/20 transition-all"
+            >
+              Resolve
+            </button>
+          )}
+          <button
+            onClick={handleDeleteClick}
+            className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-500 transition-all"
+          >
+            <Trash2 size={14} />
+          </button>
+          {isExpanded ? <ChevronUp size={16} className="text-apple-near-black/30" /> : <ChevronDown size={16} className="text-apple-near-black/30" />}
+        </div>
+      </div>
+
+      {/* Expanded Details */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-black/5 dark:border-white/5"
+          >
+            <div className="p-5 space-y-4 text-[13px]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Action</p>
+                  <p className="mt-1 dark:text-white font-medium">{log.action_attempted}</p>
+                </div>
+                <div>
+                  <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Source</p>
+                  <p className="mt-1 dark:text-white capitalize">{log.source} ({log.role})</p>
+                </div>
+                <div>
+                  <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">File/URL</p>
+                  <p className="mt-1 dark:text-white truncate text-[12px]" title={log.endpoint_or_file || ''}>
+                    {log.endpoint_or_file || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Status</p>
+                  <p className="mt-1 dark:text-white">{log.status_code || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">User Metadata</p>
+                <p className="mt-1 dark:text-white font-mono text-[11px]">{log.user_id || 'Guest Session'}</p>
+              </div>
+
+              {log.error_stack && (
+                <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                  <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider">Error Stack Trace</p>
+                  <pre className="mt-2 p-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[11px] font-mono overflow-auto max-h-60 dark:text-white/70 leading-relaxed">
+                    {log.error_stack}
+                  </pre>
+                </div>
+              )}
+              {log.resolved && log.resolution_notes && (
+                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                  <p className="font-bold text-emerald-600 text-[11px] uppercase tracking-wider">Resolution</p>
+                  <p className="mt-1 text-emerald-700 dark:text-emerald-400">{log.resolution_notes}</p>
+                  <p className="mt-1 text-[11px] text-emerald-500/60">
+                    {log.resolved_at ? new Date(log.resolved_at).toLocaleString() : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Resolve Input */}
+      <AnimatePresence>
+        {isResolving && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-emerald-500/10 bg-emerald-500/5 p-4"
+          >
+            <div className="flex items-center gap-3">
+              <MessageSquare size={16} className="text-emerald-500 shrink-0" />
+              <input
+                type="text"
+                value={resolveNotes}
+                onChange={(e) => onResolveNotesChange(e.target.value)}
+                placeholder="Add resolution notes (optional)..."
+                className="flex-1 px-4 py-2 rounded-xl bg-white dark:bg-zinc-800 text-[13px] border-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <button
+                onClick={onResolve}
+                className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[13px] font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
+              >
+                Confirm
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -9331,6 +9439,7 @@ import { RecentApplications } from './RecentApplications';
 import { UpcomingReminders } from './UpcomingReminders';
 import { DashboardSkeleton } from '../shared/ViewSkeletons';
 import { DashboardSessionTimer } from './DashboardSessionTimer';
+import { PremiumLoader } from '../shared/PremiumLoader';
 import type { Application, ApplicationStats, Reminder, Profile } from '@/types';
 
 interface DashboardProps {
@@ -9403,8 +9512,6 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
     />
   ), [profile?.id]);
 
-  if (loading) return <DashboardSkeleton />;
-
   const getTimeGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -9413,8 +9520,31 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
   };
 
   return (
-    <div className="space-y-8 will-change-transform">
-      {/* 24h Notification Banner */}
+    <div className="space-y-8 will-change-transform relative">
+      {/* Skeleton overlay that fades out instead of full unmount */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          >
+            <div className="absolute inset-0 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md" />
+            <div className="relative z-[60] transform -translate-y-12">
+              <PremiumLoader message="Syncing workspace..." size="lg" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: loading ? 0.6 : 1 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className={loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}
+      >
+        {/* 24h Notification Banner */}
       <AnimatePresence>
         {upcomingAlerts.length > 0 && (
           <motion.div
@@ -9609,6 +9739,7 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
             </motion.div>
           ))}
         </div>
+        </motion.div>
       </motion.div>
     </div>
   );

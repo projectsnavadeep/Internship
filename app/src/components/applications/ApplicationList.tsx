@@ -38,7 +38,6 @@ const getStatusStyles = (status: string) => {
 };
 
 export default function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
-  if (loading) return <ApplicationListSkeleton />;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('date');
@@ -78,6 +77,8 @@ export default function ApplicationList({ applications, onEdit, onDelete, onView
 
     return filtered;
   }, [applications, searchQuery, statusFilter, sortBy]);
+
+  if (loading) return <ApplicationListSkeleton />;
 
   return (
     <div className="space-y-12 pb-20">
