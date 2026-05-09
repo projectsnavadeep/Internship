@@ -1,4 +1,4 @@
-import { lazy, ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 
 /**
  * ELITE MODULE RECOVERY HANDLER
