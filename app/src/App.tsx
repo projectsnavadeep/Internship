@@ -8,7 +8,7 @@ import { FullScreenLoader } from '@/components/shared/PremiumLoader';
 import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load heavy components
-const Dashboard = lazy(() => import('@/components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
 const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
 const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
 const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));

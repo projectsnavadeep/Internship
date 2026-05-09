@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Briefcase, 
@@ -29,7 +29,7 @@ interface DashboardProps {
   loading?: boolean;
 }
 
-export function Dashboard({ applications, reminders, stats, profile, onNavigate, loading }: DashboardProps) {
+export default function Dashboard({ applications, reminders, stats, profile, onNavigate, loading }: DashboardProps) {
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
   // Memoized calculations to prevent lag
