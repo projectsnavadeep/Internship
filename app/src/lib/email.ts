@@ -4,7 +4,7 @@ import { supabase, markWelcomeEmailSent } from './supabase';
  * Senior Dev Note (Microsoft Standards):
  * To bypass Browser CORS restrictions and keep API keys secure,
  * all emails are now routed through a Supabase Edge Function ('resend').
- */
+ */ 
 
 const APP_DASHBOARD_LINK = 'https://internship-0sf2.onrender.com/#dashboard';
 
