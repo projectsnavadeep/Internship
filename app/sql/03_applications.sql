@@ -1,7 +1,7 @@
 -- ============================================
 -- 03_applications.sql
 -- Applications, Interview Notes, and Documents.
--- ============================================
+-- ============================================ 
 
 -- 1. Applications Table
 CREATE TABLE IF NOT EXISTS public.applications (
