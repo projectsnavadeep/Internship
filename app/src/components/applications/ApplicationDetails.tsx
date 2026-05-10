@@ -78,23 +78,6 @@ export default function ApplicationDetails({
     interviewer_email: '',
   });
 
-  const handleAddNote = () => {
-    onAddNote(newNote);
-    setShowAddNote(false);
-    setNewNote({
-      round_number: interviewNotes.length + 1,
-      round_name: '',
-      interview_type: 'Video',
-      questions_asked: '',
-      answers_given: '',
-      key_takeaways: '',
-      follow_up_items: '',
-      outcome: 'Pending',
-      interviewer_name: '',
-      interviewer_role: '',
-      interviewer_email: '',
-    });
-  };
 
   return (
     <AnimatePresence>
@@ -111,36 +94,39 @@ export default function ApplicationDetails({
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-4xl max-h-[95vh] overflow-hidden apple-card bg-white dark:bg-apple-near-black flex flex-col shadow-2xl"
+            className="relative w-full max-w-4xl max-h-[95vh] overflow-hidden bg-white dark:bg-apple-near-black rounded-[48px] flex flex-col shadow-2xl border border-black/5"
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 30 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
+            {/* Header Accent */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#0071E3] to-blue-400 z-[30]" />
+
             {/* Action Bar */}
-            <div className="absolute top-6 right-6 z-20 flex items-center gap-2">
+            <div className="absolute top-8 right-8 z-20 flex items-center gap-3">
               <button
                 onClick={onEdit}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 shadow-apple flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-apple-blue transition-all"
+                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-[#0071E3] transition-all"
               >
                 <Edit size={18} />
               </button>
               <button
                 onClick={onDelete}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 shadow-apple flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-red-500 transition-all"
+                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-red-500 transition-all"
               >
                 <Trash2 size={18} />
               </button>
               <button
                 onClick={onClose}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 shadow-apple flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-apple-near-black transition-all"
+                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-apple-near-black transition-all"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <div className="p-6 md:p-12 space-y-16 pb-32">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-white via-white to-blue-50/20 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/5">
+              <div className="p-8 md:p-14 space-y-16 pb-32">
                 {/* Hero Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pt-4">
                   <div className="space-y-4">
@@ -290,55 +276,82 @@ export default function ApplicationDetails({
                           className="apple-card p-8 bg-apple-gray dark:bg-zinc-900 border-none space-y-8"
                         >
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              <div className="space-y-2">
-                                <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Round Name</label>
-                                <input
-                                  type="text"
-                                  value={newNote.round_name}
-                                  onChange={(e) => setNewNote({ ...newNote, round_name: e.target.value })}
-                                  className="w-full px-4 py-3 rounded-xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                                  placeholder="e.g. Technical Screen 1"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Method</label>
-                                <select
-                                  value={newNote.interview_type}
-                                  onChange={(e) => setNewNote({ ...newNote, interview_type: e.target.value as any })}
-                                  className="w-full px-4 py-3 rounded-xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
-                                >
-                                  {['Phone', 'Video', 'In-person', 'Technical', 'Behavioral', 'Panel', 'Group', 'Case Study'].map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                  ))}
-                                </select>
-                              </div>
-                           </div>
+                            <div className="space-y-2">
+                               <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Round Name</label>
+                               <input
+                                 type="text"
+                                 required
+                                 value={newNote.round_name}
+                                 onChange={(e) => setNewNote({ ...newNote, round_name: e.target.value })}
+                                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
+                                 placeholder="e.g. Technical Screen 1"
+                               />
+                             </div>
+                             <div className="space-y-2">
+                               <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Method</label>
+                               <select
+                                 value={newNote.interview_type}
+                                 onChange={(e) => setNewNote({ ...newNote, interview_type: e.target.value as any })}
+                                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all font-medium"
+                               >
+                                 {['Phone', 'Video', 'In-person', 'Technical', 'Behavioral', 'Panel', 'Group', 'Case Study'].map(type => (
+                                   <option key={type} value={type}>{type}</option>
+                                 ))}
+                               </select>
+                             </div>
+                          </div>
 
-                           <div className="space-y-2">
-                              <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Questions Asked</label>
-                              <textarea
-                                value={newNote.questions_asked}
-                                onChange={(e) => setNewNote({ ...newNote, questions_asked: e.target.value })}
-                                className="w-full px-5 py-4 rounded-2xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all min-h-[120px]"
-                                placeholder="What challenges were presented?"
-                              />
-                           </div>
+                          <div className="space-y-2">
+                             <label className="text-[13px] font-bold text-apple-near-black dark:text-white uppercase tracking-wider ml-1">Questions Asked</label>
+                             <textarea
+                               value={newNote.questions_asked}
+                               onChange={(e) => setNewNote({ ...newNote, questions_asked: e.target.value })}
+                               className="w-full px-5 py-4 rounded-2xl bg-white dark:bg-apple-near-black border-none focus:ring-2 focus:ring-apple-blue/20 transition-all min-h-[120px]"
+                               placeholder="What challenges were presented?"
+                             />
+                          </div>
 
-                           <div className="flex items-center justify-end gap-4">
-                              <button onClick={() => setShowAddNote(false)} className="text-[15px] font-bold text-apple-near-black/40">Cancel</button>
-                              <button onClick={handleAddNote} className="apple-pill-filled px-8">Save Record</button>
-                           </div>
-                        </motion.div>
-                      )}
-                   </AnimatePresence>
+                          <div className="flex items-center justify-end gap-4">
+                             <button onClick={() => setShowAddNote(false)} className="text-[15px] font-bold text-apple-near-black/40">Cancel</button>
+                             <button 
+                               onClick={() => {
+                                 const finalNote = { ...newNote, round_name: newNote.round_name || `Round ${newNote.round_number}` };
+                                 onAddNote(finalNote);
+                                 setShowAddNote(false);
+                                 setNewNote({
+                                   round_number: interviewNotes.length + 2,
+                                   round_name: '',
+                                   interview_type: 'Video',
+                                   questions_asked: '',
+                                   answers_given: '',
+                                   key_takeaways: '',
+                                   follow_up_items: '',
+                                   outcome: 'Pending',
+                                   interviewer_name: '',
+                                   interviewer_role: '',
+                                   interviewer_email: '',
+                                 });
+                               }} 
+                               className="apple-pill-filled px-8"
+                             >
+                               Save Record
+                             </button>
+                          </div>
+                       </motion.div>
+                     )}
+                  </AnimatePresence>
 
-                   {/* History Timeline */}
-                   <div className="space-y-8">
-                      {interviewNotes.length === 0 && !showAddNote ? (
-                        <div className="text-center py-20 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[40px]">
-                           <MessageSquare className="w-16 h-16 mx-auto mb-4 text-apple-near-black/10" />
-                           <p className="text-[19px] font-medium text-apple-near-black/40 dark:text-white/40 tracking-apple-tight">No interview records documented yet.</p>
-                        </div>
+                  {/* History Timeline */}
+                  <div className="space-y-8">
+                     {interviewNotes.length === 0 && !showAddNote ? (
+                       <div className="text-center py-24 bg-apple-gray dark:bg-zinc-900/50 rounded-[48px] border border-black/[0.03] dark:border-white/[0.03] shadow-inner">
+                          <div className="w-20 h-20 rounded-full bg-white dark:bg-apple-near-black flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <MessageSquare className="w-8 h-8 text-apple-near-black/20 dark:text-white/20" />
+                          </div>
+                          <p className="text-[21px] font-medium text-apple-near-black/40 dark:text-white/40 tracking-apple-tight max-w-xs mx-auto">
+                            No interview records documented yet.
+                          </p>
+                       </div>
                       ) : (
                         interviewNotes.map((note) => (
                           <motion.div

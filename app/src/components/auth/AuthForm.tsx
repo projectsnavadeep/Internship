@@ -1,8 +1,10 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldHalf, Send } from 'lucide-react';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { Logo } from '@/components/shared/Logo';
+import { submitAppeal } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -17,6 +19,9 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [showAppealModal, setShowAppealModal] = useState(false);
+  const [appealMessage, setAppealMessage] = useState('');
+  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
   const combinedLoading = loading || formLoading;
 
   useEffect(() => {
@@ -52,7 +57,12 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
         await onRegister(email, password, fullName);
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      if (err.message.includes("ACCOUNT LOCKED") || err.message === "ACCOUNT_LOCKED") {
+        setError("SECURITY ALERT: This account has been locked by an administrator.");
+        setShowAppealModal(true);
+      } else {
+        setError(err.message || 'An error occurred');
+      }
     } finally {
       setFormLoading(false);
     }
@@ -181,6 +191,80 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
           </button>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showAppealModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowAppealModal(false)} 
+              className="absolute inset-0 bg-black/60 backdrop-blur-md" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-[32px] p-10 shadow-2xl overflow-hidden border border-red-500/10"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-6">
+                  <ShieldHalf size={32} />
+                </div>
+                <h3 className="text-2xl font-bold dark:text-white mb-2">Account Restricted</h3>
+                <p className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium mb-8">
+                  Your access to InternTrack has been suspended by the Security Team. If you believe this is an error, please submit an appeal below.
+                </p>
+                
+                <textarea
+                  value={appealMessage}
+                  onChange={(e) => setAppealMessage(e.target.value)}
+                  placeholder="Describe your situation and why access should be restored..."
+                  className="w-full px-5 py-4 rounded-2xl bg-black/5 dark:bg-white/5 border-none text-[14px] focus:ring-2 focus:ring-red-500/20 mb-6 min-h-[120px] resize-none font-medium"
+                />
+
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => setShowAppealModal(false)}
+                    className="flex-1 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 font-bold text-[15px] hover:bg-black/10 transition-all"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!appealMessage.trim()) return;
+                      setIsSubmittingAppeal(true);
+                      const success = await submitAppeal('LOCKED_USER', email, 'Locked User', appealMessage);
+                      if (success) {
+                        toast.success("Security Appeal Transmitted", {
+                          description: "The administration will review your request shortly."
+                        });
+                        setShowAppealModal(false);
+                        setAppealMessage('');
+                      } else {
+                        toast.error("Transmission Failed");
+                      }
+                      setIsSubmittingAppeal(false);
+                    }}
+                    disabled={isSubmittingAppeal || !appealMessage.trim()}
+                    className="flex-[2] py-4 rounded-2xl bg-red-500 text-white font-bold text-[15px] flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all disabled:opacity-50"
+                  >
+                    {isSubmittingAppeal ? (
+                      <InlineLoader size={20} color="bg-white" />
+                    ) : (
+                      <>
+                        <Send size={18} />
+                        Submit Appeal
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

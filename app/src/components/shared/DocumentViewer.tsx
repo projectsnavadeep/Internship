@@ -21,14 +21,26 @@ export function DocumentViewer({ url, name, isOpen, onClose }: DocumentViewerPro
     if (isOpen) {
       setLoading(true);
       setError(false);
+      
+      // Safety timeout since iframe onLoad for PDFs is unreliable
+      const loadTimeout = setTimeout(() => {
+        setLoading(false);
+      }, 1500);
+
       // Escape key to close
       const handleEsc = (e: KeyboardEvent) => {
         if (e.key === 'Escape') onClose();
       };
       window.addEventListener('keydown', handleEsc);
-      return () => window.removeEventListener('keydown', handleEsc);
+      return () => {
+        window.removeEventListener('keydown', handleEsc);
+        clearTimeout(loadTimeout);
+      };
     }
-  }, [isOpen, onClose]);
+    // We intentionally exclude onClose from dependencies to prevent 
+    // the viewer from resetting every time the parent renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

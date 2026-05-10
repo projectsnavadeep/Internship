@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Building2, ChevronRight } from 'lucide-react';
 import type { Application } from '@/types';
+import { memo } from 'react';
 
 interface RecentApplicationsProps {
   applications: Application[];
@@ -18,7 +19,7 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-export function RecentApplications({ applications }: RecentApplicationsProps) {
+export const RecentApplications = memo(function RecentApplications({ applications }: RecentApplicationsProps) {
   const recent = applications.slice(0, 5);
 
   return (
@@ -86,4 +87,4 @@ export function RecentApplications({ applications }: RecentApplicationsProps) {
       </div>
     </motion.div>
   );
-}
+});

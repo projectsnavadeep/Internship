@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
 import { logError, createApplication, updateApplication } from '@/lib/supabase';
 import { toast } from 'sonner';
-import type { Application, ApplicationStatus, EmploymentType } from '@/types';
+import type { Application, ApplicationStatus } from '@/types';
 
 interface ApplicationModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ interface ApplicationModalProps {
 }
 
 const statuses: ApplicationStatus[] = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
-const employmentTypes: EmploymentType[] = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
 
 export default function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -92,6 +91,20 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
     }
     setIsSaving(false);
   }, [application, isOpen]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isOpen) {
+        e.preventDefault();
+        e.returnValue = 'You have an application open. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -176,8 +189,6 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -195,115 +206,177 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-2xl bg-mc-canvas-cream dark:bg-zinc-900 rounded-[40px] shadow-mc-deep overflow-hidden border border-black/5"
+            className="relative w-full max-w-3xl bg-white dark:bg-apple-near-black rounded-[48px] shadow-2xl overflow-hidden border border-black/5 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-10 py-8 border-b border-mc-ink-black/10">
-              <h2 className="text-[36px] tracking-mc-tight leading-none font-medium text-mc-ink-black dark:text-white">
-                {application ? 'Edit Application' : 'New Application'}
-              </h2>
-              <button onClick={onClose} className="w-[48px] h-[48px] rounded-full flex items-center justify-center bg-white hover:bg-black/5 transition-colors border border-mc-ink-black/10">
-                <X className="w-5 h-5 text-mc-ink-black" />
-              </button>
+            {/* Header with Blue Gradient Accent */}
+            <div className="relative px-12 py-10 border-b border-black/5 bg-gradient-to-br from-white via-white to-blue-50/30 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/10">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0071E3] to-blue-400" />
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-[44px] font-bold tracking-apple-tight text-apple-near-black dark:text-white leading-tight">
+                    {application ? 'Edit Application.' : 'New Entry.'}
+                  </h2>
+                  <p className="text-[17px] font-medium text-apple-near-black/40 dark:text-white/40">
+                    Syncing professional parameters to your career timeline.
+                  </p>
+                </div>
+                <button 
+                  onClick={onClose} 
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-apple-gray dark:bg-zinc-800 hover:bg-black/5 dark:hover:bg-white/5 transition-all shadow-sm"
+                >
+                  <X className="w-5 h-5 text-apple-near-black/40 dark:text-white/40" />
+                </button>
+              </div>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="px-6 py-6 md:px-10 md:py-10 space-y-12 max-h-[70vh] overflow-y-auto">
-
+            {/* Form Container with Premium Scrolling */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar px-12 py-10 space-y-16">
+              
               {/* Company & Position */}
-              <section className="space-y-6">
-                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />COMPANY & POSITION</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Company Name *</label>
-                    <input type="text" value={formData.company_name} onChange={(e) => updateField('company_name', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
-                      placeholder="e.g. Google" required />
+              <section className="space-y-10">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Identity & Role</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Company Name *</label>
+                    <input 
+                      type="text" 
+                      value={formData.company_name} 
+                      onChange={(e) => updateField('company_name', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
+                      placeholder="e.g. Google" 
+                      required 
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Job Title *</label>
-                    <input type="text" value={formData.job_title} onChange={(e) => updateField('job_title', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
-                      placeholder="e.g. Software Engineer" required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Location</label>
-                    <input type="text" value={formData.location} onChange={(e) => updateField('location', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
-                      placeholder="e.g. New York" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Job URL</label>
-                    <input type="url" value={formData.job_url} onChange={(e) => updateField('job_url', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black"
-                      placeholder="https://..." />
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Job Title *</label>
+                    <input 
+                      type="text" 
+                      value={formData.job_title} 
+                      onChange={(e) => updateField('job_title', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
+                      placeholder="e.g. Senior SDL" 
+                      required 
+                    />
                   </div>
                 </div>
-              </section>
-
-              {/* Status & Dates */}
-              <section className="space-y-6">
-                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />STATUS & DATES</div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Status</label>
-                    <select value={formData.status} onChange={(e) => updateField('status', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black focus:ring-1 focus:ring-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black appearance-none">
-                      {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Location</label>
+                    <input 
+                      type="text" 
+                      value={formData.location} 
+                      onChange={(e) => updateField('location', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      placeholder="e.g. New York" 
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Applied</label>
-                    <input type="date" value={formData.applied_date} onChange={(e) => updateField('applied_date', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Deadline</label>
-                    <input type="date" value={formData.deadline_date} onChange={(e) => updateField('deadline_date', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Career URL</label>
+                    <input 
+                      type="url" 
+                      value={formData.job_url} 
+                      onChange={(e) => updateField('job_url', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      placeholder="https://..." 
+                    />
                   </div>
                 </div>
               </section>
 
-              {/* Details */}
-              <section className="space-y-6">
-                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />DETAILS</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Type</label>
-                    <select value={formData.employment_type} onChange={(e) => updateField('employment_type', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black appearance-none">
-                      {employmentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                    </select>
+              {/* Parameters */}
+              <section className="space-y-10">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Operational Parameters</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Status</label>
+                    <div className="relative">
+                      <select 
+                        value={formData.status} 
+                        onChange={(e) => updateField('status', e.target.value)}
+                        className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-bold text-[15px] text-apple-near-black dark:text-white appearance-none uppercase tracking-widest"
+                      >
+                        {statuses.map(s => <option key={s} value={s} className="bg-white dark:bg-apple-near-black text-apple-near-black dark:text-white">{s}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-semibold text-mc-ink-black ml-4">Salary</label>
-                    <input type="text" value={formData.salary_range} onChange={(e) => updateField('salary_range', e.target.value)}
-                      className="w-full h-[56px] px-6 rounded-full bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black" />
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Applied Date</label>
+                    <input 
+                      type="date" 
+                      value={formData.applied_date} 
+                      onChange={(e) => updateField('applied_date', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Deadline</label>
+                    <input 
+                      type="date" 
+                      value={formData.deadline_date} 
+                      onChange={(e) => updateField('deadline_date', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
+                    />
                   </div>
                 </div>
               </section>
 
-              {/* Notes */}
-              <section className="space-y-4">
-                <div className="mc-eyebrow flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-mc-light-signal-orange" />NOTES</div>
-                <textarea value={formData.notes} onChange={(e) => updateField('notes', e.target.value)} rows={4}
-                  className="w-full p-6 rounded-[24px] bg-white border border-mc-ink-black/20 focus:border-mc-ink-black transition-all font-medium text-[16px] text-mc-ink-black resize-none" placeholder="Add some context..." />
+              {/* Extra Logic */}
+              <section className="space-y-10">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Reflections & Compensation</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Salary Expectation</label>
+                    <input 
+                      type="text" 
+                      value={formData.salary_range} 
+                      onChange={(e) => updateField('salary_range', e.target.value)}
+                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      placeholder="e.g. 150k$" 
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Importance</label>
+                    <div className="h-[60px] flex items-center px-6 gap-3 rounded-[20px] bg-apple-gray dark:bg-zinc-900">
+                      {[...Array(5)].map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => updateField('rating', i + 1)}
+                          className={`w-3 h-3 rounded-full transition-all ${i < (formData.rating || 0) ? 'bg-[#0071E3] shadow-[0_0_12px_rgba(0,113,227,0.5)] scale-125' : 'bg-black/10 dark:bg-white/10 hover:bg-[#0071E3]/30'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Notes</label>
+                  <textarea 
+                    value={formData.notes} 
+                    onChange={(e) => updateField('notes', e.target.value)} 
+                    rows={4}
+                    className="w-full p-8 rounded-[32px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white italic placeholder:text-apple-near-black/20 resize-none" 
+                    placeholder="Add some context or reflections..." 
+                  />
+                </div>
               </section>
 
-              {/* Submit */}
-              <div className="flex items-center justify-end gap-4 pt-10 pb-4 border-t border-mc-ink-black/10">
-                <button type="button" onClick={onClose}
-                  className="mc-pill-outline">
+              {/* Action Sentinel */}
+              <div className="flex flex-col-reverse md:flex-row items-center justify-end gap-6 pt-10 pb-6 border-t border-black/5">
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  className="w-full md:w-auto px-10 py-4 rounded-full font-bold text-[15px] text-apple-near-black/40 hover:text-apple-near-black transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={isSaving}
-                  className="mc-pill-ink flex items-center gap-2">
+                <button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="w-full md:w-auto px-12 py-4 rounded-full bg-apple-near-black dark:bg-white text-white dark:text-apple-near-black font-bold text-[15px] shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                >
                   {isSaving && <InlineLoader size={16} />}
-                  {isSaving ? 'Processing' : application ? 'Confirm' : 'Add Application'}
+                  {isSaving ? 'Synchronizing' : application ? 'Confirm Changes' : 'Record Application'}
                 </button>
               </div>
             </form>

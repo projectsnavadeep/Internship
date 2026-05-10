@@ -137,6 +137,9 @@ export interface Profile {
   merit?: string;
   additional_data?: string;
   signup_date?: string;
+  total_minutes_spent?: number;
+  today_minutes_spent?: number;
+  last_active_date?: string;
   created_at: string;
   updated_at: string;
 }

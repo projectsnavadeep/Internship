@@ -29,7 +29,6 @@
   }
 
   .dark {
-    /* Muted dark mode - retaining warm tones if possible but mostly dark gray/ink */
     --background: 60 5% 8%;
     --foreground: 30 20% 94%;
     --card: 0 0% 12%;
@@ -59,6 +58,7 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    touch-action: pan-y;
   }
   
   body {
@@ -68,22 +68,30 @@
     -webkit-user-select: none;
     -webkit-touch-callout: none;
     user-select: none;
+    text-rendering: optimizeSpeed;
   }
 
-  /* Allow text selection in inputs and textareas */
   input, textarea, [contenteditable="true"] {
     -webkit-user-select: text;
     user-select: text;
   }
 
-  /* Typography Optical Sizing Mockup */
-  h1, h2, .display-hero {
-    letter-spacing: -0.02em;
-    line-height: 1;
-    font-weight: 500;
+  h1, .display-hero {
+    font-size: clamp(40px, 8vw, 80px);
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-weight: 600;
   }
 
-  h3, h4, .section-heading {
+  h2 {
+    font-size: clamp(32px, 6vw, 48px);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    font-weight: 600;
+  }
+
+  h3, .section-heading {
+    font-size: clamp(24px, 4vw, 32px);
     letter-spacing: -0.02em;
     line-height: 1.2;
     font-weight: 500;
@@ -91,13 +99,12 @@
 }
 
 @layer components {
-
-  /* Clean Pill CTAs */
   .mc-pill-ink {
     @apply bg-zinc-900 text-white border border-transparent rounded-[16px] px-6 py-2 font-medium text-center transition-all shadow-sm;
     @apply active:scale-95 hover:bg-zinc-800;
     font-size: 15px;
     letter-spacing: -0.01em;
+    will-change: transform;
   }
   .dark .mc-pill-ink {
     @apply bg-zinc-100 text-zinc-900;
@@ -108,58 +115,40 @@
     @apply hover:bg-zinc-50 active:scale-95 hover:border-zinc-300;
     font-size: 15px;
     letter-spacing: -0.01em;
-  }
-  .dark .mc-pill-outline {
-    @apply bg-transparent text-mc-canvas-cream border-[1.5px] border-mc-canvas-cream;
-    @apply hover:bg-white/5;
+    will-change: transform;
   }
 
-  .mc-pill-signal {
-    @apply bg-mc-signal-orange text-white border-0 rounded-[24px] pt-[2px] pb-[1px] px-[30px] transition-all;
-    @apply hover:brightness-110 active:scale-95;
-    font-size: 13px;
-    font-weight: 400;
-    letter-spacing: 0.01em;
-  }
-
-  /* Smooth Stadium Cards */
   .mc-stadium-card {
     @apply bg-white dark:bg-zinc-900 rounded-[24px] shadow-sm border border-zinc-200/60 dark:border-zinc-800 transition-all duration-300;
+    will-change: transform, opacity;
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 400px;
   }
 
-  .mc-circle-portrait {
-    @apply aspect-square rounded-[24px] overflow-hidden object-cover relative;
-  }
-
-  /* Ghost Watermark */
-  .mc-ghost-watermark {
-    @apply font-semibold text-[72px] md:text-[128px] text-zinc-100 dark:text-zinc-800 tracking-tight select-none pointer-events-none;
-  }
-
-  /* Eyebrow Label */
-  .mc-eyebrow {
-    @apply text-[12px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400;
-  }
-
-
-  /* Floating Nav Pill */
   .mc-nav-pill {
-    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-[24px] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200/50 dark:border-white/10;
+    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-[24px] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200/50 dark:border-white/10;
+    will-change: backdrop-filter, transform;
   }
 
-  /* Professional Grid Pattern */
   .bg-grid-pattern {
     background-image: linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
                       linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
     background-size: 30px 30px;
+    /* Use static background for performance */
+    background-attachment: scroll;
   }
-  .dark .bg-grid-pattern {
-    background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+
+  .animate-gradient-xy {
+    animation: gradient-xy 15s ease infinite;
+    background-size: 400% 400%;
+  }
+
+  @keyframes gradient-xy {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
