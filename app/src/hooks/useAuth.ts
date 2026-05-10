@@ -120,7 +120,7 @@ export function useAuth() {
       subscription.unsubscribe();
       clearTimeout(safetyTimer);
     };
-  }, [hydrateUser, hasSessionHint, loading, user]);
+  }, [hydrateUser, hasSessionHint]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);
