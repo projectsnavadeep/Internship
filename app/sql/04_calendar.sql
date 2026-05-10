@@ -1,7 +1,7 @@
 -- ============================================
 -- 04_calendar.sql
 -- Reminders and Scheduling system.
--- ============================================
+-- ============================================ 
 
 -- 1. Reminders Table
 CREATE TABLE IF NOT EXISTS public.reminders (
