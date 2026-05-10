@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'; // System Audit System
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Trash2, RefreshCw,
-  Clock, User, Bug, FileWarning, Shield, ChevronUp, ChevronDown, MessageSquare
+  Clock, User, Bug, FileWarning, Shield, ChevronUp, ChevronDown, MessageSquare, Image
 } from 'lucide-react';
 import { adminGetErrorLogs, adminResolveError, adminDeleteErrorLog } from '@/lib/supabase';
 import { PremiumLoader } from '@/components/shared/PremiumLoader';
@@ -25,6 +25,7 @@ interface ErrorLog {
   resolved_by: string | null;
   resolved_at: string | null;
   resolution_notes: string | null;
+  screenshot_url: string | null;
   created_at: string;
 }
 
@@ -41,6 +42,9 @@ const ERROR_TYPE_LABELS: Record<string, { label: string; color: string; icon: an
   password_change: { label: 'Password', color: 'text-red-600 bg-red-600/10', icon: Shield },
   avatar_upload: { label: 'Avatar', color: 'text-teal-500 bg-teal-500/10', icon: User },
   data_load: { label: 'Data Load', color: 'text-gray-500 bg-gray-500/10', icon: Bug },
+  rendering: { label: 'UI Glitch', color: 'text-violet-500 bg-violet-500/10', icon: Bug },
+  network: { label: 'Network', color: 'text-sky-500 bg-sky-500/10', icon: Bug },
+  user_bug_report: { label: 'Bug Report', color: 'text-red-500 bg-red-500/10', icon: Bug },
   unknown: { label: 'Unknown', color: 'text-zinc-400 bg-zinc-400/10', icon: Bug },
 };
 
@@ -272,6 +276,20 @@ export default function ErrorLogsView({ adminId }: { adminId?: string }) {
                               <pre className="mt-2 p-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[11px] font-mono overflow-auto max-h-60 dark:text-white/70 leading-relaxed">
                                 {log.error_stack}
                               </pre>
+                            </div>
+                          )}
+                          {log.screenshot_url && (
+                            <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                              <p className="font-bold text-apple-near-black/30 dark:text-white/30 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                                <Image size={12} /> Attached Screenshot
+                              </p>
+                              <a href={log.screenshot_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                <img 
+                                  src={log.screenshot_url} 
+                                  alt="Bug report screenshot" 
+                                  className="max-w-full max-h-64 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow cursor-pointer object-contain bg-black/2 dark:bg-white/2"
+                                />
+                              </a>
                             </div>
                           )}
                           {log.resolved && log.resolution_notes && (

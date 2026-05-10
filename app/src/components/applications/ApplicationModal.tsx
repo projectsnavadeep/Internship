@@ -210,11 +210,11 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with Blue Gradient Accent */}
-            <div className="relative px-12 py-10 border-b border-black/5 bg-gradient-to-br from-white via-white to-blue-50/30 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/10">
+            <div className="relative px-12 py-6 border-b border-black/5 bg-gradient-to-br from-white via-white to-blue-50/30 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/10">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0071E3] to-blue-400" />
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h2 className="text-[44px] font-bold tracking-apple-tight text-apple-near-black dark:text-white leading-tight">
+                  <h2 className="text-[36px] font-bold tracking-apple-tight text-apple-near-black dark:text-white leading-tight">
                     {application ? 'Edit Application.' : 'New Entry.'}
                   </h2>
                   <p className="text-[17px] font-medium text-apple-near-black/40 dark:text-white/40">
@@ -231,11 +231,11 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
             </div>
 
             {/* Form Container with Premium Scrolling */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar px-12 py-10 space-y-16">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar px-12 py-6 space-y-10">
               
               {/* Company & Position */}
-              <section className="space-y-10">
-                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Identity & Role</h3>
+              <section className="space-y-6">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-3">Identity & Role</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-3">
                     <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Company Name *</label>
@@ -243,7 +243,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="text" 
                       value={formData.company_name} 
                       onChange={(e) => updateField('company_name', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
                       placeholder="e.g. Google" 
                       required 
                     />
@@ -254,7 +254,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="text" 
                       value={formData.job_title} 
                       onChange={(e) => updateField('job_title', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white placeholder:text-apple-near-black/20"
                       placeholder="e.g. Senior SDL" 
                       required 
                     />
@@ -267,7 +267,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="text" 
                       value={formData.location} 
                       onChange={(e) => updateField('location', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
                       placeholder="e.g. New York" 
                     />
                   </div>
@@ -277,7 +277,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="url" 
                       value={formData.job_url} 
                       onChange={(e) => updateField('job_url', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
                       placeholder="https://..." 
                     />
                   </div>
@@ -285,8 +285,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
               </section>
 
               {/* Parameters */}
-              <section className="space-y-10">
-                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Operational Parameters</h3>
+              <section className="space-y-6">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-3">Operational Parameters</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   <div className="space-y-3">
                     <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Status</label>
@@ -294,7 +294,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       <select 
                         value={formData.status} 
                         onChange={(e) => updateField('status', e.target.value)}
-                        className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-bold text-[15px] text-apple-near-black dark:text-white appearance-none uppercase tracking-widest"
+                        className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-bold text-[15px] text-apple-near-black dark:text-white appearance-none uppercase tracking-widest"
                       >
                         {statuses.map(s => <option key={s} value={s} className="bg-white dark:bg-apple-near-black text-apple-near-black dark:text-white">{s}</option>)}
                       </select>
@@ -306,7 +306,7 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="date" 
                       value={formData.applied_date} 
                       onChange={(e) => updateField('applied_date', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
                     />
                   </div>
                   <div className="space-y-3">
@@ -315,15 +315,15 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="date" 
                       value={formData.deadline_date} 
                       onChange={(e) => updateField('deadline_date', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[16px] text-apple-near-black dark:text-white" 
                     />
                   </div>
                 </div>
               </section>
 
               {/* Extra Logic */}
-              <section className="space-y-10">
-                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Reflections & Compensation</h3>
+              <section className="space-y-6">
+                <h3 className="text-[13px] font-bold text-[#0071E3] uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-3">Reflections & Compensation</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-3">
                     <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Salary Expectation</label>
@@ -331,13 +331,13 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                       type="text" 
                       value={formData.salary_range} 
                       onChange={(e) => updateField('salary_range', e.target.value)}
-                      className="w-full h-[60px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
+                      className="w-full h-[52px] px-6 rounded-[20px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-semibold text-[17px] text-apple-near-black dark:text-white"
                       placeholder="e.g. 150k$" 
                     />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest ml-1">Importance</label>
-                    <div className="h-[60px] flex items-center px-6 gap-3 rounded-[20px] bg-apple-gray dark:bg-zinc-900">
+                    <div className="h-[52px] flex items-center px-6 gap-3 rounded-[20px] bg-apple-gray dark:bg-zinc-900">
                       {[...Array(5)].map((_, i) => (
                         <button
                           key={i}
@@ -354,8 +354,8 @@ export default function ApplicationModal({ isOpen, onClose, onSave, application,
                   <textarea 
                     value={formData.notes} 
                     onChange={(e) => updateField('notes', e.target.value)} 
-                    rows={4}
-                    className="w-full p-8 rounded-[32px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white italic placeholder:text-apple-near-black/20 resize-none" 
+                    rows={3}
+                    className="w-full p-6 rounded-[32px] bg-apple-gray dark:bg-zinc-900 border-none focus:ring-2 focus:ring-[#0071E3]/20 transition-all font-medium text-[17px] text-apple-near-black dark:text-white italic placeholder:text-apple-near-black/20 resize-none" 
                     placeholder="Add some context or reflections..." 
                   />
                 </div>

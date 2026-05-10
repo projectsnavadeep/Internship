@@ -11,7 +11,9 @@ import {
   Star,
 
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Edit,
+  Check
 } from 'lucide-react';
 import { getDocuments, uploadDocumentFile, createDocument, deleteDocument, updateDocument } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -56,6 +58,8 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
   const [selectedDocType, setSelectedDocType] = useState('Resume');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [viewerDoc, setViewerDoc] = useState<{url: string, name: string} | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -183,6 +187,23 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
     }
   };
 
+  const handleRename = async (id: string) => {
+    if (!editingName.trim()) {
+      setEditingId(null);
+      return;
+    }
+
+    try {
+      await updateDocument(id, { name: editingName });
+      setDocs(docs.map(doc => doc.id === id ? { ...doc, name: editingName } : doc));
+      toast.success('Document renamed.');
+    } catch (err) {
+      toast.error('Failed to rename document.');
+    } finally {
+      setEditingId(null);
+    }
+  };
+
   const handleDeleteDocument = async (id: string, url: string) => {
     try {
       await deleteDocument(id, url);
@@ -251,10 +272,9 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
         </p>
       </motion.div>
 
-      {/* Document Type Selector + Upload Zone */}
       <motion.div
         className={`
-          apple-card p-12 bg-white dark:bg-apple-near-black border-2 border-dashed transition-all duration-500 apple-card-lift
+          apple-card p-5 bg-white dark:bg-apple-near-black border-2 border-dashed transition-all duration-500 apple-card-lift !mt-5
           ${isDragging ? 'border-apple-blue bg-apple-blue/5 scale-[1.02]' : 'border-black/5 dark:border-white/5'}
         `}
         onDragOver={handleDragOver}
@@ -269,20 +289,20 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="w-20 h-20 rounded-3xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center mb-6 text-apple-blue shadow-inner group transition-transform hover:scale-105 hover:shadow-md disabled:opacity-50 disabled:hover:scale-100"
+            className="w-14 h-14 rounded-2xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center mb-3 text-apple-blue shadow-inner group transition-transform hover:scale-105 hover:shadow-md disabled:opacity-50 disabled:hover:scale-100"
             title="Click to select file"
           >
-             <Upload size={32} strokeWidth={1.5} className={isDragging ? 'animate-bounce' : ''} />
+             <Upload size={24} strokeWidth={1.5} className={isDragging ? 'animate-bounce' : ''} />
           </button>
-          <h3 className="section-heading text-apple-near-black dark:text-white mb-2">
+          <h3 className="text-[20px] font-bold text-apple-near-black dark:text-white mb-1">
             {isDragging ? 'Drop to Store' : 'Repository Upload'}
           </h3>
-          <p className="text-[17px] text-apple-near-black/40 dark:text-white/40 mb-6 max-w-sm">
+          <p className="text-[14px] text-apple-near-black/40 dark:text-white/40 mb-3 max-w-sm">
             Support for PDF, DOCX, and high-resolution imagery. Max file size: 50MB.
           </p>
 
           {/* Document Type Selector */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <button
               onClick={() => setShowTypeDropdown(!showTypeDropdown)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-apple-gray dark:bg-zinc-800 text-[15px] font-medium text-apple-near-black dark:text-white hover:bg-apple-gray/80 dark:hover:bg-zinc-700 transition-colors"
@@ -379,12 +399,24 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
                   <button 
                     onClick={() => toggleDefault(doc.id)}
                     className={`p-2 rounded-full transition-colors ${doc.is_default ? 'text-apple-blue' : 'text-apple-near-black/10'}`}
+                    title="Mark as primary"
                   >
                     <Star size={20} fill={doc.is_default ? 'currentColor' : 'transparent'} />
                   </button>
                   <button 
+                    onClick={() => {
+                      setEditingId(doc.id);
+                      setEditingName(doc.name);
+                    }}
+                    className="p-2 rounded-full text-apple-near-black/10 hover:text-apple-blue transition-colors"
+                    title="Rename"
+                  >
+                    <Edit size={20} />
+                  </button>
+                  <button 
                     onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
                     className="p-2 rounded-full text-apple-near-black/10 hover:text-red-500 transition-colors"
+                    title="Delete"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -393,9 +425,31 @@ export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-[19px] font-bold text-apple-near-black dark:text-white truncate tracking-apple-tight">
-                    {doc.name}
-                  </h4>
+                  {editingId === doc.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRename(doc.id);
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-apple-blue/30 rounded-lg px-3 py-1 text-[17px] font-bold text-apple-near-black dark:text-white outline-none focus:ring-2 focus:ring-apple-blue/20"
+                      />
+                      <button 
+                        onClick={() => handleRename(doc.id)}
+                        className="p-2 bg-apple-blue text-white rounded-lg hover:bg-apple-blue-hover transition-colors"
+                      >
+                        <Check size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <h4 className="text-[19px] font-bold text-apple-near-black dark:text-white truncate tracking-apple-tight">
+                      {doc.name}
+                    </h4>
+                  )}
                   <div className="flex items-center gap-3 pt-1">
                     <span className="text-[12px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">{doc.document_type}</span>
                     <span className="w-1 h-1 rounded-full bg-apple-near-black/20" />

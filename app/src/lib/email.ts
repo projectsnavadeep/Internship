@@ -8,6 +8,33 @@ import { supabase, markWelcomeEmailSent } from './supabase';
 
 const APP_DASHBOARD_LINK = 'https://internship-0sf2.onrender.com/#dashboard';
 
+const LOGO_HTML = `
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 30px;">
+    <tr>
+      <td align="center">
+        <table cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <!-- INTERN TRACK wordmark -->
+            <td style="vertical-align: middle; padding-right: 20px;">
+              <div style="font-size: 24px; font-weight: 900; color: #1a1a1a; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.1; margin: 0;">INTERN</div>
+              <div style="font-size: 24px; font-weight: 900; color: #007AFF; letter-spacing: 3px; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.1; margin: 0;">TRACK</div>
+            </td>
+            <!-- Divider -->
+            <td style="vertical-align: middle; padding-right: 20px;">
+              <div style="width: 1px; height: 52px; background-color: #cccccc;">&nbsp;</div>
+            </td>
+            <!-- THE PROFESSIONAL Platform -->
+            <td style="vertical-align: middle;">
+              <div style="font-size: 10px; font-weight: 600; color: #999999; letter-spacing: 4px; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin-bottom: 4px;">THE PROFESSIONAL</div>
+              <div style="font-size: 28px; font-weight: 700; color: #1a1a1a; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1;">Platform</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+`;
+
 export const sendWelcomeEmail = async (
   userId: string,
   userEmail: string,
@@ -18,13 +45,11 @@ export const sendWelcomeEmail = async (
     const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
-        reply_to: 'support@gmail.com',
+        reply_to: 'supportinternship@gmail.com',
         subject: 'Welcome to the Internship Network',
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background-color: #ffffff;">
-            <div style="margin-bottom: 30px; text-align: center;">
-              <h1 style="color: #007AFF; font-size: 28px; font-weight: 900; margin: 0; letter-spacing: -1px;">InternTrack</h1>
-            </div>
+            ${LOGO_HTML}
             
             <h2 style="color: #1a1a1a; font-size: 24px; font-weight: 700; margin-bottom: 20px;">Welcome to the Network, ${userName}!</h2>
             
@@ -79,13 +104,11 @@ export const sendCustomEmail = async (
     const { error } = await supabase.functions.invoke('resend', {
       body: {
         to: userEmail,
-        reply_to: 'support@gmail.com',
+        reply_to: 'supportinternship@gmail.com',
         subject: subject,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background-color: #ffffff;">
-            <div style="margin-bottom: 30px; text-align: center;">
-              <h1 style="color: #007AFF; font-size: 28px; font-weight: 900; margin: 0; letter-spacing: -1px;">InternTrack</h1>
-            </div>
+            ${LOGO_HTML}
             
             <h2 style="color: #1a1a1a; font-size: 22px; font-weight: 700; margin-bottom: 20px;">Hello ${userName},</h2>
             

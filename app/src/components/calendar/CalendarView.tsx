@@ -199,7 +199,7 @@ export default function CalendarView({ applications, reminders, userId, onRefres
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 max-w-full lg:max-w-[95%] mx-auto">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -260,7 +260,7 @@ export default function CalendarView({ applications, reminders, userId, onRefres
                   key={index}
                   onClick={() => setSelectedDate(day.dateObj)}
                   className={`
-                    relative min-h-[80px] md:min-h-[120px] p-2 flex flex-col items-center justify-start transition-all group
+                    relative min-h-[60px] md:min-h-[90px] p-2 flex flex-col items-center justify-start transition-all group
                     ${!day.isCurrentMonth ? 'bg-zinc-100/50 text-zinc-400' : 'bg-white text-zinc-900'}
                     ${isSelected(day.dateObj) ? 'bg-zinc-100 z-10' : 'hover:bg-zinc-50'}
                   `}

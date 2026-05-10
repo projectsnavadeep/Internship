@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Upload, Globe, Monitor, Bug, Loader2 } from 'lucide-react';
-import { logError } from '@/lib/supabase';
+import { logError, uploadBugScreenshot } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface BugReportModalProps {
@@ -82,6 +82,12 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
       };
       const mappedErrorType = typeMap[errorType] ?? 'user_bug_report';
 
+      // Upload screenshot if attached (non-blocking — report still submits if upload fails)
+      let screenshotUrl: string | null = null;
+      if (file && userId) {
+        screenshotUrl = await uploadBugScreenshot(userId, file);
+      }
+
       await logError({
         userId,
         userEmail,
@@ -92,6 +98,7 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
         source: 'user_bug_report',
         endpointOrFile: metadata.page,
         actionAttempted: `Bug Report: ${errorType}`,
+        screenshotUrl: screenshotUrl || undefined,
       });
 
       toast.success('Bug report submitted. Our team will investigate.');
@@ -117,7 +124,7 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-900 rounded-[32px] p-8 shadow-2xl border border-black/5 dark:border-white/5"
+        className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-900 rounded-[32px] p-6 shadow-2xl border border-black/5 dark:border-white/5"
       >
         <button
           onClick={onClose}
@@ -126,17 +133,17 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
           <X size={16} />
         </button>
 
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
             <Bug size={24} />
           </div>
           <div>
-            <h2 className="text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-white">Report an Issue</h2>
-            <p className="text-[14px] text-zinc-500 dark:text-zinc-400">Help us improve the platform.</p>
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900 dark:text-white">Report an Issue</h2>
+            <p className="text-[13px] text-zinc-500 dark:text-zinc-400">Help us improve the platform.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-[13px] font-semibold text-zinc-900 dark:text-white uppercase tracking-wider">Issue Type</label>
             <select
@@ -156,7 +163,7 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What happened? What were you trying to do?"
-              className="w-full h-32 resize-none bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-[15px] text-zinc-900 dark:text-white focus:ring-2 focus:ring-apple-blue/20 focus:border-apple-blue transition-all outline-none"
+              className="w-full h-24 resize-none bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 text-[15px] text-zinc-900 dark:text-white focus:ring-2 focus:ring-apple-blue/20 focus:border-apple-blue transition-all outline-none"
             />
           </div>
 
@@ -190,7 +197,7 @@ export function BugReportModal({ onClose, userId, userEmail, userName }: BugRepo
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl py-4 font-bold text-[15px] hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl py-3.5 font-bold text-[15px] hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

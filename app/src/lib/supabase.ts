@@ -999,10 +999,11 @@ export interface ErrorLogData {
   userId?: string;
   userEmail?: string;
   userName?: string;
+  screenshotUrl?: string;
 }
 
 export const logError = async (data: ErrorLogData) => {
-  const payload = {
+  const payload: Record<string, any> = {
     user_id: data.userId || null,
     user_email: data.userEmail || null,
     user_name: data.userName || null,
@@ -1015,6 +1016,7 @@ export const logError = async (data: ErrorLogData) => {
     status_code: data.statusCode || null,
     action_attempted: data.actionAttempted || data.errorType,
   };
+  if (data.screenshotUrl) payload.screenshot_url = data.screenshotUrl;
 
   try {
     // Use the service-role admin client first — this bypasses RLS so bug reports
@@ -1030,6 +1032,23 @@ export const logError = async (data: ErrorLogData) => {
     await supabase.from('error_logs').insert(payload);
   } catch (e) {
     console.warn('[logError] Failed to persist error log (non-blocking):', e);
+  }
+};
+
+// Upload a bug report screenshot to storage
+export const uploadBugScreenshot = async (userId: string, file: File): Promise<string | null> => {
+  try {
+    const ext = file.name.split('.').pop() || 'png';
+    const path = `${userId}/bug-reports/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('documents')
+      .upload(path, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.warn('[uploadBugScreenshot] Failed (non-blocking):', err);
+    return null;
   }
 };
 

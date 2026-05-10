@@ -162,10 +162,12 @@ export function AuthForm({ onLogin, onRegister, loading }: AuthFormProps) {
               <button
                 type="submit"
                 disabled={combinedLoading}
-                className="w-full py-4 rounded-2xl bg-[#0071E3] text-white font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-[16px] tracking-tight"
+                className="w-full h-[60px] rounded-2xl bg-[#0071E3] text-white font-semibold shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-[16px] tracking-tight leading-none"
               >
                 {combinedLoading ? (
-                  <InlineLoader size={22} color="bg-white" />
+                  <div className="translate-y-[2px]">
+                    <InlineLoader size={22} color="white" />
+                  </div>
                 ) : (
                   <>
                     <span>{isLogin ? 'Sign In to Dashboard' : 'Create Account'}</span>

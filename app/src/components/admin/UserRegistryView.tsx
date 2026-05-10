@@ -60,6 +60,7 @@ export default function UserRegistryView() {
   const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '' });
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [sendingManualEmail, setSendingManualEmail] = useState(false);
+  const [manualEmailFilter, setManualEmailFilter] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -773,6 +774,7 @@ export default function UserRegistryView() {
                   setShowManualEmailModal(false);
                   setManualEmailContent({ subject: '', message: '' });
                   setSelectedUserIds([]);
+                  setManualEmailFilter('');
                 }} className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-all dark:text-white">
                   <X size={18} />
                 </button>
@@ -780,9 +782,25 @@ export default function UserRegistryView() {
 
               <div className="space-y-5">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Select Recipients</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Select Recipients</label>
+                    <span className="text-[10px] font-bold text-indigo-500">{selectedUserIds.length} user(s) selected</span>
+                  </div>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-apple-near-black/30 dark:text-white/30" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search users by name or email..."
+                      value={manualEmailFilter}
+                      onChange={(e) => setManualEmailFilter(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border-none text-[13px] focus:ring-2 focus:ring-indigo-500/20 font-medium outline-none dark:text-white transition-all"
+                    />
+                  </div>
                   <div className="max-h-32 overflow-y-auto bg-black/3 dark:bg-white/5 rounded-xl border border-transparent p-2 space-y-1">
-                    {users.map(u => (
+                    {users.filter(u => 
+                      u.full_name?.toLowerCase().includes(manualEmailFilter.toLowerCase()) || 
+                      u.email?.toLowerCase().includes(manualEmailFilter.toLowerCase())
+                    ).map(u => (
                       <label key={u.user_id} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-white dark:hover:bg-zinc-800 cursor-pointer transition-colors">
                         <input 
                           type="checkbox" 
@@ -796,7 +814,10 @@ export default function UserRegistryView() {
                         <span className="text-[13px] font-bold dark:text-white">{u.full_name} <span className="text-[10px] font-normal opacity-50">({u.email})</span></span>
                       </label>
                     ))}
-                    {users.length === 0 && <div className="p-4 text-center text-sm text-zinc-500">No users found.</div>}
+                    {users.filter(u => 
+                      u.full_name?.toLowerCase().includes(manualEmailFilter.toLowerCase()) || 
+                      u.email?.toLowerCase().includes(manualEmailFilter.toLowerCase())
+                    ).length === 0 && <div className="p-4 text-center text-sm text-zinc-500">No users found.</div>}
                   </div>
                   <div className="text-[10px] text-indigo-500 font-bold ml-1">{selectedUserIds.length} user(s) selected</div>
                 </div>

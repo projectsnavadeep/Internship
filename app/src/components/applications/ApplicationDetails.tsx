@@ -101,100 +101,97 @@ export default function ApplicationDetails({
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             {/* Header Accent */}
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#0071E3] to-blue-400 z-[30]" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#0071E3] to-blue-400 z-[40]" />
 
-            {/* Action Bar */}
-            <div className="absolute top-8 right-8 z-20 flex items-center gap-3">
-              <button
-                onClick={onEdit}
-                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-[#0071E3] transition-all"
-              >
-                <Edit size={18} />
-              </button>
-              <button
-                onClick={onDelete}
-                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-red-500 transition-all"
-              >
-                <Trash2 size={18} />
-              </button>
-              <button
-                onClick={onClose}
-                className="w-12 h-12 rounded-full bg-apple-gray dark:bg-zinc-800 shadow-sm flex items-center justify-center text-apple-near-black/40 dark:text-white/40 hover:text-apple-near-black transition-all"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-white via-white to-blue-50/20 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/5">
-              <div className="p-8 md:p-14 space-y-16 pb-32">
-                {/* Hero Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pt-4">
-                  <div className="space-y-4">
-                    <div className="w-20 h-20 rounded-3xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black dark:text-white shadow-inner">
-                      <Building2 size={40} strokeWidth={1.2} />
-                    </div>
-                    <div>
-                      <h2 className="text-[44px] font-bold tracking-apple-tight text-apple-near-black dark:text-white leading-[1.1]">
+            {/* Premium Sticky Header */}
+            <div className="sticky top-0 z-30 px-6 py-4 md:px-10 md:py-6 bg-white/80 dark:bg-apple-near-black/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black dark:text-white shadow-sm shrink-0">
+                    <Building2 size={24} md:size={28} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-[20px] md:text-[24px] font-bold tracking-apple-tight text-apple-near-black dark:text-white leading-tight truncate max-w-[150px] md:max-w-[300px]">
                         {application.company_name}.
                       </h2>
-                      <p className="text-[24px] font-medium text-apple-near-black/40 dark:text-white/40 tracking-apple-tight">
-                        {application.job_title}
-                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={`w-1.5 h-1.5 rounded-full ${i < (application.rating || 0) ? 'bg-apple-blue shadow-[0_0_8px_rgba(0,113,227,0.4)]' : 'bg-apple-near-black/10 dark:bg-white/10'}`} 
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-start md:items-end gap-4">
-                    <select
-                      value={application.status}
-                      onChange={(e) => onStatusChange(application.id, e.target.value)}
-                      className={`appearance-none cursor-pointer px-6 py-2 pt-2.5 rounded-full text-[14px] font-bold uppercase tracking-widest border border-black/10 dark:border-white/10 transition-all hover:opacity-80 outline-none ${getStatusStyles(application.status)}`}
-                    >
-                      {statusOrder.map(s => (
-                        <option key={s} value={s} className="bg-white dark:bg-black text-black dark:text-white uppercase font-bold text-[13px]">
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex items-center gap-1.5">
-                       {[...Array(5)].map((_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-2.5 h-2.5 rounded-full ${i < (application.rating || 0) ? 'bg-apple-blue shadow-[0_0_10px_rgba(0,113,227,0.4)]' : 'bg-apple-near-black/10 dark:bg-white/10'}`} 
-                        />
-                      ))}
-                    </div>
+                    <p className="text-[13px] md:text-[15px] font-medium text-apple-near-black/40 dark:text-white/40 truncate">
+                      {application.job_title}
+                    </p>
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2 md:gap-4">
+                  <select
+                    value={application.status}
+                    onChange={(e) => onStatusChange(application.id, e.target.value)}
+                    className={`appearance-none cursor-pointer px-4 py-1.5 md:px-6 md:py-2 rounded-full text-[11px] md:text-[12px] font-bold uppercase tracking-widest border border-black/10 dark:border-white/10 transition-all hover:opacity-80 outline-none ${getStatusStyles(application.status)}`}
+                  >
+                    {statusOrder.map(s => (
+                      <option key={s} value={s} className="bg-white dark:bg-black text-black dark:text-white uppercase font-bold">
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="h-8 w-[1px] bg-black/5 dark:bg-white/5 mx-1 hidden md:block" />
+
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <button onClick={onEdit} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black/30 hover:text-apple-blue transition-all">
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={onDelete} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black/30 hover:text-red-500 transition-all">
+                      <Trash2 size={16} />
+                    </button>
+                    <button onClick={onClose} className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-apple-near-black dark:bg-white flex items-center justify-center text-white dark:text-apple-near-black transition-all">
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-white via-white to-blue-50/20 dark:from-apple-near-black dark:via-apple-near-black dark:to-blue-900/5">
+              <div className="p-4 md:p-6 space-y-5 pb-6">
                 {/* Details Section */}
-                <section className="space-y-8">
-                  <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Overview</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-                     <div className="space-y-1.5">
-                       <p className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Location</p>
-                       <div className="flex items-center gap-2 text-[17px] font-semibold text-apple-near-black dark:text-white">
-                         <MapPin size={18} className="text-apple-blue" />
+                <section className="space-y-4 pt-2">
+                  <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-2">Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                     <div className="space-y-1">
+                       <p className="text-[11px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Location</p>
+                       <div className="flex items-center gap-2 text-[16px] font-semibold text-apple-near-black dark:text-white">
+                         <MapPin size={16} className="text-apple-blue" />
                          {application.location || 'Remote'}
                        </div>
                      </div>
-                     <div className="space-y-1.5">
-                       <p className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Employment</p>
-                       <div className="flex items-center gap-2 text-[17px] font-semibold text-apple-near-black dark:text-white">
-                         <Briefcase size={18} className="text-apple-blue" />
+                     <div className="space-y-1">
+                       <p className="text-[11px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Employment</p>
+                       <div className="flex items-center gap-2 text-[16px] font-semibold text-apple-near-black dark:text-white">
+                         <Briefcase size={16} className="text-apple-blue" />
                          {application.employment_type || 'Full-time'}
                        </div>
                      </div>
-                     <div className="space-y-1.5">
-                       <p className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Timeline</p>
-                       <div className="flex items-center gap-2 text-[17px] font-semibold text-apple-near-black dark:text-white">
-                         <Calendar size={18} className="text-apple-blue" />
-                         {new Date(application.applied_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                     <div className="space-y-1">
+                       <p className="text-[11px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Timeline</p>
+                       <div className="flex items-center gap-2 text-[16px] font-semibold text-apple-near-black dark:text-white">
+                         <Calendar size={16} className="text-apple-blue" />
+                         {new Date(application.applied_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                        </div>
                      </div>
                      {application.salary_range && (
-                        <div className="space-y-1.5">
-                          <p className="text-[13px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Compensation</p>
-                          <div className="flex items-center gap-2 text-[17px] font-semibold text-apple-near-black dark:text-white">
-                            <span className="text-apple-blue text-lg font-bold">$$</span>
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-widest">Compensation</p>
+                          <div className="flex items-center gap-2 text-[16px] font-semibold text-apple-near-black dark:text-white">
+                            <span className="text-apple-blue text-md font-black">$</span>
                             {application.salary_range}
                           </div>
                         </div>
@@ -202,15 +199,15 @@ export default function ApplicationDetails({
                   </div>
 
                   {application.job_url && (
-                    <div className="pt-6">
+                    <div className="pt-2">
                       <a 
                         href={application.job_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="apple-pill-outline w-fit flex items-center gap-3 px-8 group"
+                        className="text-apple-blue hover:text-apple-blue-hover text-[14px] font-bold flex items-center gap-2 w-fit transition-colors group"
                       >
                         Visit Career Page
-                        <Link size={16} className="group-hover:translate-y-[-2px] group-hover:translate-x-1 transition-transform" />
+                        <Link size={14} className="group-hover:translate-x-0.5 transition-transform" />
                       </a>
                     </div>
                   )}
@@ -218,9 +215,9 @@ export default function ApplicationDetails({
 
                 {/* Recruiter Section */}
                 {(application.recruiter_name || application.recruiter_email || application.recruiter_phone) && (
-                  <section className="space-y-8">
-                     <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Primary Contact</h3>
-                     <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-8 flex flex-wrap gap-12">
+                  <section className="space-y-6">
+                     <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-3">Primary Contact</h3>
+                     <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-6 flex flex-wrap gap-8">
                        {application.recruiter_name && (
                          <div className="flex-1 min-w-[200px] space-y-1">
                            <p className="text-[12px] font-bold text-apple-near-black/40 dark:text-white/40 uppercase tracking-widest">Point of Contact</p>
@@ -245,17 +242,17 @@ export default function ApplicationDetails({
 
                 {/* Notes Section */}
                 {application.notes && (
-                  <section className="space-y-8">
-                    <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-4">Reflections</h3>
-                    <div className="text-[21px] leading-relaxed text-apple-near-black/80 dark:text-white/80 font-medium tracking-apple-tight italic border-l-4 border-apple-blue/20 pl-8">
+                  <section className="space-y-6">
+                    <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5 pb-3">Reflections</h3>
+                    <div className="text-[18px] leading-relaxed text-apple-near-black/80 dark:text-white/80 font-medium tracking-apple-tight italic border-l-4 border-apple-blue/20 pl-8">
                       {application.notes}
                     </div>
                   </section>
                 )}
 
                 {/* Interview Section - Timeline Pattern */}
-                <section className="space-y-12">
-                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                <section className="space-y-8">
+                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
                      <h3 className="text-[13px] font-bold text-apple-blue uppercase tracking-[0.2em]">Interview History</h3>
                      <button
                         onClick={() => setShowAddNote(!showAddNote)}
@@ -342,9 +339,9 @@ export default function ApplicationDetails({
                   </AnimatePresence>
 
                   {/* History Timeline */}
-                  <div className="space-y-8">
+                  <div className="space-y-5">
                      {interviewNotes.length === 0 && !showAddNote ? (
-                       <div className="text-center py-24 bg-apple-gray dark:bg-zinc-900/50 rounded-[48px] border border-black/[0.03] dark:border-white/[0.03] shadow-inner">
+                       <div className="text-center py-6 bg-apple-gray dark:bg-zinc-900/50 rounded-[48px] border border-black/[0.03] dark:border-white/[0.03] shadow-inner">
                           <div className="w-20 h-20 rounded-full bg-white dark:bg-apple-near-black flex items-center justify-center mx-auto mb-6 shadow-sm">
                             <MessageSquare className="w-8 h-8 text-apple-near-black/20 dark:text-white/20" />
                           </div>
@@ -359,22 +356,24 @@ export default function ApplicationDetails({
                             className="relative pl-12 before:absolute before:left-0 before:top-4 before:bottom-0 before:w-[2px] before:bg-apple-blue/10 last:before:hidden"
                           >
                              {/* Timeline Node */}
-                             <div className="absolute left-[-5px] top-3 w-[12px] h-[12px] rounded-full bg-apple-blue shadow-[0_0_15px_rgba(0,113,227,0.5)]" />
+                             <div className="absolute left-[-5px] top-2 w-[12px] h-[12px] rounded-full bg-apple-blue shadow-[0_0_15px_rgba(0,113,227,0.5)]" />
                              
-                             <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-6 md:p-10 group hover:shadow-apple transition-all duration-500">
-                                <div className="flex items-start justify-between mb-8">
-                                   <div>
-                                      <h4 className="text-[24px] font-bold text-apple-near-black dark:text-white tracking-apple-tight mb-2">
-                                        Round {note.round_number}: {note.round_name}
-                                      </h4>
-                                      <div className="flex items-center gap-6">
-                                        <span className="text-[14px] font-bold text-apple-near-black/30 dark:text-white/30 uppercase tracking-[0.15em]">{note.interview_type}</span>
+                             <div className="apple-card bg-apple-gray dark:bg-zinc-900 border-none p-5 group hover:shadow-apple transition-all duration-500">
+                                 <div className="flex items-start justify-between mb-6">
+                                   <div className="space-y-2">
+                                      <div className="flex items-center gap-3">
+                                        <h4 className="text-[20px] font-bold text-apple-near-black dark:text-white tracking-apple-tight">
+                                          {note.round_name || `Round ${note.round_number}`}
+                                        </h4>
                                         {note.outcome && (
-                                          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-apple-near-black shadow-sm">
+                                          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-apple-near-black shadow-sm border border-black/5 dark:border-white/5">
                                             {outcomeIcons[note.outcome]}
-                                            <span className="text-[13px] font-bold tracking-apple-tight">{note.outcome}</span>
+                                            <span className="text-[11px] font-bold tracking-apple-tight uppercase">{note.outcome}</span>
                                           </div>
                                         )}
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <span className="text-[11px] font-black text-apple-near-black/20 dark:text-white/20 uppercase tracking-[0.2em]">{note.interview_type}</span>
                                       </div>
                                    </div>
                                    <button

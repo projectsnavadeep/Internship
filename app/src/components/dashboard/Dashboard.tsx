@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase,
-  Send,
-  MessageSquare,
   Award,
   Clock,
   AlertCircle,
@@ -12,7 +10,6 @@ import {
   TrendingUp,
   Sparkles
 } from 'lucide-react';
-import { StatsCard } from './StatsCard';
 import { StatusChart } from './StatusChart';
 import { MonthlyChart } from './MonthlyChart';
 import { RecentApplications } from './RecentApplications';
@@ -183,13 +180,6 @@ export default function Dashboard({ applications, reminders, stats, profile, onN
         </motion.div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard title="Pipeline Total" value={stats.total_applications} icon={<Briefcase className="w-6 h-6" />} color="#141413" delay={0} />
-        <StatsCard title="Active Applied" value={stats.applied_count}       icon={<Send className="w-6 h-6" />}          color="#141413" delay={0.05} />
-        <StatsCard title="Under Review"   value={stats.interview_count}     icon={<MessageSquare className="w-6 h-6" />}  color="#CF4500" delay={0.1} />
-        <StatsCard title="Total Offers"   value={stats.offer_count}         icon={<Award className="w-6 h-6" />}          color="#10b981" delay={0.15} />
-      </div>
 
       {/* Charts */}
       {stats.total_applications > 0 && (
