@@ -108,7 +108,7 @@ export default function ApplicationDetails({
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-apple-gray dark:bg-zinc-800 flex items-center justify-center text-apple-near-black dark:text-white shadow-sm shrink-0">
-                    <Building2 size={24} md:size={28} strokeWidth={1.5} />
+                    <Building2 className="w-6 h-6 md:w-7 md:h-7" strokeWidth={1.5} />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
