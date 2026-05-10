@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, Component } from 'react';
+import type { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -6,6 +7,51 @@ import { AuthForm } from '@/components/auth/AuthForm';
 import { LoadingView } from '@/components/shared/LoadingView';
 import { FullScreenLoader } from '@/components/shared/PremiumLoader';
 import { useAuth } from '@/hooks/useAuth';
+
+// ── Chunk Error Boundary ────────────────────────────────────────────────────
+// Catches "Failed to fetch dynamically imported module" errors caused by stale
+// CDN/browser cache after a new Render deploy changes the chunk hash.
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error) {
+    // Auto-reload once for chunk fetch errors (stale cache recovery)
+    if (error.message?.includes('dynamically imported module') || error.message?.includes('Failed to fetch')) {
+      const reloadKey = 'chunk_reload_attempted';
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+        return;
+      }
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-3xl">⚠️</div>
+          <div>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Page failed to load.</h2>
+            <p className="text-sm text-zinc-500 max-w-xs">A module failed to load, likely due to a recent update. Reloading fixes this.</p>
+          </div>
+          <button
+            onClick={() => { sessionStorage.removeItem('chunk_reload_attempted'); window.location.reload(); }}
+            className="px-8 py-3 rounded-2xl bg-apple-blue text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all"
+          >
+            Reload Application
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 // Lazy load heavy components
 const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
@@ -495,9 +541,11 @@ function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
-              <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>
-                {renderContent()}
-              </Suspense>
+              <ChunkErrorBoundary>
+                <Suspense fallback={<LoadingView message={`Loading ${activeTab}...`} />}>
+                  {renderContent()}
+                </Suspense>
+              </ChunkErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </div>

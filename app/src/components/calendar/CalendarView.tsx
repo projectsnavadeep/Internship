@@ -29,9 +29,6 @@ export default function CalendarView({ applications, reminders, userId, onRefres
     description: ''
   });
 
-  // ── EARLY RETURN AFTER ALL HOOKS ──
-  if (loading) return <CalendarSkeleton />;
-
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -39,44 +36,7 @@ export default function CalendarView({ applications, reminders, userId, onRefres
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
-
-  const getEventsForDate = (date: Date) => {
-    const dateStr = date.toLocaleDateString('en-CA'); // 'YYYY-MM-DD' local time
-    
-    const apps = applications.filter(app => {
-      if (app.applied_date && new Date(app.applied_date).toLocaleDateString('en-CA') === dateStr) return true;
-      if (app.deadline_date && new Date(app.deadline_date).toLocaleDateString('en-CA') === dateStr) return true;
-      if (app.interview_date) {
-        const interviewDate = new Date(app.interview_date).toLocaleDateString('en-CA');
-        return interviewDate === dateStr;
-      }
-      return false;
-    });
-
-    const rems = reminders.filter(reminder => {
-      const reminderDate = new Date(reminder.reminder_date).toLocaleDateString('en-CA');
-      return reminderDate === dateStr;
-    });
-
-    return { applications: apps, reminders: rems };
-  };
-
-  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : { applications: [], reminders: [] };
-
+  // ── useMemo MUST be before any early return (Rules of Hooks) ──
   const calendarDays = useMemo(() => {
     const days: { date: number; isCurrentMonth: boolean; dateObj: Date }[] = [];
 
@@ -107,6 +67,44 @@ export default function CalendarView({ applications, reminders, userId, onRefres
 
     return days;
   }, [year, month, firstDayOfMonth, daysInMonth, daysInPrevMonth]);
+
+  // ── EARLY RETURN AFTER ALL HOOKS ──
+  if (loading) return <CalendarSkeleton />;
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const getEventsForDate = (date: Date) => {
+    const dateStr = date.toLocaleDateString('en-CA'); // 'YYYY-MM-DD' local time
+    const apps = applications.filter(app => {
+      if (app.applied_date && new Date(app.applied_date).toLocaleDateString('en-CA') === dateStr) return true;
+      if (app.deadline_date && new Date(app.deadline_date).toLocaleDateString('en-CA') === dateStr) return true;
+      if (app.interview_date) {
+        const interviewDate = new Date(app.interview_date).toLocaleDateString('en-CA');
+        return interviewDate === dateStr;
+      }
+      return false;
+    });
+    const rems = reminders.filter(reminder => {
+      const reminderDate = new Date(reminder.reminder_date).toLocaleDateString('en-CA');
+      return reminderDate === dateStr;
+    });
+    return { applications: apps, reminders: rems };
+  };
+
+  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : { applications: [], reminders: [] };
 
   const isToday = (date: Date) => {
     const today = new Date();

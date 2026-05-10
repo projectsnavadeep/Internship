@@ -108,6 +108,11 @@ const trace = (action: string, payload: any) => {
  * operation without a valid, verified auth UID.
  */
 export const getUserOrFail = async () => {
+  // Fast path: check cached session first (avoids network round-trip)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) return session.user;
+
+  // Slow path: verify with server (handles edge cases like session expiry)
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
     console.error("AUTH FAILURE: No active session found during save attempt.");

@@ -15,7 +15,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Stable chunk names prevent "Failed to fetch dynamically imported module"
+        // errors caused by stale browser/CDN cache after each Render deploy.
+        chunkFileNames: 'assets/[name].js',
+        entryFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
         manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
           'vendor-framer': ['framer-motion'],
           'vendor-recharts': ['recharts'],
           'vendor-lucide': ['lucide-react'],
