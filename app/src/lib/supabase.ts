@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
-// ============================================
+// ============================================ 
 // SESSION PERSISTENCE & MULTI-TAB SYNC
 // ============================================
 const AUTH_KEY = 'internship-auth-token';
