@@ -1,5 +1,5 @@
 -- ============================================
--- DOCUMENT UPLOAD SYSTEM RECOVERY SCRIPT
+-- DOCUMENT UPLOAD SYSTEM RECOVERY SCRIPT 
 -- ============================================
 -- This script ensures the documents table and storage bucket
 -- have explicit, robust permissions for end-users.
