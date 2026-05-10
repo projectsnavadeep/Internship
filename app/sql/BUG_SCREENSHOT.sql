@@ -4,7 +4,7 @@
 -- Safe to run on existing data (nullable column).
 -- ============================================
 
--- 1. Add screenshot_url column (no-op if already exists)
+-- 1. Add screenshot_url column (no-op if already exists) 
 DO $$
 BEGIN
     IF NOT EXISTS (
