@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 // ── Chunk Error Boundary ────────────────────────────────────────────────────
 // Catches "Failed to fetch dynamically imported module" errors caused by stale
-// CDN/browser cache after a new Render deploy changes the chunk hash.
+// CDN/browser cache after a new Render deploy changes the chunk hash. 
 class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
