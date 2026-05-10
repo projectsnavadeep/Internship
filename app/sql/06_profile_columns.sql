@@ -4,7 +4,7 @@
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS avatar_url text,
   ADD COLUMN IF NOT EXISTS university text,
-  ADD COLUMN IF NOT EXISTS major text,
+  ADD COLUMN IF NOT EXISTS major text, 
   ADD COLUMN IF NOT EXISTS graduation_year integer,
   ADD COLUMN IF NOT EXISTS dob date,
   ADD COLUMN IF NOT EXISTS merit text,
