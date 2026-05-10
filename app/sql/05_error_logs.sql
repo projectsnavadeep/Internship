@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS public.error_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-  user_email text,
+  user_email text, 
   user_name text,
   role text DEFAULT 'system' CHECK (role IN ('student', 'admin', 'system')),
   error_type text NOT NULL,
