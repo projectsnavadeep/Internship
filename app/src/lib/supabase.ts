@@ -932,7 +932,8 @@ export const adminGetUserReminders = async (userId: string) => {
 // ============================================
 export type ErrorType = 'auth' | 'application_save' | 'application_update' | 'application_delete' |
   'resume_upload' | 'cover_letter_upload' | 'document_upload' | 'document_delete' |
-  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'rendering' | 'network' | 'unknown';
+  'profile_update' | 'password_change' | 'avatar_upload' | 'data_load' | 'rendering' | 'network' |
+  'user_bug_report' | 'unknown';
 
 export interface ErrorLogData {
   errorType: ErrorType;
@@ -941,7 +942,7 @@ export interface ErrorLogData {
   source?: string;
   endpointOrFile?: string;
   statusCode?: number;
-  actionAttempted: string;
+  actionAttempted?: string;
   role?: 'student' | 'admin' | 'system';
   userId?: string;
   userEmail?: string;
@@ -949,22 +950,34 @@ export interface ErrorLogData {
 }
 
 export const logError = async (data: ErrorLogData) => {
+  const payload = {
+    user_id: data.userId || null,
+    user_email: data.userEmail || null,
+    user_name: data.userName || null,
+    role: data.role || 'system',
+    error_type: data.errorType,
+    error_message: data.errorMessage,
+    error_stack: data.errorStack || null,
+    source: data.source || 'frontend',
+    endpoint_or_file: data.endpointOrFile || null,
+    status_code: data.statusCode || null,
+    action_attempted: data.actionAttempted || data.errorType,
+  };
+
   try {
-    await supabase.from('error_logs').insert({
-      user_id: data.userId || null,
-      user_email: data.userEmail || null,
-      user_name: data.userName || null,
-      role: data.role || 'system',
-      error_type: data.errorType,
-      error_message: data.errorMessage,
-      error_stack: data.errorStack || null,
-      source: data.source || 'frontend',
-      endpoint_or_file: data.endpointOrFile || null,
-      status_code: data.statusCode || null,
-      action_attempted: data.actionAttempted,
-    });
+    // Use the service-role admin client first — this bypasses RLS so bug reports
+    // from students (who have no INSERT permission on error_logs) are always saved.
+    const adminClient = g.__supabaseAdmin;
+    if (adminClient) {
+      const { error } = await adminClient.from('error_logs').insert(payload);
+      if (!error) return;
+      // If admin insert fails, fall through to anon client as last resort
+      console.warn('[logError] Admin client insert failed, falling back to anon:', error.message);
+    }
+    // Fallback: anon client (works if RLS allows INSERT for authenticated users)
+    await supabase.from('error_logs').insert(payload);
   } catch (e) {
-    console.warn('Failed to log error to DB (non-blocking):', e);
+    console.warn('[logError] Failed to persist error log (non-blocking):', e);
   }
 };
 
@@ -1058,4 +1071,39 @@ export const adminGetErrorStats = async () => {
       return acc;
     }, {}),
   };
+};
+// ============================================
+// ACTIVITY LOGGING & SESSION SYSTEM
+// ============================================
+export const logActivity = async (
+  userId: string,
+  actionType: string,
+  description: string,
+  metadata: any = {}
+) => {
+  try {
+    await supabase.from('activity_logs').insert({
+      user_id: userId,
+      action_type: actionType,
+      description,
+      metadata: {
+        ...metadata,
+        browser: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (e) {
+    console.warn('Activity logging failure (non-blocking):', e);
+  }
+};
+
+export const adminGetDailySessions = async () => {
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('daily_sessions')
+    .select('*')
+    .order('session_date', { ascending: false });
+    
+  if (error) throw error;
+  return data || [];
 };

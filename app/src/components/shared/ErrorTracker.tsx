@@ -24,11 +24,14 @@ export class ErrorTracker extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     
-    // Auto-reload once for dynamic import failures (often chunk hash mismatch)
+    // Auto-reload for dynamic import failures (chunk hash mismatch or Vite cache)
     if (error.message && error.message.includes('Failed to fetch dynamically imported module')) {
-      const isReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
-      if (!isReloaded) {
-        sessionStorage.setItem('chunk_load_error_reloaded', 'true');
+      const reloadCount = parseInt(sessionStorage.getItem('chunk_load_error_count') || '0', 10);
+      
+      // Allow up to 3 automatic hot-reloads to bust cache before showing the error UI
+      if (reloadCount < 3) {
+        sessionStorage.setItem('chunk_load_error_count', (reloadCount + 1).toString());
+        // Force a hard reload from the server to bypass browser cache
         window.location.reload();
         return;
       }
@@ -46,6 +49,8 @@ export class ErrorTracker extends Component<Props, State> {
   }
 
   private handleReset = () => {
+    // Clear the error count so the system can try auto-reloading again
+    sessionStorage.removeItem('chunk_load_error_count');
     window.location.reload();
   };
 

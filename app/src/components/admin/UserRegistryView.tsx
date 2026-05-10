@@ -23,14 +23,17 @@ import {
   adminGetAllUsers, 
   adminGetUserInternships,
   adminGetUserReminders,
-  signUp
+  signUp,
+  logActivity
 } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { sendWelcomeEmail, sendCustomEmail } from '@/lib/email';
 import type { UserActivity } from '@/types';
 import { toast } from 'sonner';
 import { PremiumLoader } from '@/components/shared/PremiumLoader';
 
 export default function UserRegistryView() {
+  const { user: adminUser } = useAuth();
   const [users, setUsers] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [userFilter, setUserFilter] = useState('');
@@ -51,6 +54,12 @@ export default function UserRegistryView() {
     message: 'This is a demo broadcasting email.\nIf you receive this email, please ignore.\n\nNote: The email broadcasting system is now LIVE.\nVisit the platform: https://internship-0sf2.onrender.com/' 
   });
   const [broadcastProgress, setBroadcastProgress] = useState<number | null>(null);
+  
+  // Manual Email Targeting State
+  const [showManualEmailModal, setShowManualEmailModal] = useState(false);
+  const [manualEmailContent, setManualEmailContent] = useState({ subject: '', message: '' });
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [sendingManualEmail, setSendingManualEmail] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -144,6 +153,13 @@ export default function UserRegistryView() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setShowManualEmailModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-zinc-800 text-apple-near-black dark:text-white font-bold text-[15px] shadow-lg border border-black/5 hover:scale-105 transition-all"
+          >
+            <Mail size={18} className="text-indigo-500" />
+            <span>Compose Email</span>
+          </button>
           <button 
             onClick={() => setShowBroadcastModal(true)}
             disabled={sendingBulkEmail || users.length === 0}
@@ -513,6 +529,9 @@ export default function UserRegistryView() {
                                     );
                                     if (success) {
                                       toast.success("Welcome email dispatched.");
+                                      if (adminUser) {
+                                        logActivity(adminUser.id, 'ADMIN_EMAIL_SENT', `Sent onboarding email to ${selectedUserDetail.full_name}`, { targetUserId: selectedUserDetail.user_id, type: 'welcome' });
+                                      }
                                       loadUsers();
                                     } else {
                                       toast.error("Failed to dispatch email.");
@@ -555,6 +574,9 @@ export default function UserRegistryView() {
                                 const { adminDeleteUser } = await import('@/lib/supabase');
                                 await adminDeleteUser(selectedUserDetail.user_id, wipe);
                                 toast.success("User successfully removed from system.");
+                                if (adminUser) {
+                                  logActivity(adminUser.id, 'ADMIN_USER_DELETE', `Terminated access for ${selectedUserDetail.full_name}`, { targetUserId: selectedUserDetail.user_id, wipeLevel: wipe ? 2 : 1 });
+                                }
                                 setSelectedUserDetail(null);
                                 loadUsers();
                               } catch (err) {
@@ -596,7 +618,10 @@ export default function UserRegistryView() {
                           const data = await signUp(newUser.email, newUser.password, newUser.fullName);
                           toast.success("Account initialized successfully.");
                           if (data?.user) {
-                            await sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
+                             if (adminUser) {
+                               logActivity(adminUser.id, 'ADMIN_USER_CREATE', `Manually onboarded user: ${newUser.fullName}`, { targetUserId: data.user.id, email: newUser.email });
+                             }
+                             await sendWelcomeEmail(data.user.id, newUser.email, newUser.fullName, newUser.password);
                           }
                           setShowAddUserModal(false);
                           setNewUser({ fullName: '', email: '', password: '' });
@@ -707,6 +732,9 @@ export default function UserRegistryView() {
 
                       console.log('[🏁] Broadcast Finished. Total success:', successCount);
                       toast.success(`Broadcast Complete: ${successCount}/${users.length} delivered.`);
+                      if (adminUser) {
+                        logActivity(adminUser.id, 'ADMIN_BROADCAST_SENT', `Sent system-wide broadcast to ${successCount} users`, { subject: broadcastContent.subject, count: successCount });
+                      }
                       setSendingBulkEmail(false);
                       setBroadcastProgress(null);
                       setShowBroadcastModal(false);
@@ -721,6 +749,115 @@ export default function UserRegistryView() {
                         : 'Send Broadcast Now'
                       }
                     </span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showManualEmailModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowManualEmailModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-[24px] p-6 shadow-2xl border border-black/5 dark:border-white/5">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black dark:text-white flex items-center gap-2">
+                    <Mail className="text-indigo-500" size={20} /> Targeted Email
+                  </h3>
+                  <p className="text-xs text-apple-near-black/40 font-medium">Send a custom email to selected users</p>
+                </div>
+                <button onClick={() => {
+                  setShowManualEmailModal(false);
+                  setManualEmailContent({ subject: '', message: '' });
+                  setSelectedUserIds([]);
+                }} className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-all dark:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Select Recipients</label>
+                  <div className="max-h-32 overflow-y-auto bg-black/3 dark:bg-white/5 rounded-xl border border-transparent p-2 space-y-1">
+                    {users.map(u => (
+                      <label key={u.user_id} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-white dark:hover:bg-zinc-800 cursor-pointer transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedUserIds.includes(u.user_id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedUserIds(prev => [...prev, u.user_id]);
+                            else setSelectedUserIds(prev => prev.filter(id => id !== u.user_id));
+                          }}
+                          className="w-3.5 h-3.5 rounded text-indigo-500 focus:ring-indigo-500"
+                        />
+                        <span className="text-[13px] font-bold dark:text-white">{u.full_name} <span className="text-[10px] font-normal opacity-50">({u.email})</span></span>
+                      </label>
+                    ))}
+                    {users.length === 0 && <div className="p-4 text-center text-sm text-zinc-500">No users found.</div>}
+                  </div>
+                  <div className="text-[10px] text-indigo-500 font-bold ml-1">{selectedUserIds.length} user(s) selected</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Subject</label>
+                  <input 
+                    type="text" 
+                    value={manualEmailContent.subject} 
+                    onChange={e => setManualEmailContent({...manualEmailContent, subject: e.target.value})}
+                    placeholder="Enter email subject..."
+                    className="w-full px-4 py-2.5 rounded-xl bg-black/3 dark:bg-white/5 border-none outline-none focus:ring-2 focus:ring-indigo-500/20 dark:text-white font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-apple-near-black/30 ml-1">Message</label>
+                  <textarea 
+                    rows={4} 
+                    value={manualEmailContent.message} 
+                    onChange={e => setManualEmailContent({...manualEmailContent, message: e.target.value})}
+                    placeholder="Type your message here..."
+                    className="w-full px-4 py-2.5 rounded-xl bg-black/3 dark:bg-white/5 border-none outline-none focus:ring-2 focus:ring-indigo-500/20 dark:text-white font-medium resize-none"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    onClick={async () => {
+                      if (selectedUserIds.length === 0 || !manualEmailContent.subject || !manualEmailContent.message) {
+                        toast.error("Please select recipients and fill all fields.");
+                        return;
+                      }
+                      setSendingManualEmail(true);
+                      let count = 0;
+                      try {
+                        for (const userId of selectedUserIds) {
+                          const target = users.find(u => u.user_id === userId);
+                          if (target) {
+                            await sendCustomEmail(target.email, target.full_name, manualEmailContent.subject, manualEmailContent.message);
+                            count++;
+                          }
+                        }
+                        toast.success(`Custom email sent to ${count} user(s).`);
+                        if (adminUser) {
+                          logActivity(adminUser.id, 'ADMIN_MANUAL_EMAIL', `Sent custom email to ${count} users`, { subject: manualEmailContent.subject });
+                        }
+                        setShowManualEmailModal(false);
+                        setManualEmailContent({ subject: '', message: '' });
+                        setSelectedUserIds([]);
+                      } catch (err) {
+                        toast.error("Failed to send emails.");
+                      } finally {
+                        setSendingManualEmail(false);
+                      }
+                    }}
+                    disabled={sendingManualEmail}
+                    className="w-full py-3.5 rounded-xl bg-indigo-600 text-white font-black text-[15px] shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Send size={20} />
+                    <span>{sendingManualEmail ? 'Sending...' : 'Send Email'}</span>
                   </button>
                 </div>
               </div>

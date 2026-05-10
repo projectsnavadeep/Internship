@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { adminGetStats } from '@/lib/supabase';
 
-export function SecurityConsole() {
+export default function SecurityConsole() {
   useEffect(() => {
     adminGetStats();
   }, []);

@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Users, 
   Briefcase, 
   Activity, 
   TrendingUp, 
-
   Shield,
   Zap,
   Terminal,
@@ -17,81 +16,9 @@ import {
   adminGetRecentApplications 
 } from '@/lib/supabase';
 import type { AdminStats, AdminRecentApplication } from '@/types';
-import { PremiumLoader, InlineLoader } from '@/components/shared/PremiumLoader';
+import { PremiumLoader } from '@/components/shared/PremiumLoader';
 
 
-
-// High-end HUD loading sequence
-const AdminHUDIntro = ({ onComplete }: { onComplete: () => void }) => {
-  return (
-    <motion.div 
-      className="fixed inset-0 z-[100] bg-white dark:bg-zinc-950 flex flex-col items-center justify-center pointer-events-none"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: 0 }}
-      transition={{ duration: 0.8, delay: 2.2 }}
-      onAnimationComplete={onComplete}
-    >
-      <div className="w-[400px] space-y-6">
-        <div className="flex items-center justify-between text-[10px] font-black tracking-widest text-zinc-400 mb-2">
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>PRTX_AUTH_KEY_VERIFIED</motion.span>
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>SECURE_LAYER_07</motion.span>
-        </div>
-        
-        <div className="h-[2px] w-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden relative">
-          <motion.div 
-            className="absolute top-0 left-0 h-full bg-apple-blue"
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
-          />
-        </div>
-
-        <motion.div 
-          className="flex flex-col items-center gap-4 mt-8"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <div className="flex items-center gap-3">
-               <InlineLoader size={24} />
-             <span className="text-xl font-bold tracking-tighter dark:text-white">Authorizing Master Instance...</span>
-          </div>
-          <div className="grid grid-cols-4 gap-2 w-full mt-4">
-             {[...Array(4)].map((_, i) => (
-               <motion.div 
-                 key={i}
-                 className="h-1 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden"
-               >
-                 <motion.div 
-                   className="h-full bg-apple-blue/40"
-                   initial={{ scaleX: 0 }}
-                   animate={{ scaleX: 1 }}
-                   transition={{ delay: 1 + (i * 0.2), duration: 0.4 }}
-                 />
-               </motion.div>
-             ))}
-          </div>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 0, 1, 0, 1] }}
-          transition={{ delay: 1.8, duration: 0.4 }}
-          className="mt-8 text-center"
-        >
-          <span className="px-3 py-1 bg-apple-blue text-white text-[10px] font-black uppercase tracking-widest rounded-md">Access Granted</span>
-        </motion.div>
-      </div>
-      
-      {/* Decorative scanning lines */}
-      <motion.div 
-        className="absolute top-0 left-0 w-full h-[2px] bg-apple-blue/10"
-        animate={{ top: ["0%", "100%"] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-      />
-    </motion.div>
-  );
-};
 
 // Radar component for visual trace
 const RadarScanner = ({ activeUsers = 0 }: { activeUsers?: number }) => {
@@ -143,17 +70,13 @@ interface AdminOverviewProps {
   onNavigate?: (tab: string) => void;
 }
 
-export function AdminOverview({ onNavigate }: AdminOverviewProps) {
+export default function AdminOverview({ onNavigate }: AdminOverviewProps) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentApps, setRecentApps] = useState<AdminRecentApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     loadData();
-    // Only show intro once per session/mount
-    const hasSeenIntro = sessionStorage.getItem('admin_intro_seen');
-    if (hasSeenIntro) setShowIntro(false);
   }, []);
 
   const loadData = async () => {
@@ -168,14 +91,8 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
     } catch (err) {
       console.error('Failed to load overview data:', err);
     } finally {
-      // Don't kill loading spinner until intro would be ready
-      setTimeout(() => setLoading(false), 200);
+      setLoading(false);
     }
-  };
-
-  const handleIntroComplete = () => {
-    setShowIntro(false);
-    sessionStorage.setItem('admin_intro_seen', 'true');
   };
 
   if (loading) {
@@ -188,10 +105,6 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
 
   return (
     <>
-      <AnimatePresence>
-        {showIntro && <AdminHUDIntro onComplete={handleIntroComplete} />}
-      </AnimatePresence>
-
       <div className="space-y-12 pb-20">
         <motion.div
           initial={{ opacity: 0, x: -10 }}

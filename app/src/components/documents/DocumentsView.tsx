@@ -47,8 +47,8 @@ const documentIcons: Record<string, React.ReactNode> = {
 
 const documentTypes = ['Resume', 'Cover Letter', 'Transcript', 'Portfolio', 'Certificate', 'Other'];
 
-export function DocumentsView({ userId, loading }: DocumentsViewProps) {
-  if (loading) return <DocumentsSkeleton />;
+export default function DocumentsView({ userId, loading }: DocumentsViewProps) {
+  // ── ALL HOOKS BEFORE ANY EARLY RETURN ──
   const [docs, setDocs] = useState<DocumentInterface[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -200,6 +200,9 @@ export function DocumentsView({ userId, loading }: DocumentsViewProps) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
+
+  // ── EARLY RETURNS AFTER ALL HOOKS ──
+  if (loading) return <DocumentsSkeleton />;
 
   // Show login prompt if no userId
   if (!userId) {

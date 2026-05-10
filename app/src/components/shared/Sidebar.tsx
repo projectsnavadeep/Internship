@@ -4,9 +4,11 @@ import {
   Menu,
   X,
   LogOut,
+  Bug,
 } from 'lucide-react';
 
 import { Logo } from './Logo';
+import { BugReportModal } from './BugReportModal';
 
 interface SidebarProps {
   activeTab: string;
@@ -16,6 +18,7 @@ interface SidebarProps {
   collapsed?: boolean;
   setCollapsed?: (collapsed: boolean) => void;
   isAdmin?: boolean;
+  profileData?: any;
 }
 
 const studentNavItems = [
@@ -29,15 +32,17 @@ const studentNavItems = [
 const adminNavItems = [
   { id: 'admin', label: 'Global Analytics' },
   { id: 'users', label: 'User Registry' },
+  { id: 'sessions', label: 'Session Control' },
   { id: 'error-logs', label: 'Error Logs' },
   { id: 'security', label: 'Security & Compliance' },
   { id: 'admin-settings', label: 'System Console' },
 ];
 
 
-export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin, profileData }: SidebarProps) {
   const navItems = isAdmin ? adminNavItems : studentNavItems;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBugModal, setShowBugModal] = useState(false);
 
   const homeTab = isAdmin ? 'admin' : 'dashboard';
 
@@ -76,11 +81,13 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
                     {item.label}
                   </span>
                   {isActive && (
-                    <motion.div
-                      layoutId="active-nav-line"
-                      className="absolute -bottom-[32px] w-full h-[2px] bg-apple-near-black dark:bg-white"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
+                    <div className="absolute -bottom-2 left-0 right-0 flex justify-center pointer-events-none">
+                      <motion.div
+                        layoutId="active-nav-line"
+                        className="w-[80%] h-[2.5px] bg-apple-near-black dark:bg-white rounded-full"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    </div>
                   )}
                 </button>
               );
@@ -104,6 +111,19 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
                 <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
               </svg>
             </button>
+
+            {!isAdmin && (
+              <div className="flex items-center gap-3 border-r border-black/10 dark:border-white/10 pr-6 mr-0">
+                <button
+                  onClick={() => setShowBugModal(true)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                  title="Report a Bug"
+                >
+                  <Bug size={20} />
+                </button>
+
+              </div>
+            )}
 
             <button
               onClick={onLogout}
@@ -180,6 +200,17 @@ export function Sidebar({ activeTab, onTabChange, onLogout, isAdmin }: SidebarPr
               </button>
             </nav>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showBugModal && (
+          <BugReportModal 
+            onClose={() => setShowBugModal(false)} 
+            userId={profileData?.id}
+            userEmail={profileData?.email}
+            userName={profileData?.full_name}
+          />
         )}
       </AnimatePresence>
     </>

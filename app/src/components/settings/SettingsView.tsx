@@ -26,7 +26,7 @@ interface SettingsViewProps {
   onLogout?: () => void;
 }
 
-export function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout }: SettingsViewProps) {
+export default function SettingsView({ userId, userName = 'User', userEmail = '', userRole = 'student', profileData, onLogout }: SettingsViewProps) {
   const [profile, setProfile] = useState({
     fullName: userName,
     email: userEmail,
@@ -56,6 +56,21 @@ export function SettingsView({ userId, userName = 'User', userEmail = '', userRo
     interviewReminders: true,
     weeklyDigest: false,
   });
+
+  useEffect(() => {
+    if (!isEditingProfile) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'You have unsaved profile changes. Are you sure you wish to leave?';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isEditingProfile]);
 
   useEffect(() => {
     if (profileData) {

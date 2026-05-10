@@ -8,18 +8,19 @@ import { FullScreenLoader } from '@/components/shared/PremiumLoader';
 import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load heavy components
-const Dashboard = lazy(() => import('@/components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
-const ApplicationList = lazy(() => import('@/components/applications/ApplicationList').then(m => ({ default: m.ApplicationList })));
-const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal').then(m => ({ default: m.ApplicationModal })));
-const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails').then(m => ({ default: m.ApplicationDetails })));
-const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
-const DocumentsView = lazy(() => import('@/components/documents/DocumentsView').then(m => ({ default: m.DocumentsView })));
-const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
-const AdminOverview = lazy(() => import('@/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const Dashboard = lazy(() => import('@/components/dashboard/Dashboard'));
+const ApplicationList = lazy(() => import('@/components/applications/ApplicationList'));
+const ApplicationModal = lazy(() => import('@/components/applications/ApplicationModal'));
+const ApplicationDetails = lazy(() => import('@/components/applications/ApplicationDetails'));
+const CalendarView = lazy(() => import('@/components/calendar/CalendarView'));
+const DocumentsView = lazy(() => import('@/components/documents/DocumentsView'));
+const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
+const AdminOverview = lazy(() => import('@/components/admin/AdminOverview'));
 const UserRegistryView = lazy(() => import('@/components/admin/UserRegistryView'));
-const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole').then(m => ({ default: m.SecurityConsole })));
-const AdminSettings = lazy(() => import('@/components/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
-const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView').then(m => ({ default: m.ErrorLogsView })));
+const SecurityConsole = lazy(() => import('@/components/admin/SecurityConsole'));
+const AdminSettings = lazy(() => import('@/components/admin/AdminSettings'));
+const ErrorLogsView = lazy(() => import('@/components/admin/ErrorLogsView'));
+const SessionControlView = lazy(() => import('@/components/admin/SessionControlView'));
 import { 
   getApplications, 
   updateApplication, 
@@ -30,7 +31,8 @@ import {
   createInterviewNote,
   deleteInterviewNote,
   getProfile,
-  logError
+  logError,
+  logActivity
 } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import type { Application, ApplicationStats, Reminder, InterviewNote, Profile } from '@/types';
@@ -75,25 +77,14 @@ function App() {
       }
     };
 
-    // Exit Guard / Accidental Closure Prevention
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (activeTab !== 'dashboard') {
-        e.preventDefault();
-        e.returnValue = 'Professional progress detected. Are you sure you wish to disconnect?';
-        return e.returnValue;
-      }
-    };
-
     // Push initial history state to prevent immediate tab closing on first "Back" gesture
     if (window.history.length <= 1) {
       window.history.pushState({ initialized: true }, '');
     }
 
     window.addEventListener('popstate', handlePopState);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeTab]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -184,6 +175,11 @@ function App() {
       const u = await login(email, password);
       toast.success('Welcome back!');
       
+      // Log successful login
+      if (u) {
+        logActivity(u.id, 'LOGIN', `User ${email} signed into the platform`, { method: 'email-password' });
+      }
+      
       const isAdminEmail = email === 'admin@gmail.com' || email === 'navadeepsripathi2@gmail.com';
       
       if (u?.role === 'admin' || isAdminEmail) {
@@ -202,6 +198,9 @@ function App() {
   const handleRegister = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       const data = await register(email, password, fullName);
+      if (data) {
+        logActivity(data.id, 'REGISTRATION', `New account created for ${fullName}`, { email });
+      }
       if (email === 'admin@gmail.com' || (data?.role === 'admin')) {
         setActiveTab('admin');
         toast.success('Admin Console access granted.');
@@ -239,6 +238,11 @@ function App() {
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newStatus as any } : a));
       if (viewingApp?.id === id) setViewingApp({ ...viewingApp, status: newStatus as any });
       toast.success(`Status updated to ${newStatus}`);
+      
+      if (user) {
+        const app = applications.find(a => a.id === id);
+        logActivity(user.id, 'APPLICATION_UPDATE', `Updated ${app?.company_name} status to ${newStatus}`, { applicationId: id, status: newStatus });
+      }
       loadData();
     } catch (error: any) {
       console.error('[❌] Status Update Failed:', error);
@@ -266,10 +270,15 @@ function App() {
 
   const handleDeleteApplication = useCallback(async (id: string) => {
     try {
+      const appToDelete = applications.find(a => a.id === id);
       await deleteApplication(id);
       setApplications(apps => apps.filter(a => a.id !== id));
       setViewingApp(null);
       toast.success('Application deleted!');
+      
+      if (user && appToDelete) {
+        logActivity(user.id, 'APPLICATION_DELETE', `Deleted application for ${appToDelete.company_name}`, { applicationId: id });
+      }
       loadData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete application');
@@ -358,7 +367,7 @@ function App() {
         return (
           <ApplicationList
             applications={applications}
-            onEdit={(app) => { setEditingApp(app); setShowAppModal(true); }}
+            onEdit={(app: Application) => { setEditingApp(app); setShowAppModal(true); }}
             onDelete={handleDeleteApplication}
             onView={handleViewApplication}
             onAdd={() => { setEditingApp(null); setShowAppModal(true); }}
@@ -402,6 +411,9 @@ function App() {
       case 'error-logs':
         if (!isAdmin) return null;
         return <ErrorLogsView adminId={user?.id} />;
+      case 'sessions':
+        if (!isAdmin) return null;
+        return <SessionControlView />;
     }
   };
 
@@ -467,6 +479,7 @@ function App() {
         collapsed={isSidebarCollapsed}
         setCollapsed={setIsSidebarCollapsed}
         isAdmin={isAdmin}
+        profileData={profile}
       />
 
       {/* Main Content */}
@@ -474,7 +487,7 @@ function App() {
         className="flex-1 min-h-screen p-4 md:px-8 mt-[100px] transition-all duration-300 w-full overflow-x-hidden pb-24 md:pb-8"
       >
         <div className="max-w-[1200px] mx-auto">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 10 }}

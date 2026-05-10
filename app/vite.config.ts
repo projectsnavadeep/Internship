@@ -1,4 +1,5 @@
-import path from "path"
+import path from "path" // Trigger Vite Server Restart
+
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 

@@ -37,8 +37,8 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
-  if (loading) return <ApplicationListSkeleton />;
+export default function ApplicationList({ applications, onEdit, onDelete, onView, onAdd, onStatusChange, loading }: ApplicationListProps) {
+  // ── ALL HOOKS BEFORE ANY EARLY RETURN ──
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('date');
@@ -78,6 +78,9 @@ export function ApplicationList({ applications, onEdit, onDelete, onView, onAdd,
 
     return filtered;
   }, [applications, searchQuery, statusFilter, sortBy]);
+
+  // ── EARLY RETURN AFTER ALL HOOKS ──
+  if (loading) return <ApplicationListSkeleton />;
 
   return (
     <div className="space-y-12 pb-20">

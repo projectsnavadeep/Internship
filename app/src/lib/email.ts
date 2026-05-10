@@ -102,8 +102,7 @@ export const sendCustomEmail = async (
             <hr style="border: none; border-top: 1px solid #f2f2f2; margin-bottom: 30px;" />
             
             <p style="color: #86868b; font-size: 12px; text-align: center;">
-              This is a custom broadcast from the InternTrack Administrative Team.<br />
-              (this is a test email, dont worry)
+              This is an official communication from the InternTrack Administrative Team.
             </p>
           </div>
         `,

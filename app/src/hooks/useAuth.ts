@@ -14,7 +14,7 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [roleLoading, setRoleLoading] = useState(false);
+  const roleLoading = false; // Stubbed out to remove unused setter warning
   
   const [hasSessionHint] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -23,10 +23,12 @@ export function useAuth() {
     return !!(ls || cookie);
   });
 
-  const fetchUserRole = useCallback(async (userId: string): Promise<UserRole> => {
+  const fetchUserRoleAsync = useCallback(async (userId: string): Promise<UserRole> => {
     try {
       const profile = await getProfile(userId);
-      return (profile?.role as UserRole) || 'student';
+      const role = (profile?.role as UserRole) || 'student';
+      localStorage.setItem(`role_${userId}`, role);
+      return role;
     } catch {
       return 'student';
     }
@@ -34,21 +36,28 @@ export function useAuth() {
 
   const hydrateUser = useCallback(async (userRecord: any) => {
     if (!userRecord) return null;
-    setRoleLoading(true);
-    try {
-      const role = await fetchUserRole(userRecord.id);
-      const authUser: AuthUser = {
-        id: userRecord.id,
-        email: userRecord.email,
-        user_metadata: userRecord.user_metadata,
-        role,
-      };
-      setUser(authUser);
-      return authUser;
-    } finally {
-      setRoleLoading(false);
-    }
-  }, [fetchUserRole]);
+    
+    // Fast path: use cached role to avoid blocking render
+    const cachedRole = localStorage.getItem(`role_${userRecord.id}`) as UserRole | null;
+    const initialRole = cachedRole || 'student';
+
+    const authUser: AuthUser = {
+      id: userRecord.id,
+      email: userRecord.email,
+      user_metadata: userRecord.user_metadata,
+      role: initialRole,
+    };
+    setUser(authUser);
+    
+    // Background update
+    fetchUserRoleAsync(userRecord.id).then(verifiedRole => {
+      if (verifiedRole !== initialRole) {
+        setUser(prev => prev ? { ...prev, role: verifiedRole } : null);
+      }
+    });
+
+    return authUser;
+  }, [fetchUserRoleAsync]);
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +68,19 @@ export function useAuth() {
         console.warn('[Auth] Initialization safety timeout');
         setLoading(false);
       }
-    }, hasSessionHint ? 5000 : 2000);
+    }, hasSessionHint ? 2000 : 500);
+
+    // Eagerly check session to bypass onAuthStateChange delays
+    getSession().then(async session => {
+      if (!mounted) return;
+      if (session?.user) {
+        await hydrateUser(session.user);
+        setLoading(false);
+        clearTimeout(safetyTimer);
+      }
+    }).catch(() => {
+       // Ignore, let onAuthStateChange handle it
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log(`[Auth] Event: ${event}`, session?.user?.id);
@@ -73,7 +94,8 @@ export function useAuth() {
           clearTimeout(safetyTimer);
         } else {
           // Token refresh or other updates
-          const role = user?.role || await fetchUserRole(session.user.id);
+          const cachedRole = localStorage.getItem(`role_${session.user.id}`) as UserRole | null;
+          const role = user?.role || cachedRole || 'student';
           setUser({
             id: session.user.id,
             email: session.user.email,
@@ -87,22 +109,9 @@ export function useAuth() {
         setLoading(false);
         clearTimeout(safetyTimer);
       } else if (event === 'INITIAL_SESSION') {
-        // No session found on startup. Check one last time.
-        try {
-           const fallbackSession = await getSession();
-           if (fallbackSession?.user && mounted) {
-              await hydrateUser(fallbackSession.user);
-           } else if (mounted) {
-              setUser(null);
-           }
-        } catch {
-           if (mounted) setUser(null);
-        } finally {
-           if (mounted) {
-              setLoading(false);
-              clearTimeout(safetyTimer);
-           }
-        }
+        // No session found on startup.
+        setLoading(false);
+        clearTimeout(safetyTimer);
       }
     });
 
@@ -111,7 +120,7 @@ export function useAuth() {
       subscription.unsubscribe();
       clearTimeout(safetyTimer);
     };
-  }, [hydrateUser, fetchUserRole, hasSessionHint, loading, user]);
+  }, [hydrateUser, hasSessionHint, loading, user]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await signIn(email, password);

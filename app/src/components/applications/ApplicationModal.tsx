@@ -17,7 +17,7 @@ interface ApplicationModalProps {
 const statuses: ApplicationStatus[] = ['Applied', 'Phone Screen', 'Interview', 'Technical', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'];
 const employmentTypes: EmploymentType[] = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
 
-export function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
+export default function ApplicationModal({ isOpen, onClose, onSave, application, userId }: ApplicationModalProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<Application>>({
     company_name: '',
@@ -36,6 +36,21 @@ export function ApplicationModal({ isOpen, onClose, onSave, application, userId 
     notes: '',
     rating: 1, // Default to 1 to avoid check constraint violations
   });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'You have unsaved application details. Are you sure you wish to leave?';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (application) {

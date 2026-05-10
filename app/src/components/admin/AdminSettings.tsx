@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import { InlineLoader } from '@/components/shared/PremiumLoader';
 
-export function AdminSettings() {
+export default function AdminSettings() {
   const [promoEmail, setPromoEmail] = useState('');
   const [promoting, setPromoting] = useState(false);
 

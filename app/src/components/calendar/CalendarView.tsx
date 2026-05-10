@@ -15,8 +15,8 @@ interface CalendarViewProps {
   loading?: boolean;
 }
 
-export function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
-  if (loading) return <CalendarSkeleton />;
+export default function CalendarView({ applications, reminders, userId, onRefresh, loading }: CalendarViewProps) {
+  // ── ALL HOOKS BEFORE ANY EARLY RETURN ──
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
@@ -28,6 +28,9 @@ export function CalendarView({ applications, reminders, userId, onRefresh, loadi
     type: 'Interview',
     description: ''
   });
+
+  // ── EARLY RETURN AFTER ALL HOOKS ──
+  if (loading) return <CalendarSkeleton />;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
