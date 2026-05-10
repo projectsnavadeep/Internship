@@ -200,6 +200,53 @@ export const getProfile = async (userId: string) => {
   return data;
 };
 
+export const updateSessionTime = async (userId: string, minutesToIncrement: number = 1) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('total_minutes_spent, today_minutes_spent, last_active_date')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const isNewDay = profile.last_active_date !== today;
+
+    const updates = {
+      total_minutes_spent: (profile.total_minutes_spent || 0) + minutesToIncrement,
+      today_minutes_spent: isNewDay ? minutesToIncrement : (profile.today_minutes_spent || 0) + minutesToIncrement,
+      last_active_date: today,
+    };
+
+    await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId);
+  } catch (e) {
+    console.warn('Session time sync failed:', e);
+  }
+};
+
+export const submitAppeal = async (userId: string, email: string, name: string, message: string) => {
+  try {
+    await logError({
+      errorType: 'user_bug_report',
+      errorMessage: `SECURITY APPEAL: ${message}`,
+      actionAttempted: 'account_appeal',
+      userId,
+      userEmail: email,
+      userName: name,
+      source: 'security_lock',
+      role: 'student'
+    });
+    return true;
+  } catch (e) {
+    console.error('Appeal submission failed:', e);
+    return false;
+  }
+};
+
 export const updateProfile = async (userId: string, profileData: Partial<any>) => {
   const { data, error } = await supabase
     .from('profiles')
