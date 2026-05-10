@@ -2,7 +2,7 @@
 -- 07_sessions.sql
 -- Unified Activity Logging and Daily Session Tracking.
 -- ============================================
-
+ 
 -- 1. Activity Logs Table
 CREATE TABLE IF NOT EXISTS public.activity_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
