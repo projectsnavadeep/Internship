@@ -7,7 +7,7 @@
 @layer base {
   :root {
     --background: 0 0% 100%; /* Crisp white */
-    --foreground: 0 0% 9%; /* Pure ink #171717 */
+    --foreground: 0 0% 9%; /* Pure ink #171717 */ 
     --card: 0 0% 100%; 
     --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
