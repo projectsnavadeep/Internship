@@ -2,7 +2,7 @@
  * DataCache.ts
  * In-memory cache for instant tab switching.
  * Data loads once, serves from cache on repeat visits, refreshes silently in background.
- */
+ */ 
 
 interface CacheEntry<T> {
   data: T;
